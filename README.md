@@ -239,5 +239,3 @@ Postman - API testing
 
 
 Git - Version control
-Postman - API testing
-Git - Version control
