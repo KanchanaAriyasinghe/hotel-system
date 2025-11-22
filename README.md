@@ -1,11 +1,20 @@
 🏨 Hotel Management System
-A comprehensive hotel management application built with React, Node.js, and MongoDB. This system handles guest bookings, staff management, room reservations, and hotel operations.
+A comprehensive hotel management application built with React, Node.js, and MongoDB. 
+This system handles guest bookings, staff management, room reservations, and hotel operations.
 
 ✨ Features
 For Guests
 
 ✅ Browse hotel gallery with multiple categories
+
+
+
+
 ✅ View available amenities
+
+
+
+
 ✅ Multi-step booking system
 ✅ Select rooms and amenities
 ✅ View pricing and calculate total cost
