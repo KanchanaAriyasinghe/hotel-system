@@ -1,13 +1,18 @@
 // frontend/src/App.js
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
-import LandingPage from './pages/LandingPage';
-import GalleryPage from './pages/GalleryPage';
-import Booking from './pages/Booking';
-import Dashboard from './pages/Dashboard';
-import Receptionist from './pages/Receptionist';
-import Housekeeper from './pages/Housekeeper';
+import LandingPage    from './pages/LandingPage';
+import GalleryPage    from './pages/GalleryPage';
+import Booking        from './pages/Booking';
+import Dashboard      from './pages/Dashboard';
+import Receptionist   from './pages/Receptionist';
+import Housekeeper    from './pages/Housekeeper';
+import AdminLayout    from './pages/admin/AdminLayout';      // ← shared sidebar
+import AdminDashboard from './pages/admin/AdminDashboard';
+import RoomsPage      from './pages/admin/RoomsPage';
+import RoomDetailPage from './pages/admin/RoomDetailPage';
+import ReservationsPage from './pages/admin/ReservationsPage';
+import UsersPage from './pages/admin/UsersPage';
 import './App.css';
 
 // Protected Route Component
@@ -20,47 +25,39 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Landing Page */}
-        <Route path="/" element={<LandingPage />} />
-
-        {/* Gallery Page */}
+        {/* ── Public ─────────────────────────────────────────── */}
+        <Route path="/"        element={<LandingPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/booking" element={<Booking />} />
 
-        {/* Booking Page */}
-  <Route path="/booking" element={<Booking />} />
+        {/* ── Non-admin protected ────────────────────────────── */}
+        <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/receptionist" element={<ProtectedRoute><Receptionist /></ProtectedRoute>} />
+        <Route path="/housekeeper"  element={<ProtectedRoute><Housekeeper /></ProtectedRoute>} />
 
-
-        {/* Dashboard - Protected (Admin) */}
-        <Route 
-          path="/dashboard" 
+        {/* ── Admin — all share the sidebar via AdminLayout ───── */}
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminLayout />
             </ProtectedRoute>
-          } 
-        />
+          }
+        >
+          {/* /admin  →  redirect to /admin/dashboard */}
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
 
-        {/* Receptionist - Protected */}
-        <Route 
-          path="/receptionist" 
-          element={
-            <ProtectedRoute>
-              <Receptionist />
-            </ProtectedRoute>
-          } 
-        />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="rooms"     element={<RoomsPage />} />
+          <Route path="rooms/:id" element={<RoomDetailPage />} />
 
-        {/* Housekeeper - Protected */}
-        <Route 
-          path="/housekeeper" 
-          element={
-            <ProtectedRoute>
-              <Housekeeper />
-            </ProtectedRoute>
-          } 
-        />
+          {/* Add future admin pages here — sidebar appears automatically */}
+          <Route path="reservations" element={<ReservationsPage />} />
+          <Route path="users"        element={<UsersPage />} />       
+          {/* <Route path="settings"     element={<SettingsPage />} />     */}
+        </Route>
 
-        {/* Catch all - redirect to home */}
+        {/* ── Catch-all ──────────────────────────────────────── */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

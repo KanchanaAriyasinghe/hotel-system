@@ -1,0 +1,295 @@
+/* AddStaffModal.css */
+
+/* ── Overlay ──────────────────────────────────────────────── */
+.astaff-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: astaff-fade-in 0.18s ease;
+}
+
+@keyframes astaff-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal shell ──────────────────────────────────────────── */
+.astaff-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow:
+    0 4px 6px -1px rgba(0,0,0,0.07),
+    0 24px 60px -8px rgba(15,23,42,0.22);
+  animation: astaff-slide-up 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes astaff-slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.astaff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.astaff-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.astaff-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.astaff-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.astaff-subtitle {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 2px 0 0;
+}
+
+.astaff-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.astaff-close:hover { background: #f1f5f9; color: #0f172a; }
+
+/* ── Banners ──────────────────────────────────────────────── */
+.astaff-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 500;
+}
+.astaff-banner--success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.astaff-banner--error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* ── Form ─────────────────────────────────────────────────── */
+.astaff-form {
+  padding: 20px 24px 24px;
+}
+
+.astaff-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.astaff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* Full-width single field row */
+.astaff-row > .astaff-field:only-child {
+  grid-column: 1 / -1;
+  max-width: calc(50% - 7px);
+}
+
+.astaff-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.astaff-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* ── Input wrapper (icon + input/select) ──────────────────── */
+.astaff-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.astaff-icon {
+  position: absolute;
+  left: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.astaff-input-wrap input,
+.astaff-input-wrap select {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #f8fafc;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.astaff-input-wrap input::placeholder { color: #cbd5e1; }
+
+.astaff-input-wrap input:focus,
+.astaff-input-wrap select:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.astaff-input-wrap input.err,
+.astaff-input-wrap select.err {
+  border-color: #ef4444;
+  background: #fff;
+}
+.astaff-input-wrap input.err:focus,
+.astaff-input-wrap select.err:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* Select chevron */
+.astaff-input-wrap select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+.astaff-input-wrap select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Date input */
+.astaff-input-wrap input[type="date"] {
+  color: #475569;
+}
+
+/* Number input arrows */
+.astaff-input-wrap input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+.astaff-error {
+  font-size: 0.74rem;
+  color: #ef4444;
+  margin-top: 1px;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.astaff-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.astaff-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.astaff-btn--cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+.astaff-btn--cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.astaff-btn--submit {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+.astaff-btn--submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+.astaff-btn--submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .astaff-modal { border-radius: 12px; }
+  .astaff-row { grid-template-columns: 1fr; }
+  .astaff-row > .astaff-field:only-child { max-width: 100%; }
+}

@@ -68,8 +68,8 @@ const LandingPage = () => {
         name: 'Luxury Hotel',
         description: 'Experience luxury and comfort at our 5-star hotel',
         email: 'info@luxuryhotel.com',
-        phone: '+1 (555) 123-4567',
-        whatsapp: '+15551234567',
+        phone: '+94 71 511 8744',
+        whatsapp: '+94 71 511 8744',
         address: '123 Main Street',
         city: 'New York',
         latitude: 40.7128,
@@ -226,7 +226,7 @@ const LandingPage = () => {
                   href={`tel:${hotelInfo?.phone}`} 
                   className="contact-link"
                 >
-                  {hotelInfo?.phone || '+1 (555) 123-4567'}
+                  {hotelInfo?.phone || '+94 71 511 8744'}
                 </a>
                 <p className="contact-desc">Available 24/7</p>
               </div>

@@ -1,0 +1,147 @@
+/* frontend/src/pages/admin/modals/DeleteConfirmModal.css */
+
+.dcm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 20, 0.5);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+  animation: dcm-fade 0.18s ease;
+}
+@keyframes dcm-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.dcm-modal {
+  background: #fff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: dcm-rise 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+@keyframes dcm-rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.dcm-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px 0;
+}
+
+.dcm-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e8e6f0;
+  background: #fff;
+  color: #6b6880;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dcm-close:hover { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+
+.dcm-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 28px 24px;
+  text-align: center;
+}
+
+.dcm-icon-wrap {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+
+.dcm-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1625;
+}
+
+.dcm-desc {
+  font-size: 13.5px;
+  color: #6b6880;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.dcm-err {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.dcm-success {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dcm-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.dcm-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s;
+}
+
+.dcm-btn--cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e8e6f0;
+}
+.dcm-btn--cancel:hover:not(:disabled) { background: #e8e6f0; }
+
+.dcm-btn--delete {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.3);
+}
+.dcm-btn--delete:hover:not(:disabled) { background: #dc2626; }
+.dcm-btn--delete:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.spin { animation: dcm-spin 0.8s linear infinite; }
+@keyframes dcm-spin { to { transform: rotate(360deg); } }

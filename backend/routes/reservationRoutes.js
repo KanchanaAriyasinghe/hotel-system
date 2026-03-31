@@ -1,42 +1,29 @@
+// backend/routes/reservationRoutes.js
+
 const express = require('express');
-const Reservation = require('../models/Reservation');
 const router = express.Router();
+const {
+  getAllReservations,
+  getAvailableRooms,
+  createReservation,
+  getReservationById,
+  updateReservation,
+  cancelReservation,
+  getReservationsByEmail,
+} = require('../controllers/reservationController');
+const { protect, isAdmin } = require('../middleware/authMiddleware');
 
-router.get('/', async (req, res) => {
-  try {
-    const reservations = await Reservation.find();
-    res.json(reservations);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Public routes
+router.get('/available', getAvailableRooms); // Get available rooms (must be before other GET routes)
+router.post('/', createReservation); // Create reservation
+router.get('/guest/:email', getReservationsByEmail); // Get reservations by email
 
-router.post('/', async (req, res) => {
-  const reservation = new Reservation(req.body);
-  try {
-    await reservation.save();
-    res.json(reservation);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Protected routes
+router.use(protect); // All routes below require authentication
 
-router.put('/:id', async (req, res) => {
-  try {
-    const reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(reservation);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.delete('/:id', async (req, res) => {
-  try {
-    await Reservation.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Reservation deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/', getAllReservations); // Get all reservations (protected)
+router.get('/:id', getReservationById); // Get reservation by ID
+router.put('/:id', updateReservation); // Update reservation
+router.delete('/:id', cancelReservation); // Cancel reservation
 
 module.exports = router;

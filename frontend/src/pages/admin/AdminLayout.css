@@ -1,0 +1,174 @@
+/* frontend/src/pages/admin/AdminLayout.css
+   Shares the same design tokens as AdminDashboard.css.
+   No duplication — variables defined in AdminDashboard.css :root are reused here. */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Layout shell ─────────────────────────────────────────────── */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg, #f8f7ff);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.admin-sidebar {
+  width: var(--sidebar-w, 240px);
+  background: var(--sidebar-bg, #0f0f14);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  border-right: 1px solid #1e1e2a;
+}
+
+.admin-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid #1e1e2a;
+}
+
+.admin-sidebar .brand-icon { font-size: 22px; }
+.admin-sidebar .brand-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+/* ── Nav ──────────────────────────────────────────────────────── */
+.admin-nav {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: transparent;
+  color: var(--sidebar-text, #9ca3af);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.admin-nav-item:hover {
+  background: #1a1a24;
+  color: #e2e0ea;
+}
+
+.admin-nav-item.active {
+  background: linear-gradient(90deg, #6366f120, transparent);
+  color: #ffffff;
+  border-left: 3px solid var(--sidebar-accent, #6366f1);
+}
+
+.admin-nav-item .nav-arrow { margin-left: auto; opacity: 0.6; }
+
+/* ── Server status ────────────────────────────────────────────── */
+.admin-server-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--sidebar-text, #9ca3af);
+  border-top: 1px solid #1e1e2a;
+}
+
+.admin-server-status .status-icon.ok  { color: #10b981; }
+.admin-server-status .status-icon.err { color: #ef4444; }
+
+/* ── Sidebar footer ───────────────────────────────────────────── */
+.admin-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px 24px;
+  border-top: 1px solid #1e1e2a;
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.admin-avatar-sm {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.12);
+}
+
+.admin-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.admin-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #a5b4fc;
+  background: rgba(99,102,241,0.18);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.admin-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: #1e1e2a;
+  color: #f87171;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.admin-logout-btn:hover { background: #2a1f1f; }
+
+/* ── Content area (right of sidebar) ─────────────────────────── */
+.admin-content {
+  margin-left: var(--sidebar-w, 240px);
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-sidebar  { display: none; }
+  .admin-content  { margin-left: 0; }
+}

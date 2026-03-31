@@ -1,42 +1,26 @@
+// backend/routes/roomRoutes.js
+
 const express = require('express');
-const Room = require('../models/Room');
 const router = express.Router();
+const {
+  getAllRooms,
+  getRoomById,
+  createRoom,
+  updateRoom,
+  deleteRoom,
+  getAvailableRooms,
+  getRoomsByType,
+} = require('../controllers/roomController');
 
-router.get('/', async (req, res) => {
-  try {
-    const rooms = await Room.find();
-    res.json(rooms);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Public routes
+router.get('/', getAllRooms); // Get all rooms
+router.post('/', createRoom); // Create room (public for now, can be protected later)
+router.get('/available', getAvailableRooms); // Get available rooms (must be before /:id)
+router.get('/type/:roomType', getRoomsByType); // Get rooms by type
 
-router.post('/', async (req, res) => {
-  const room = new Room(req.body);
-  try {
-    await room.save();
-    res.json(room);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.put('/:id', async (req, res) => {
-  try {
-    const room = await Room.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(room);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.delete('/:id', async (req, res) => {
-  try {
-    await Room.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Room deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Protected routes (can add protection later if needed)
+router.get('/:id', getRoomById); // Get room by ID
+router.put('/:id', updateRoom); // Update room
+router.delete('/:id', deleteRoom); // Delete room
 
 module.exports = router;

@@ -5,17 +5,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const guestRoutes = require('./routes/guestRoutes');
-const hotelRoutes = require('./routes/hotelRoutes');
-const housekeepingRoutes = require('./routes/housekeepingRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-const reservationRoutes = require('./routes/reservationRoutes');
-const roomRoutes = require('./routes/roomRoutes');
-const staffRoutes = require('./routes/staffRoutes');
-
 // Initialize express
 const app = express();
 
@@ -32,70 +21,105 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hotel_man
   .then(() => console.log('✓ MongoDB connected successfully'))
   .catch((err) => {
     console.error('✗ MongoDB connection error:', err.message);
-    process.exit(1);
   });
 
-// API Routes
-console.log('Registering routes...');
+// ========== IMPORT ROUTES ==========
+console.log('\n🔧 Loading routes...\n');
 
-// Authentication routes (must be first)
-app.use('/api/auth', authRoutes);
-console.log('✓ Auth routes registered');
+let authRoutes, userRoutes, roomRoutes, reservationRoutes, guestRoutes, hotelRoutes, staffRoutes;
 
-// User management routes (admin only)
-app.use('/api/users', userRoutes);
-console.log('✓ User routes registered');
+try { authRoutes = require('./routes/authRoutes'); console.log('✓ authRoutes loaded'); } 
+catch (e) { console.error('✗ authRoutes error:', e.message); }
 
-// Hotel routes
-app.use('/api/hotel', hotelRoutes);
-console.log('✓ Hotel routes registered');
+try { userRoutes = require('./routes/userRoutes'); console.log('✓ userRoutes loaded'); } 
+catch (e) { console.error('✗ userRoutes error:', e.message); }
 
-// Guest routes
-app.use('/api/guests', guestRoutes);
-console.log('✓ Guest routes registered');
+try { roomRoutes = require('./routes/roomRoutes'); console.log('✓ roomRoutes loaded'); } 
+catch (e) { console.error('✗ roomRoutes error:', e.message); }
 
-// Room routes
-app.use('/api/rooms', roomRoutes);
-console.log('✓ Room routes registered');
+try { reservationRoutes = require('./routes/reservationRoutes'); console.log('✓ reservationRoutes loaded'); } 
+catch (e) { console.error('✗ reservationRoutes error:', e.message); }
 
-// Reservation routes
-app.use('/api/reservations', reservationRoutes);
-console.log('✓ Reservation routes registered');
+try { guestRoutes = require('./routes/guestRoutes'); console.log('✓ guestRoutes loaded'); } 
+catch (e) { console.error('✗ guestRoutes error:', e.message); }
 
-// Invoice routes
-app.use('/api/invoices', invoiceRoutes);
-console.log('✓ Invoice routes registered');
+try { hotelRoutes = require('./routes/hotelRoutes'); console.log('✓ hotelRoutes loaded'); } 
+catch (e) { console.error('✗ hotelRoutes error:', e.message); }
 
-// Housekeeping routes
-app.use('/api/housekeeping', housekeepingRoutes);
-console.log('✓ Housekeeping routes registered');
+try { staffRoutes = require('./routes/staffRoutes'); console.log('✓ staffRoutes loaded'); } 
+catch (e) { console.error('✗ staffRoutes error:', e.message); }
 
-// Staff routes
-app.use('/api/staff', staffRoutes);
-console.log('✓ Staff routes registered');
+console.log('\n🌐 Registering routes...\n');
 
-// Health check endpoint
+// ========== REGISTER ROUTES ==========
+
+// Authentication
+if (authRoutes) { app.use('/api/auth', authRoutes); console.log('✓ Auth routes registered at /api/auth'); }
+
+// User management
+if (userRoutes) { app.use('/api/users', userRoutes); console.log('✓ User routes registered at /api/users'); }
+
+// Staff management
+if (staffRoutes) { app.use('/api/staff', staffRoutes); console.log('✓ Staff routes registered at /api/staff'); }
+
+// Room management
+if (roomRoutes) { app.use('/api/rooms', roomRoutes); console.log('✓ Room routes registered at /api/rooms'); }
+
+// Reservation management
+if (reservationRoutes) { app.use('/api/reservations', reservationRoutes); console.log('✓ Reservation routes registered at /api/reservations'); }
+
+// Hotel info
+if (hotelRoutes) { app.use('/api/hotel', hotelRoutes); console.log('✓ Hotel routes registered at /api/hotel'); }
+
+// Guest management
+if (guestRoutes) { app.use('/api/guests', guestRoutes); console.log('✓ Guest routes registered at /api/guests'); }
+
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is running',
     timestamp: new Date(),
+    routes: {
+      rooms: '/api/rooms',
+      auth: '/api/auth',
+      users: '/api/users',
+      staff: '/api/staff',
+      reservations: '/api/reservations',
+      hotel: '/api/hotel',
+      guests: '/api/guests',
+    },
   });
 });
 
-// 404 handler - must be last
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is working!',
+  });
+});
+
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
     path: req.originalUrl,
+    availableRoutes: {
+      rooms: 'POST /api/rooms, GET /api/rooms, GET /api/rooms/available',
+      auth: '/api/auth/register, /api/auth/login',
+      users: 'POST /api/users, GET /api/users',
+      staff: 'POST /api/staff, GET /api/staff',
+      health: '/api/health',
+      test: '/api/test',
+    },
   });
 });
 
-// Global error handling middleware
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  
+  console.error('❌ Error:', err);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error',
@@ -107,19 +131,39 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
-╔══════════════════════════════════════╗
-║    Hotel Management System Server    ║
-╚══════════════════════════════════════╝
+╔════════════════════════════════════════╗
+║   🏨 Hotel Management System Server   ║
+╚════════════════════════════════════════╝
 
 ✓ Server running on: http://localhost:${PORT}
 ✓ Environment: ${NODE_ENV}
 ✓ Database: Connected
-✓ API Documentation: /api/health
+✓ Health Check: /api/health
+✓ Test Endpoint: /api/test
 
-Press Ctrl+C to stop the server
-  `);
+📝 Available Endpoints:
+   - POST   /api/rooms
+   - GET    /api/rooms
+   - GET    /api/rooms/available
+   - POST   /api/auth/register
+   - POST   /api/auth/login
+   - GET    /api/users
+   - POST   /api/users
+   - GET    /api/staff
+   - POST   /api/staff
+   - GET    /api/health
+`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing server...');
+  server.close(() => {
+    console.log('Server closed');
+    mongoose.connection.close();
+  });
 });
 
 module.exports = app;
