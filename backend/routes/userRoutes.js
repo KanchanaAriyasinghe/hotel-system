@@ -9,18 +9,27 @@ const {
   updateUser,
   deleteUser,
   getUsersByRole,
+  changePassword,       // ← new
 } = require('../controllers/userController');
 const { protect, isAdmin } = require('../middleware/authMiddleware');
 
-// All routes require authentication and admin role
+// ─────────────────────────────────────────────────────────────
+// ✅ PASSWORD CHANGE — any authenticated user, own account only
+//    MUST be declared BEFORE router.use(protect, isAdmin)
+//    so it is NOT subject to the admin-only guard.
+// ─────────────────────────────────────────────────────────────
+router.put('/:id/password', protect, changePassword);
+
+// ─────────────────────────────────────────────────────────────
+// All routes below this line require authentication + admin role
+// ─────────────────────────────────────────────────────────────
 router.use(protect, isAdmin);
 
-// User CRUD routes
-router.get('/', getAllUsers);
-router.get('/:id', getUserById);
-router.post('/', createUser);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
-router.get('/role/:role', getUsersByRole);
+router.get('/',              getAllUsers);
+router.get('/role/:role',    getUsersByRole);
+router.get('/:id',           getUserById);
+router.post('/',             createUser);
+router.put('/:id',           updateUser);
+router.delete('/:id',        deleteUser);
 
 module.exports = router;

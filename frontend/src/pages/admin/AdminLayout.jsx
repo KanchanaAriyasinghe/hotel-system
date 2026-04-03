@@ -1,7 +1,4 @@
 // frontend/src/pages/admin/AdminLayout.jsx
-//
-// Shared layout: renders the sidebar + wraps child routes via <Outlet />.
-// Drop this into your router as the parent of all /admin/* routes.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
@@ -9,10 +6,11 @@ import axios from 'axios';
 import {
   LogOut, Users, BarChart3, Settings,
   BedDouble, Calendar, ChevronRight,
-  Wifi, WifiOff,
+  Wifi, WifiOff, Moon, Sun,
 } from 'lucide-react';
 import admin from '../../assets/admin.png';
 import './AdminLayout.css';
+import './AdminDarkMode.css'; // ← separate file for all dark-mode overrides
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -27,8 +25,35 @@ const NAV_ITEMS = [
 const AdminLayout = () => {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [user, setUser]               = useState(null);
-  const [serverStatus, setServerStatus] = useState(null); // 'ok' | 'error'
+  const [user, setUser]                 = useState(null);
+  const [serverStatus, setServerStatus] = useState(null);
+
+  // ── Dark mode — persisted in localStorage ──────────────────
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admin_prefs');
+      return saved ? JSON.parse(saved).darkMode ?? false : false;
+    } catch { return false; }
+  });
+
+  // Apply dark class to content area + body data-attribute (for portal modals)
+  useEffect(() => {
+    const content = document.getElementById('admin-content-area');
+    if (content) content.classList.toggle('admin-content--dark', darkMode);
+
+    // body attribute lets portal-rendered modals know dark mode is active
+    document.body.setAttribute('data-admin-dark', darkMode ? 'true' : 'false');
+
+    try {
+      const saved = localStorage.getItem('admin_prefs');
+      const prefs = saved ? JSON.parse(saved) : {};
+      localStorage.setItem('admin_prefs', JSON.stringify({ ...prefs, darkMode }));
+    } catch {}
+
+    return () => { document.body.removeAttribute('data-admin-dark'); };
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(d => !d);
 
   // ── Auth guard ──────────────────────────────────────────────
   useEffect(() => {
@@ -57,7 +82,6 @@ const AdminLayout = () => {
     navigate('/');
   };
 
-  // Determine active nav item by current pathname
   const activeId = NAV_ITEMS.find(item =>
     location.pathname === item.path ||
     location.pathname.startsWith(item.path + '/')
@@ -86,6 +110,21 @@ const AdminLayout = () => {
           ))}
         </nav>
 
+        {/* ── Dark Mode Toggle ─────────────────────────────── */}
+        <div className="admin-dark-toggle-row">
+          <div className="admin-dark-toggle-info">
+            {darkMode
+              ? <Moon size={15} className="admin-dark-icon" />
+              : <Sun  size={15} className="admin-dark-icon" />}
+            <span className="admin-dark-label">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+          </div>
+          <button
+            className={`admin-toggle ${darkMode ? 'admin-toggle--on' : ''}`}
+            onClick={toggleDarkMode}
+            title="Toggle dark / light mode"
+          />
+        </div>
+
         <div className="admin-server-status">
           {serverStatus === 'ok'
             ? <><Wifi    size={13} className="status-icon ok"  /><span>Server online</span></>
@@ -109,8 +148,11 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* ── Page content injected by child routes ───────────── */}
-      <div className="admin-content">
+      {/* ── Page content — dark class toggled here ───────────── */}
+      <div
+        id="admin-content-area"
+        className={`admin-content${darkMode ? ' admin-content--dark' : ''}`}
+      >
         <Outlet />
       </div>
     </div>

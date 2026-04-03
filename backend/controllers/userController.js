@@ -1,14 +1,7 @@
-// backend/controllers/userController.js
-
 const User = require('../models/User');
+const { sendWelcomeEmail, sendRoleAssignedEmail } = require('../utils/emailService');
 
-// ✅ Updated valid roles (match User.js)
-// ✅ Must exactly match User.js schema enum
-const validRoles = [
-  'admin',
-  'receptionist',
-  'housekeeper',
-];
+const validRoles = ['admin', 'receptionist', 'housekeeper'];
 
 // @desc      Get all users
 // @route     GET /api/users
@@ -16,17 +9,9 @@ const validRoles = [
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password');
-
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
+    res.status(200).json({ success: true, count: users.length, data: users });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching users',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching users' });
   }
 };
 
@@ -36,23 +21,12 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
+    res.status(200).json({ success: true, data: user });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching user',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching user' });
   }
 };
 
@@ -63,56 +37,43 @@ exports.createUser = async (req, res) => {
   try {
     const { fullName, email, phoneNumber, password, role } = req.body;
 
-    // ✅ Validation
     if (!fullName || !email || !phoneNumber || !password || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields',
-      });
+      return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
 
-    // ✅ Validate role
     if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role provided',
-      });
+      return res.status(400).json({ success: false, message: 'Invalid role provided' });
     }
 
-    // ✅ Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email',
-      });
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
-    // ✅ Create user
-    const user = await User.create({
-      fullName,
-      email,
-      phoneNumber,
-      password,
-      role,
-    });
+    // Create user — pre-save hook hashes the password
+    const user = await User.create({ fullName, email, phoneNumber, password, role });
+
+    // Send welcome email with plain-text password from req.body
+    sendWelcomeEmail({
+      toEmail:      user.email,
+      toName:       user.fullName,
+      role:         user.role,
+      tempPassword: password,
+    }).catch(err => console.error('[createUser] welcome email failed:', err.message));
 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
+        id:          user._id,
+        fullName:    user.fullName,
+        email:       user.email,
         phoneNumber: user.phoneNumber,
-        role: user.role,
+        role:        user.role,
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error creating user',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error creating user' });
   }
 };
 
@@ -124,48 +85,49 @@ exports.updateUser = async (req, res) => {
     const { fullName, email, phoneNumber, role, isActive } = req.body;
 
     let user = await User.findById(req.params.id);
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ Validate role if provided
+    // Capture old role BEFORE mutations
+    const oldRole = user.role;
+
     if (role && !validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role provided',
-      });
+      return res.status(400).json({ success: false, message: 'Invalid role provided' });
     }
 
-    // ✅ Update fields safely
-    if (fullName) user.fullName = fullName;
-    if (email) user.email = email;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
-    if (role) user.role = role;
-    if (isActive !== undefined) user.isActive = isActive;
+    if (fullName)               user.fullName    = fullName;
+    if (email)                  user.email       = email;
+    if (phoneNumber)            user.phoneNumber = phoneNumber;
+    if (role)                   user.role        = role;
+    if (isActive !== undefined) user.isActive    = isActive;
 
     await user.save();
+
+    // Send role-change email if role actually changed
+    if (role && role !== oldRole) {
+      sendRoleAssignedEmail({
+        toEmail:    user.email,
+        toName:     user.fullName,
+        newRole:    role,
+        assignedBy: req.user?.fullName || req.user?.email || 'An administrator',
+      }).catch(err => console.error('[updateUser] role email failed:', err.message));
+    }
 
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
       data: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
+        id:          user._id,
+        fullName:    user.fullName,
+        email:       user.email,
         phoneNumber: user.phoneNumber,
-        role: user.role,
-        isActive: user.isActive,
+        role:        user.role,
+        isActive:    user.isActive,
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error updating user',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error updating user' });
   }
 };
 
@@ -175,24 +137,12 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'User deleted successfully',
-      data: user,
-    });
+    res.status(200).json({ success: true, message: 'User deleted successfully', data: user });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error deleting user',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error deleting user' });
   }
 };
 
@@ -202,26 +152,75 @@ exports.deleteUser = async (req, res) => {
 exports.getUsersByRole = async (req, res) => {
   try {
     const { role } = req.params;
-
-    // ✅ Validate role
     if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role provided',
-      });
+      return res.status(400).json({ success: false, message: 'Invalid role provided' });
+    }
+    const users = await User.find({ role }).select('-password');
+    res.status(200).json({ success: true, count: users.length, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || 'Error fetching users' });
+  }
+};
+
+// @desc      Change own password
+// @route     PUT /api/users/:id/password
+// @access    Private
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ success: false, message: 'You can only change your own password' });
     }
 
-    const users = await User.find({ role }).select('-password');
+    const user = await User.findById(req.params.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc      Update notification preferences
+// @route     PUT /api/users/:id/notification-prefs
+// @access    Private (own account only)
+exports.updateNotificationPrefs = async (req, res) => {
+  try {
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ success: false, message: 'You can only update your own preferences' });
+    }
+
+    const allowed = ['newReservation', 'checkIn', 'checkOut', 'cancellation', 'payment', 'systemAlerts'];
+    const prefs   = {};
+    allowed.forEach(key => {
+      if (req.body[key] !== undefined) {
+        prefs[`notificationPrefs.${key}`] = req.body[key];
+      }
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching users',
-    });
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: prefs },
+      { new: true }
+    ).select('notificationPrefs');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, data: user.notificationPrefs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };

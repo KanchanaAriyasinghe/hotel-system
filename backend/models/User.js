@@ -1,5 +1,3 @@
-// backend/models/User.js
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -35,7 +33,7 @@ const userSchema = new mongoose.Schema(
         values: ['admin', 'receptionist', 'housekeeper'],
         message: 'Invalid role provided. Must be admin, receptionist, or housekeeper.',
       },
-      default: 'receptionist', // ← was 'front_office' (not in enum!)
+      default: 'receptionist',
       required: [true, 'Please specify a role'],
     },
     isActive: {
@@ -50,30 +48,37 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // ── Notification preferences (per-admin email triggers) ───────────────
+    notificationPrefs: {
+      newReservation: { type: Boolean, default: true  },
+      checkIn:        { type: Boolean, default: true  },
+      checkOut:       { type: Boolean, default: false },
+      cancellation:   { type: Boolean, default: true  },
+      payment:        { type: Boolean, default: true  },
+      systemAlerts:   { type: Boolean, default: true  },
+    },
   },
-  { timestamps: true } // handles createdAt + updatedAt automatically
+  { timestamps: true }
 );
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Hash password on update (for PUT /users/:id password changes)
+// Hash password on findOneAndUpdate
 userSchema.pre('findOneAndUpdate', async function (next) {
   const update = this.getUpdate();
   if (!update.password) return next();
-
   const salt = await bcrypt.genSalt(10);
   update.password = await bcrypt.hash(update.password, salt);
   next();
 });
 
-// Method to compare password
+// Compare password
 userSchema.methods.matchPassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };

@@ -1,0 +1,401 @@
+/* ================================================================
+   HousekeeperLayout.css
+   ================================================================ */
+
+/* ── Root variables ─────────────────────────────────────────────── */
+:root {
+  --hk-sidebar-bg:        #0f2d2d;
+  --hk-sidebar-border:    #1a4040;
+  --hk-brand-color:       #4dd9ac;
+  --hk-nav-hover-bg:      rgba(77, 217, 172, 0.10);
+  --hk-nav-active-bg:     rgba(77, 217, 172, 0.18);
+  --hk-nav-active-color:  #4dd9ac;
+  --hk-nav-text:          #a8c5c5;
+  --hk-footer-border:     #1a4040;
+  --hk-badge-bg:          rgba(77, 217, 172, 0.15);
+  --hk-badge-color:       #4dd9ac;
+  --hk-logout-hover:      rgba(255, 99, 99, 0.12);
+  --hk-logout-color:      #ff7a7a;
+  --hk-content-bg:        #f4f7f7;
+  --hk-status-ok:         #4dd9ac;
+  --hk-status-err:        #ff7a7a;
+  --hk-sidebar-width:     240px;
+  --hk-transition:        0.2s ease;
+}
+
+/* ── Layout shell ───────────────────────────────────────────────── */
+.hk-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--hk-content-bg);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+.hk-sidebar {
+  width: var(--hk-sidebar-width);
+  min-height: 100vh;
+  background: var(--hk-sidebar-bg);
+  border-right: 1px solid var(--hk-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* ── Brand ──────────────────────────────────────────────────────── */
+.hk-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--hk-sidebar-border);
+}
+.hk-brand-icon { font-size: 22px; line-height: 1; }
+.hk-brand-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--hk-brand-color);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* ── Nav ────────────────────────────────────────────────────────── */
+.hk-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  flex: 1;
+}
+.hk-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hk-nav-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--hk-transition), color var(--hk-transition);
+  position: relative;
+}
+.hk-nav-item:hover  { background: var(--hk-nav-hover-bg);  color: #d4f0ea; }
+.hk-nav-item.active { background: var(--hk-nav-active-bg); color: var(--hk-nav-active-color); font-weight: 600; }
+.hk-nav-arrow { margin-left: auto; opacity: 0.7; }
+
+/* ── Dark Mode Toggle Row ───────────────────────────────────────── */
+.hk-dark-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 10px 14px;
+  margin: 0 12px 8px;
+  border-radius: 9px;
+  background: rgba(77, 217, 172, 0.06);
+  border: 1px solid rgba(77, 217, 172, 0.12);
+}
+.hk-dark-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hk-dark-icon  { color: var(--hk-brand-color); flex-shrink: 0; }
+.hk-dark-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--hk-nav-text);
+  white-space: nowrap;
+}
+
+/* Toggle switch */
+.hk-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #2a4a4a;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.hk-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.hk-toggle--on { background: var(--hk-brand-color); }
+.hk-toggle--on::after { transform: translateX(16px); }
+
+/* ── Server status ──────────────────────────────────────────────── */
+.hk-server-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  font-size: 11.5px;
+  color: var(--hk-nav-text);
+  border-top: 1px solid var(--hk-sidebar-border);
+}
+.hk-status-icon.ok  { color: var(--hk-status-ok);  }
+.hk-status-icon.err { color: var(--hk-status-err); }
+
+/* ── Sidebar footer ─────────────────────────────────────────────── */
+.hk-sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--hk-footer-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hk-user-info  { display: flex; align-items: center; gap: 10px; }
+.hk-avatar-sm  {
+  width: 36px; height: 36px;
+  border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--hk-brand-color);
+  flex-shrink: 0;
+}
+.hk-user-name {
+  font-size: 13px; font-weight: 600;
+  color: #d4f0ea; margin: 0 0 3px;
+  white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 130px;
+}
+.hk-role-badge {
+  font-size: 10px; font-weight: 600;
+  color: var(--hk-badge-color);
+  background: var(--hk-badge-bg);
+  padding: 2px 8px; border-radius: 20px;
+  letter-spacing: 0.3px; text-transform: uppercase;
+}
+.hk-logout-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--hk-nav-text);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: background var(--hk-transition), color var(--hk-transition);
+}
+.hk-logout-btn:hover { background: var(--hk-logout-hover); color: var(--hk-logout-color); }
+
+/* ── Content area ───────────────────────────────────────────────── */
+.hk-content {
+  margin-left: var(--hk-sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  padding: 28px;
+  background: var(--hk-content-bg);
+  box-sizing: border-box;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — scoped to .hk-content--dark
+   Covers every page rendered inside the content area.
+   ══════════════════════════════════════════════════════════════════ */
+.hk-content--dark {
+  background: #0f1117;
+  color: #e5e7eb;
+}
+
+/* ── Generic element overrides (apply to any child page) ── */
+.hk-content--dark h1,
+.hk-content--dark h2,
+.hk-content--dark h3,
+.hk-content--dark h4,
+.hk-content--dark h5,
+.hk-content--dark p,
+.hk-content--dark span,
+.hk-content--dark label { color: #e5e7eb; }
+
+.hk-content--dark input,
+.hk-content--dark textarea,
+.hk-content--dark select {
+  background: #1a1d27 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+.hk-content--dark input:focus,
+.hk-content--dark textarea:focus,
+.hk-content--dark select:focus {
+  border-color: #4dd9ac !important;
+  box-shadow: 0 0 0 3px rgba(77,217,172,0.1) !important;
+}
+
+/* ── HousekeeperSettings page ─────────────────────────────────── */
+.hk-content--dark .hs-root              { background: transparent; }
+.hk-content--dark .hs-greeting          { color: #f9fafb; }
+.hk-content--dark .hs-date              { color: #6b7280; }
+.hk-content--dark .hs-role-pill         { background: #1f2937; border-color: #374151; color: #d1d5db; }
+
+.hk-content--dark .hs-card              { background: #1a1d27; border-color: #2d3748; box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+.hk-content--dark .hs-card-header       { border-bottom-color: #2d3748; }
+.hk-content--dark .hs-card-title        { color: #9ca3af; }
+.hk-content--dark .hs-readonly-badge    { background: #1f2937; border-color: #374151; color: #6b7280; }
+
+.hk-content--dark .hs-avatar-row        { border-bottom-color: #2d3748; }
+.hk-content--dark .hs-profile-name      { color: #f9fafb; }
+.hk-content--dark .hs-profile-dept      { color: #6b7280; }
+
+.hk-content--dark .hs-section-divider::before,
+.hk-content--dark .hs-section-divider::after { background: #2d3748; }
+.hk-content--dark .hs-section-divider span   { color: #6b7280; }
+
+.hk-content--dark .hs-field label       { color: #6b7280; }
+.hk-content--dark .hs-field span        { color: #d1d5db; }
+.hk-content--dark .hs-readonly-val      { color: #6b7280 !important; }
+.hk-content--dark .hs-empty             { color: #4b5563; }
+.hk-content--dark .hs-edit-note         { background: #0c1a2e; border-color: #1e3a5f; color: #60a5fa; }
+.hk-content--dark .hs-no-staff          { background: #1c1408; border-color: #78350f; color: #fbbf24; }
+
+.hk-content--dark .hs-pw-toggle         { color: #6b7280; }
+.hk-content--dark .hs-pw-toggle:hover   { color: #4dd9ac; }
+.hk-content--dark .hs-pw-bar            { background: #374151; }
+.hk-content--dark .hs-pw-strength-label { color: #9ca3af; }
+.hk-content--dark .hs-pw-save-btn       { background: #4dd9ac; color: #0f1117; }
+.hk-content--dark .hs-pw-save-btn:hover { background: #2bb58e; }
+
+.hk-content--dark .hs-alert--success    { background: #052e16; border-color: #166534; color: #4ade80; }
+.hk-content--dark .hs-alert--error      { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
+
+.hk-content--dark .hs-pref-item         { border-bottom-color: #2d3748; }
+.hk-content--dark .hs-pref-label        { color: #e5e7eb; }
+.hk-content--dark .hs-pref-desc         { color: #6b7280; }
+.hk-content--dark .hs-toggle            { background: #374151; }
+.hk-content--dark .hs-toggle--on        { background: #4dd9ac; }
+
+.hk-content--dark .hs-tips-card         { background: linear-gradient(135deg, #0d1f1a 0%, #0a1a14 100%); }
+.hk-content--dark .hs-tips-list li      { color: #d1d5db; }
+.hk-content--dark .hs-tips-list li strong { color: #4dd9ac; }
+
+.hk-content--dark .hs-loading           { color: #6b7280; }
+.hk-content--dark .hs-spinner           { border-color: #374151; border-top-color: #4dd9ac; }
+
+/* ── Room Management page — add your room page class names below ── */
+/* Example: if your room cards use .room-card, .room-header, etc.  */
+.hk-content--dark .room-card            { background: #1a1d27; border-color: #2d3748; }
+.hk-content--dark .room-header          { background: #111827; border-color: #2d3748; color: #f9fafb; }
+.hk-content--dark .room-status-badge    { border-color: #374151; }
+.hk-content--dark table                 { background: #1a1d27; color: #e5e7eb; }
+.hk-content--dark th                    { background: #111827 !important; color: #9ca3af !important; border-color: #2d3748 !important; }
+.hk-content--dark td                    { border-color: #2d3748 !important; color: #d1d5db !important; }
+.hk-content--dark tr:hover              { background: #1f2937 !important; }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hk-sidebar { width: 64px; }
+
+  .hk-brand-text,
+  .hk-nav-item span,
+  .hk-nav-arrow,
+  .hk-server-status span,
+  .hk-user-name,
+  .hk-role-badge,
+  .hk-logout-btn span,
+  .hk-dark-label { display: none; }
+
+  .hk-dark-toggle-row {
+    justify-content: center;
+    padding: 8px;
+    margin: 0 6px 8px;
+  }
+
+  .hk-nav-item    { justify-content: center; padding: 10px 0; }
+  .hk-user-info   { justify-content: center; }
+  .hk-logout-btn  { justify-content: center; }
+  .hk-content     { margin-left: 64px; padding: 16px; }
+}
+
+/* ── Room Management page ─────────────────────────────────────── */
+.hk-content--dark .room-card            { background: #1a1d27; border-color: #2d3748; }
+.hk-content--dark .room-header          { background: #111827; border-color: #2d3748; color: #f9fafb; }
+.hk-content--dark .room-status-badge    { border-color: #374151; }
+.hk-content--dark table                 { background: #1a1d27; color: #e5e7eb; }
+.hk-content--dark th                    { background: #111827 !important; color: #9ca3af !important; border-color: #2d3748 !important; }
+.hk-content--dark td                    { border-color: #2d3748 !important; color: #d1d5db !important; }
+.hk-content--dark tr:hover              { background: #1f2937 !important; }
+
+/* ── Room Management (rm-*) dark mode fixes ────────────────────── */
+
+/* Page header */
+.hk-content--dark .rm-greeting          { color: #f9fafb; }
+.hk-content--dark .rm-date              { color: #6b7280; }
+.hk-content--dark .rm-role-pill         { background: #1f2937; border-color: #374151; color: #d1d5db; }
+.hk-content--dark .rm-icon-btn          { background: #1f2937; border-color: #374151; color: #9ca3af; }
+.hk-content--dark .rm-icon-btn:hover    { background: #2d3748; color: #e5e7eb; }
+
+/* Summary cards — override the light pastel backgrounds */
+.hk-content--dark .rm-summary-card      { background: #1a1d27 !important; border-color: #2d3748 !important; }
+
+/* Search & filter */
+.hk-content--dark .rm-search            { background: #1a1d27 !important; border-color: #374151 !important; color: #f9fafb !important; }
+.hk-content--dark .rm-search::placeholder { color: #6b7280; }
+.hk-content--dark .rm-search:focus      { border-color: #4dd9ac !important; }
+.hk-content--dark .rm-search-icon       { color: #6b7280; }
+.hk-content--dark .rm-filter-group      { color: #9ca3af; }
+.hk-content--dark .rm-filter-group select { background: #1a1d27 !important; border-color: #374151 !important; color: #f9fafb !important; }
+
+/* Table */
+.hk-content--dark .rm-table-wrap        { background: #1a1d27; border-color: #2d3748; }
+.hk-content--dark .rm-table thead tr    { background: #111827; border-color: #2d3748; }
+.hk-content--dark .rm-row              { border-bottom-color: #2d3748; }
+.hk-content--dark .rm-row:hover        { background: #1f2937 !important; }
+.hk-content--dark .rm-row--editing     { background: #162820 !important; }
+.hk-content--dark .rm-room-num         { color: #f9fafb; }
+.hk-content--dark .rm-cell-text        { color: #9ca3af; }
+.hk-content--dark .rm-cell-icon        { color: #6b7280; }
+.hk-content--dark .rm-table-count      { background: #111827; color: #6b7280; border-top-color: #2d3748; }
+
+/* Type badges — darken so text is legible */
+.hk-content--dark .rm-type-badge {
+  background: color-mix(in srgb, var(--type-color) 20%, #1a1d27) !important;
+  border-color: color-mix(in srgb, var(--type-color) 40%, transparent) !important;
+}
+
+/* Status pills — dark backgrounds */
+.hk-content--dark .rm-pill--green      { background: #052e16 !important; color: #4ade80 !important; }
+.hk-content--dark .rm-pill--blue       { background: #0c1e3a !important; color: #60a5fa !important; }
+.hk-content--dark .rm-pill--amber      { background: #1c1408 !important; color: #fbbf24 !important; }
+.hk-content--dark .rm-pill--purple     { background: #1a0f2e !important; color: #c084fc !important; }
+
+/* Action buttons */
+.hk-content--dark .rm-act-btn          { background: #1f2937; border-color: #374151; color: #d1d5db; }
+.hk-content--dark .rm-act-edit         { border-color: #4dd9ac !important; color: #4dd9ac !important; }
+.hk-content--dark .rm-act-edit:hover   { background: #162820 !important; }
+.hk-content--dark .rm-act-save         { background: #4dd9ac !important; color: #0f1117 !important; border-color: #4dd9ac !important; }
+.hk-content--dark .rm-act-save:hover   { background: #2bb58e !important; }
+.hk-content--dark .rm-act-cancel       { color: #9ca3af !important; }
+.hk-content--dark .rm-act-cancel:hover { background: #2d3748 !important; color: #e5e7eb !important; }
+
+/* Inline edit inputs */
+.hk-content--dark .rm-inline-input,
+.hk-content--dark .rm-inline-select    { background: #111827 !important; border-color: #4dd9ac !important; color: #f9fafb !important; }
+
+/* Amenity expanded row */
+.hk-content--dark .rm-amenity-row td   { background: #111827; border-bottom-color: #2d3748; }
+.hk-content--dark .rm-amenity-panel    { border-top-color: #1a4040; }
+.hk-content--dark .rm-amenity-panel-label { color: #6b7280; }
+.hk-content--dark .rm-amenity-chip     { background: #1f2937; border-color: #374151; color: #9ca3af; }
+.hk-content--dark .rm-amenity-chip:hover { background: #162820; border-color: #4dd9ac; color: #4dd9ac; }
+.hk-content--dark .rm-amenity-chip--active { background: #162820; border-color: #4dd9ac; color: #4dd9ac; }
+
+/* Alerts & empty state */
+.hk-content--dark .rm-alert--success   { background: #052e16; border-color: #166534; color: #4ade80; }
+.hk-content--dark .rm-alert--error     { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
+.hk-content--dark .rm-empty            { background: #111827; border-color: #2d3748; color: #6b7280; }

@@ -10,10 +10,10 @@ import {
   CheckCircle, XCircle, AlertCircle,
   ChevronDown, ChevronUp, Star, Tag,
   UserCheck, UserX, Activity, UserPlus,
-  Pencil, Trash2,
+  Pencil, Trash2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import AddUserModal        from './modals/AddUserModal';
-import AddStaffModal       from './modals/AddStaffModal';   // ← same modal as dashboard
+import AddStaffModal       from './modals/AddStaffModal';
 import EditUserModal       from './modals/EditUserModal';
 import DeleteConfirmModal  from './modals/DeleteConfirmModal';
 import './UsersPage.css';
@@ -22,6 +22,8 @@ const API = process.env.REACT_APP_API_URL;
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
 });
+
+const PAGE_SIZE = 5;
 
 // ── Helpers ───────────────────────────────────────────────────────
 const fmt       = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -50,6 +52,55 @@ const avatarColor = (name) => {
   let h = 0;
   for (let c of (name || '')) h = c.charCodeAt(0) + ((h << 5) - h);
   return colors[Math.abs(h) % colors.length];
+};
+
+// ── Pagination hook ───────────────────────────────────────────────
+const usePagination = (data) => {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const slice      = data.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  // Reset to page 0 whenever the data set changes (filter/search/tab)
+  useEffect(() => { setPage(0); }, [data.length]);
+
+  const prev = () => setPage(p => Math.max(0, p - 1));
+  const next = () => setPage(p => Math.min(totalPages - 1, p + 1));
+
+  return { page, setPage, totalPages, slice, prev, next };
+};
+
+// ── Pagination controls ───────────────────────────────────────────
+const Pagination = ({ page, totalPages, total, prev, next, setPage }) => {
+  if (totalPages <= 1 && total <= PAGE_SIZE) return null;
+  const start = page * PAGE_SIZE + 1;
+  const end   = Math.min(page * PAGE_SIZE + PAGE_SIZE, total);
+
+  return (
+    <div className="up-pagination">
+      <span className="up-pg-info">
+        {start}–{end} of {total}
+      </span>
+      <div className="up-pg-dots">
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i}
+            className={`up-pg-dot ${i === page ? 'active' : ''}`}
+            onClick={() => setPage(i)}
+            aria-label={`Page ${i + 1}`}
+          />
+        ))}
+      </div>
+      <div className="up-pg-arrows">
+        <button className="up-pg-btn" onClick={prev} disabled={page === 0} aria-label="Previous page">
+          <ChevronLeft size={15}/>
+        </button>
+        <span className="up-pg-label">{page + 1} / {totalPages}</span>
+        <button className="up-pg-btn" onClick={next} disabled={page >= totalPages - 1} aria-label="Next page">
+          <ChevronRight size={15}/>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 // ── Staff Detail Drawer ───────────────────────────────────────────
@@ -189,70 +240,205 @@ const InfoRow = ({ Icon, label, value, capitalize }) => (
   </div>
 );
 
-// ── Staff Card ────────────────────────────────────────────────────
-const StaffCard = ({ staff, user, onClick, onEdit, onDelete }) => {
-  const rm       = ROLE_META[user?.role] || ROLE_META.receptionist;
-  const initials = avatar(staff?.name || user?.fullName);
-  const bgColor  = avatarColor(staff?.name || user?.fullName);
-  const dept     = staff?.department || '—';
-  const dColor   = DEPT_COLORS[dept.toLowerCase()] || '#6366f1';
+// ── Staff Table ───────────────────────────────────────────────────
+const StaffTable = ({ rows, onView, onEdit, onDelete }) => {
+  const { page, setPage, totalPages, slice, prev, next } = usePagination(rows);
 
   return (
-    <div className="up-card" onClick={onClick}>
-      <div className="up-card-top">
-        <div className="up-avatar" style={{ background: bgColor }}>{initials}</div>
-        <div className="up-card-meta">
-          <span className={`up-role-pill ${rm.cls}`}><rm.Icon size={10}/>{rm.label}</span>
-          <span className={staff?.isActive !== false ? 'up-dot up-dot--on' : 'up-dot up-dot--off'} />
-        </div>
-      </div>
-      <h3 className="up-card-name">{staff?.name || user?.fullName || '—'}</h3>
-      <p className="up-card-pos">{staff?.position || 'Staff Member'}</p>
-      <div className="up-card-dept" style={{ '--dc': dColor }}>
-        <Building2 size={11}/>{dept}
-      </div>
-      <div className="up-card-footer">
-        <span><Mail size={11}/>{staff?.email || user?.email || '—'}</span>
-        {staff?.shiftTiming && <span><Clock size={11}/>{staff.shiftTiming}</span>}
-      </div>
-      <div className="up-card-actions" onClick={e => e.stopPropagation()}>
-        <button className="up-card-view-btn"   onClick={onClick}  ><Eye    size={13}/> View</button>
-        <button className="up-card-edit-btn"   onClick={onEdit}   ><Pencil size={13}/> Edit</button>
-        <button className="up-card-delete-btn" onClick={onDelete} ><Trash2 size={13}/></button>
-      </div>
+    <div className="up-table-wrap">
+      <table className="up-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Email</th>
+            <th>Shift</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {slice.map(({ staff: s, user: u }, i) => {
+            const rm       = ROLE_META[u?.role] || ROLE_META.receptionist;
+            const name     = s?.name || u?.fullName || '—';
+            const initials = avatar(name);
+            const bgColor  = avatarColor(name);
+            const isActive = s?.isActive !== false;
+            const dept     = s?.department || '—';
+            const dColor   = DEPT_COLORS[dept.toLowerCase()] || '#6366f1';
+
+            return (
+              <tr
+                key={s?._id || u?._id || i}
+                onClick={() => onView({ staff: s, user: u })}
+                className="up-table-row"
+              >
+                {/* Name + position */}
+                <td>
+                  <div className="up-table-cell-user">
+                    <div className="up-table-avatar" style={{ background: bgColor }}>{initials}</div>
+                    <div>
+                      <div className="up-table-name">{name}</div>
+                      <div className="up-table-sub">{s?.position || '—'}</div>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Role */}
+                <td>
+                  <span className={`up-role-pill ${rm.cls}`}>
+                    <rm.Icon size={10}/>{rm.label}
+                  </span>
+                </td>
+
+                {/* Department */}
+                <td>
+                  <span className="up-table-dept" style={{ '--dc': dColor }}>
+                    <Building2 size={10}/>{dept}
+                  </span>
+                </td>
+
+                {/* Email */}
+                <td className="up-table-muted">{s?.email || u?.email || '—'}</td>
+
+                {/* Shift */}
+                <td className="up-table-muted">{s?.shiftTiming || '—'}</td>
+
+                {/* Status */}
+                <td>
+                  <span className={isActive ? 'up-active-pill' : 'up-inactive-pill'}>
+                    {isActive
+                      ? <><CheckCircle size={10}/>Active</>
+                      : <><XCircle    size={10}/>Inactive</>}
+                  </span>
+                </td>
+
+                {/* Actions */}
+                <td onClick={e => e.stopPropagation()}>
+                  <div className="up-table-actions">
+                    <button
+                      className="up-tbl-view-btn"
+                      onClick={() => onView({ staff: s, user: u })}
+                    ><Eye size={12}/> View</button>
+                    <button
+                      className="up-tbl-edit-btn"
+                      onClick={() => onEdit({ staff: s, user: u })}
+                    ><Pencil size={12}/> Edit</button>
+                    <button
+                      className="up-tbl-del-btn"
+                      onClick={() => onDelete({ staff: s, user: u })}
+                    ><Trash2 size={12}/></button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={rows.length}
+        prev={prev}
+        next={next}
+        setPage={setPage}
+      />
     </div>
   );
 };
 
-// ── Guest Card ────────────────────────────────────────────────────
-const GuestCard = ({ guest, onClick, onDelete }) => {
-  const initials = avatar(guest.name);
-  const bgColor  = avatarColor(guest.name);
+// ── Guest Table ───────────────────────────────────────────────────
+const GuestTable = ({ guests, onView, onDelete }) => {
+  const { page, setPage, totalPages, slice, prev, next } = usePagination(guests);
 
   return (
-    <div className="up-card up-card--guest" onClick={onClick}>
-      <div className="up-card-top">
-        <div className="up-avatar up-avatar--guest" style={{ background: bgColor }}>{initials}</div>
-        <span className="up-guest-badge"><Star size={10}/>Guest</span>
-      </div>
-      <h3 className="up-card-name">{guest.name || '—'}</h3>
-      <p className="up-card-pos">
-        {guest.city && guest.country ? `${guest.city}, ${guest.country}` : guest.email || '—'}
-      </p>
-      <div className="up-card-footer">
-        <span><Mail size={11}/>{guest.email || '—'}</span>
-        <span><BookOpen size={11}/>{guest.bookingHistory?.length || 0} booking{guest.bookingHistory?.length !== 1 ? 's' : ''}</span>
-      </div>
-      {guest.preferences?.length > 0 && (
-        <div className="up-mini-tags">
-          {guest.preferences.slice(0, 3).map(p => <span key={p} className="up-mini-tag">{p}</span>)}
-          {guest.preferences.length > 3 && <span className="up-mini-tag">+{guest.preferences.length - 3}</span>}
-        </div>
-      )}
-      <div className="up-card-actions" onClick={e => e.stopPropagation()}>
-        <button className="up-card-view-btn"   onClick={onClick}  ><Eye    size={13}/> View</button>
-        <button className="up-card-delete-btn" onClick={onDelete} ><Trash2 size={13}/></button>
-      </div>
+    <div className="up-table-wrap">
+      <table className="up-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Location</th>
+            <th>Bookings</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {slice.map((g, i) => {
+            const initials = avatar(g.name);
+            const bgColor  = avatarColor(g.name);
+            const location = g.city && g.country
+              ? `${g.city}, ${g.country}`
+              : g.country || g.city || '—';
+
+            return (
+              <tr
+                key={g._id || i}
+                onClick={() => onView(g)}
+                className="up-table-row"
+              >
+                {/* Name */}
+                <td>
+                  <div className="up-table-cell-user">
+                    <div className="up-table-avatar up-table-avatar--guest" style={{ background: bgColor }}>{initials}</div>
+                    <div>
+                      <div className="up-table-name">{g.name || '—'}</div>
+                      {g.preferences?.length > 0 && (
+                        <div className="up-table-sub">
+                          {g.preferences.slice(0, 2).join(', ')}
+                          {g.preferences.length > 2 && ` +${g.preferences.length - 2}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Email */}
+                <td className="up-table-muted">{g.email || '—'}</td>
+
+                {/* Phone */}
+                <td className="up-table-muted">{g.phone || '—'}</td>
+
+                {/* Location */}
+                <td className="up-table-muted">{location}</td>
+
+                {/* Bookings */}
+                <td>
+                  <span className="up-bookings-badge">
+                    <BookOpen size={10}/>{g.bookingHistory?.length || 0}
+                  </span>
+                </td>
+
+                {/* Actions */}
+                <td onClick={e => e.stopPropagation()}>
+                  <div className="up-table-actions">
+                    <button
+                      className="up-tbl-view-btn"
+                      onClick={() => onView(g)}
+                    ><Eye size={12}/> View</button>
+                    <button
+                      className="up-tbl-del-btn"
+                      onClick={() => onDelete({ guest: g })}
+                    ><Trash2 size={12}/></button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={guests.length}
+        prev={prev}
+        next={next}
+        setPage={setPage}
+      />
     </div>
   );
 };
@@ -263,9 +449,8 @@ const UsersPage = () => {
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
 
-  // ── Modal visibility ────────────────────────────────────────
-  const [showAddStaff, setShowAddStaff] = useState(false); // ← Add Staff Member
-  const [showAddUser,  setShowAddUser]  = useState(false); // ← Add User Account
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [showAddUser,  setShowAddUser]  = useState(false);
 
   const [users,  setUsers]  = useState([]);
   const [staff,  setStaff]  = useState([]);
@@ -300,7 +485,6 @@ const UsersPage = () => {
 
   const handleRefresh = () => { setRefreshing(true); fetchAll(); };
 
-  // ── Modal close handlers ────────────────────────────────────
   const handleAddStaffClose = (ok) => { setShowAddStaff(false); if (ok) fetchAll(); };
   const handleAddUserClose  = (ok) => { setShowAddUser(false);  if (ok) fetchAll(); };
   const handleEditClose     = (ok) => { setEditTarget(null);    if (ok) fetchAll(); };
@@ -393,16 +577,12 @@ const UsersPage = () => {
         </div>
 
         <div className="up-header-actions">
-          {/* ── Add Staff Member — identical to Dashboard quick action ── */}
           <button className="up-add-staff-btn" onClick={() => setShowAddStaff(true)}>
             <Users size={15}/> Add Staff Member
           </button>
-
-          {/* ── Add User Account ── */}
           <button className="up-add-user-btn" onClick={() => setShowAddUser(true)}>
             <UserPlus size={15}/> Add User
           </button>
-
           <button
             className={`up-refresh-btn ${refreshing ? 'spinning' : ''}`}
             onClick={handleRefresh}
@@ -503,32 +683,22 @@ const UsersPage = () => {
         filteredStaff.length === 0
           ? <EmptyState label="No staff found" />
           : (
-            <div className="up-grid">
-              {filteredStaff.map(({ staff: s, user: u }, i) => (
-                <StaffCard
-                  key={s?._id || u?._id || i}
-                  staff={s} user={u}
-                  onClick={()  => setSelectedStaff({ staff: s, user: u })}
-                  onEdit={e    => { e.stopPropagation(); setEditTarget({ staff: s, user: u }); }}
-                  onDelete={e  => { e.stopPropagation(); setDeleteTarget({ staff: s, user: u }); }}
-                />
-              ))}
-            </div>
+            <StaffTable
+              rows={filteredStaff}
+              onView={setSelectedStaff}
+              onEdit={setEditTarget}
+              onDelete={setDeleteTarget}
+            />
           )
       ) : (
         filteredGuests.length === 0
           ? <EmptyState label="No guests found" />
           : (
-            <div className="up-grid">
-              {filteredGuests.map((g, i) => (
-                <GuestCard
-                  key={g._id || i}
-                  guest={g}
-                  onClick={()  => setSelectedGuest(g)}
-                  onDelete={e  => { e.stopPropagation(); setDeleteTarget({ guest: g }); }}
-                />
-              ))}
-            </div>
+            <GuestTable
+              guests={filteredGuests}
+              onView={setSelectedGuest}
+              onDelete={setDeleteTarget}
+            />
           )
       )}
 
@@ -544,26 +714,16 @@ const UsersPage = () => {
         <GuestDrawer guest={selectedGuest} onClose={() => setSelectedGuest(null)} />
       )}
 
-      {/* ── Add Staff Member Modal (same as Admin Dashboard) ───── */}
-      {showAddStaff && (
-        <AddStaffModal onClose={handleAddStaffClose} />
-      )}
-
-      {/* ── Add User Account Modal ──────────────────────────────── */}
-      {showAddUser && (
-        <AddUserModal onClose={handleAddUserClose} staffList={staff} />
-      )}
-
-      {/* ── Edit Modal ─────────────────────────────────────────── */}
-      {editTarget && (
+      {/* ── Modals ─────────────────────────────────────────────── */}
+      {showAddStaff && <AddStaffModal onClose={handleAddStaffClose} />}
+      {showAddUser  && <AddUserModal  onClose={handleAddUserClose} staffList={staff} />}
+      {editTarget   && (
         <EditUserModal
           staff={editTarget.staff}
           user={editTarget.user}
           onClose={handleEditClose}
         />
       )}
-
-      {/* ── Delete Confirm Modal ────────────────────────────────── */}
       {deleteTarget && (
         <DeleteConfirmModal
           staff={deleteTarget.staff ?? null}

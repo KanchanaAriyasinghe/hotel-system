@@ -1,50 +1,41 @@
+// backend/routes/hotelRoutes.js
+
 const express = require('express');
-const Hotel = require('../models/Hotel');
-const router = express.Router();
+const router  = express.Router();
+const {
+  getHotel,
+  getHotelById,
+  createHotel,
+  updateHotel,
+  upsertHotel,
+  addImages,
+  removeImage,
+  addAmenities,
+  removeAmenity,
+  deleteHotel,
+  getPublicHotel,
+} = require('../controllers/hotelController');
 
-// Get hotel info
-router.get('/info', async (req, res) => {
-  try {
-    let hotel = await Hotel.findOne();
-    if (!hotel) {
-      hotel = new Hotel({
-        name: 'Luxury Hotel',
-        description: 'Experience luxury and comfort at our 5-star hotel',
-        email: 'info@luxuryhotel.com',
-        phone: '+1 (555) 123-4567',
-        whatsapp: '+15551234567',
-        address: '123 Main Street',
-        city: 'New York',
-        latitude: 40.7128,
-        longitude: -74.0060,
-        images: [],
-        amenities: ['WiFi', 'Swimming Pool', 'Spa', 'Restaurant', 'Bar', 'Gym'],
-        checkInTime: '14:00',
-        checkOutTime: '11:00',
-        currency: 'USD'
-      });
-      await hotel.save();
-    }
-    res.json(hotel);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+const { protect, isAdmin } = require('../middleware/authMiddleware');
+// protect  → any logged-in user (JWT verified)
+// isAdmin  → role must be 'admin'
 
-// Update hotel info
-router.put('/info', async (req, res) => {
-  try {
-    let hotel = await Hotel.findOne();
-    if (!hotel) {
-      hotel = new Hotel(req.body);
-    } else {
-      Object.assign(hotel, req.body);
-    }
-    await hotel.save();
-    res.json(hotel);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// ── Public (no auth needed) ───────────────────────────────────────
+router.get('/public', getPublicHotel);   // GET  /api/hotel/public
+router.get('/',       getHotel);         // GET  /api/hotel
+router.get('/:id',    getHotelById);     // GET  /api/hotel/:id
+
+// ── Admin only ────────────────────────────────────────────────────
+router.post(  '/',                protect, isAdmin, createHotel);    // POST   /api/hotel
+router.put(   '/:id',             protect, isAdmin, updateHotel);    // PUT    /api/hotel/:id
+router.patch( '/',                protect, isAdmin, upsertHotel);    // PATCH  /api/hotel
+
+router.post(  '/:id/images',      protect, isAdmin, addImages);      // POST   /api/hotel/:id/images
+router.delete('/:id/images',      protect, isAdmin, removeImage);    // DELETE /api/hotel/:id/images
+
+router.post(  '/:id/amenities',   protect, isAdmin, addAmenities);   // POST   /api/hotel/:id/amenities
+router.delete('/:id/amenities',   protect, isAdmin, removeAmenity);  // DELETE /api/hotel/:id/amenities
+
+router.delete('/:id',             protect, isAdmin, deleteHotel);    // DELETE /api/hotel/:id
 
 module.exports = router;

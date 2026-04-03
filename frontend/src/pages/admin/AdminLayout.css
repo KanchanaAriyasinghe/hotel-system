@@ -1,6 +1,6 @@
 /* frontend/src/pages/admin/AdminLayout.css
-   Shares the same design tokens as AdminDashboard.css.
-   No duplication — variables defined in AdminDashboard.css :root are reused here. */
+   Sidebar shell + dark-mode toggle styles only.
+   All .admin-content--dark overrides live in AdminDarkMode.css */
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -81,6 +81,58 @@
 
 .admin-nav-item .nav-arrow { margin-left: auto; opacity: 0.6; }
 
+/* ── Dark Mode Toggle ─────────────────────────────────────────── */
+.admin-dark-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 10px 14px;
+  margin: 0 12px 8px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+}
+
+.admin-dark-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-dark-icon  { color: #a5b4fc; flex-shrink: 0; }
+
+.admin-dark-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+/* Toggle switch */
+.admin-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #2a2a38;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.admin-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.admin-toggle--on { background: #6366f1; }
+.admin-toggle--on::after { transform: translateX(16px); }
+
 /* ── Server status ────────────────────────────────────────────── */
 .admin-server-status {
   display: flex;
@@ -156,19 +208,38 @@
   cursor: pointer;
   transition: background 0.18s;
 }
-
 .admin-logout-btn:hover { background: #2a1f1f; }
 
-/* ── Content area (right of sidebar) ─────────────────────────── */
+/* ── Content area ─────────────────────────────────────────────── */
 .admin-content {
   margin-left: var(--sidebar-w, 240px);
   flex: 1;
   min-width: 0;
   overflow-x: hidden;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .admin-sidebar  { display: none; }
-  .admin-content  { margin-left: 0; }
+  .admin-sidebar  { width: 64px; }
+  .admin-content  { margin-left: 64px; }
+
+  .brand-text,
+  .admin-nav-item span,
+  .admin-nav-item .nav-arrow,
+  .admin-server-status span,
+  .admin-user-name,
+  .admin-role-badge,
+  .admin-logout-btn span,
+  .admin-dark-label { display: none; }
+
+  .admin-dark-toggle-row {
+    justify-content: center;
+    padding: 8px;
+    margin: 0 6px 8px;
+  }
+
+  .admin-nav-item   { justify-content: center; padding: 10px 0; }
+  .admin-user-info  { justify-content: center; }
+  .admin-logout-btn { justify-content: center; }
 }

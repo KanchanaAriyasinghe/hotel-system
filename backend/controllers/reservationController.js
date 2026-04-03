@@ -1,7 +1,22 @@
-// backend/controllers/reservationController.js
-
 const Reservation = require('../models/Reservation');
-const Room = require('../models/Room');
+const Room        = require('../models/Room');
+const User        = require('../models/User');
+const {
+  sendNewReservationEmail,
+  sendCheckInEmail,
+  sendCheckOutEmail,
+  sendCancellationEmail,
+} = require('../utils/emailService');
+
+// ── Helper: fetch admin emails filtered by notification preference ─────────
+const getAdminEmailsForPref = async (prefKey) => {
+  const admins = await User.find({
+    role:     'admin',
+    isActive: true,
+    [`notificationPrefs.${prefKey}`]: true,
+  }).select('email');
+  return admins.map(a => a.email).filter(Boolean);
+};
 
 // @desc      Get all reservations
 // @route     GET /api/reservations
@@ -15,18 +30,15 @@ exports.getAllReservations = async (req, res) => {
     res.status(200).json({
       success: true,
       count: reservations.length,
-      data: reservations,
+      data:  reservations,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching reservations',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching reservations' });
   }
 };
 
 // @desc      Get available rooms
-// @route     GET /api/rooms/available
+// @route     GET /api/reservations/available
 // @access    Public
 exports.getAvailableRooms = async (req, res) => {
   try {
@@ -39,50 +51,28 @@ exports.getAvailableRooms = async (req, res) => {
       });
     }
 
-    // Find all rooms of the selected type
-    const allRooms = await Room.find({
-      roomType,
-      isActive: true,
-    });
+    const allRooms = await Room.find({ roomType, isActive: true });
 
-    // Find reservations that overlap with the requested dates
-    const checkIn = new Date(checkInDate);
+    const checkIn  = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
     const bookedRooms = await Reservation.find({
-      $or: [
-        {
-          checkInDate: { $lt: checkOut },
-          checkOutDate: { $gt: checkIn },
-          status: { $in: ['confirmed', 'checked-in'] },
-        },
-      ],
+      $or: [{
+        checkInDate:  { $lt: checkOut },
+        checkOutDate: { $gt: checkIn  },
+        status: { $in: ['confirmed', 'checked-in'] },
+      }],
     }).select('roomIds');
 
-    // Extract booked room IDs
     const bookedRoomIds = [];
-    bookedRooms.forEach(reservation => {
-      reservation.roomIds.forEach(roomId => {
-        bookedRoomIds.push(roomId.toString());
-      });
-    });
+    bookedRooms.forEach(r => r.roomIds.forEach(id => bookedRoomIds.push(id.toString())));
 
-    // Filter available rooms
-    const availableRooms = allRooms.filter(
-      room => !bookedRoomIds.includes(room._id.toString())
-    );
+    const availableRooms = allRooms.filter(r => !bookedRoomIds.includes(r._id.toString()));
 
-    res.status(200).json({
-      success: true,
-      count: availableRooms.length,
-      data: availableRooms,
-    });
+    res.status(200).json({ success: true, count: availableRooms.length, data: availableRooms });
   } catch (error) {
     console.error('Error fetching available rooms:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching available rooms',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching available rooms' });
   }
 };
 
@@ -92,102 +82,99 @@ exports.getAvailableRooms = async (req, res) => {
 exports.createReservation = async (req, res) => {
   try {
     const {
-      guestName,
-      email,
-      phone,
-      checkInDate,
-      checkOutDate,
-      roomIds,
-      roomType,
-      numberOfGuests,
-      numberOfRooms,
-      amenities,
-      specialRequests,
-      totalPrice,
+      guestName, email, phone,
+      checkInDate, checkOutDate,
+      roomIds, roomType,
+      numberOfGuests, numberOfRooms,
+      freeAmenities, paidAmenities, amenityHours,
+      selectedRestaurant, selectedBar,
+      specialRequests, stayType,
+      totalPrice, amenitiesBreakdown,
     } = req.body;
 
     // Validation
     if (!guestName || !email || !phone || !checkInDate || !checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields',
-      });
+      return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
-
     if (!roomIds || roomIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please select at least one room',
-      });
+      return res.status(400).json({ success: false, message: 'Please select at least one room' });
     }
-
     if (roomIds.length !== numberOfRooms) {
-      return res.status(400).json({
-        success: false,
-        message: 'Number of selected rooms does not match number of rooms',
-      });
+      return res.status(400).json({ success: false, message: 'Number of selected rooms does not match' });
     }
 
-    // Check if rooms are available
-    const checkIn = new Date(checkInDate);
+    // Check for conflicts
+    const checkIn  = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
-    const conflictingReservations = await Reservation.find({
-      roomIds: { $in: roomIds },
-      checkInDate: { $lt: checkOut },
-      checkOutDate: { $gt: checkIn },
+    const conflicts = await Reservation.find({
+      roomIds:      { $in: roomIds },
+      checkInDate:  { $lt: checkOut },
+      checkOutDate: { $gt: checkIn  },
       status: { $in: ['confirmed', 'checked-in'] },
     });
 
-    if (conflictingReservations.length > 0) {
+    if (conflicts.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'One or more selected rooms are not available for the selected dates',
       });
     }
 
-    // Verify rooms exist and are of correct type
+    // Verify rooms exist
     const rooms = await Room.find({ _id: { $in: roomIds } });
     if (rooms.length !== roomIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: 'One or more rooms not found',
-      });
+      return res.status(400).json({ success: false, message: 'One or more rooms not found' });
     }
 
     // Create reservation
     const reservation = await Reservation.create({
-      guestName,
-      email,
-      phone,
-      checkInDate,
-      checkOutDate,
-      roomIds,
-      roomType,
-      numberOfGuests,
-      numberOfRooms,
-      amenities,
+      guestName, email, phone,
+      checkInDate, checkOutDate,
+      roomIds, roomType,
+      numberOfGuests, numberOfRooms,
+      freeAmenities:     freeAmenities     || [],
+      paidAmenities:     paidAmenities     || [],
+      amenityHours:      amenityHours      || {},
+      selectedRestaurant: selectedRestaurant || false,
+      selectedBar:        selectedBar        || false,
       specialRequests,
-      totalPrice,
-      status: 'pending',
+      stayType:      stayType      || 'overnight',
+      totalPrice:    totalPrice    || 0,
+      status:        'pending',
       paymentStatus: 'pending',
     });
 
-    // Populate room details
-    const populatedReservation = await Reservation.findById(reservation._id)
+    const populated = await Reservation.findById(reservation._id)
       .populate('roomIds', 'roomNumber roomType floor');
+
+    // ── Email admins who have newReservation enabled ──────────────────────
+    const adminEmails = await getAdminEmailsForPref('newReservation');
+    if (adminEmails.length > 0) {
+      const roomNumbers = populated.roomIds.map(r => `#${r.roomNumber}`).join(', ');
+      sendNewReservationEmail({
+        adminEmails,
+        guestName,
+        email,
+        phone,
+        roomType,
+        roomNumbers,
+        checkInDate,
+        checkOutDate,
+        stayType:           stayType || 'overnight',
+        totalPrice:         totalPrice || 0,
+        amenitiesBreakdown: amenitiesBreakdown || {},
+      }).catch(err => console.error('[createReservation] email failed:', err.message));
+    }
 
     res.status(201).json({
       success: true,
       message: 'Reservation created successfully',
-      data: populatedReservation,
+      data:    populated,
     });
   } catch (error) {
     console.error('Error creating reservation:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error creating reservation',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error creating reservation' });
   }
 };
 
@@ -200,90 +187,147 @@ exports.getReservationById = async (req, res) => {
       .populate('roomIds', 'roomNumber roomType floor');
 
     if (!reservation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Reservation not found',
-      });
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
-    res.status(200).json({
-      success: true,
-      data: reservation,
-    });
+    res.status(200).json({ success: true, data: reservation });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching reservation',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching reservation' });
   }
 };
 
 // @desc      Update reservation
+//            Supports:
+//              - Status transitions  (status field)
+//              - Payment status      (paymentStatus field)
+//              - Guest info edits    (guestName, email, phone)
+//              - Date edits          (checkInDate, checkOutDate)
+//              - Guest count         (numberOfGuests)
+//              - Special requests    (specialRequests)
 // @route     PUT /api/reservations/:id
-// @access    Private/Admin
+// @access    Private
 exports.updateReservation = async (req, res) => {
   try {
-    const { status, paymentStatus, specialRequests } = req.body;
+    const {
+      status,
+      paymentStatus,
+      guestName,
+      email,
+      phone,
+      checkInDate,
+      checkOutDate,
+      numberOfGuests,
+      specialRequests,
+    } = req.body;
 
-    let reservation = await Reservation.findById(req.params.id);
+    let reservation = await Reservation.findById(req.params.id)
+      .populate('roomIds', 'roomNumber roomType floor');
+
     if (!reservation) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
+
+    const oldStatus = reservation.status;
+
+    // ── Apply all supplied fields ──────────────────────────────────────────
+    if (status          !== undefined) reservation.status          = status;
+    if (paymentStatus   !== undefined) reservation.paymentStatus   = paymentStatus;
+    if (guestName       !== undefined) reservation.guestName       = guestName.trim();
+    if (email           !== undefined) reservation.email           = email.trim();
+    if (phone           !== undefined) reservation.phone           = phone.trim();
+    if (numberOfGuests  !== undefined) reservation.numberOfGuests  = Number(numberOfGuests);
+    if (specialRequests !== undefined) reservation.specialRequests = specialRequests;
+
+    // Date changes — validate that check-out is after check-in
+    if (checkInDate  !== undefined) reservation.checkInDate  = new Date(checkInDate);
+    if (checkOutDate !== undefined) reservation.checkOutDate = new Date(checkOutDate);
+
+    const effectiveCheckIn  = reservation.checkInDate;
+    const effectiveCheckOut = reservation.checkOutDate;
+    if (effectiveCheckOut <= effectiveCheckIn) {
+      return res.status(400).json({
         success: false,
-        message: 'Reservation not found',
+        message: 'Check-out date must be after check-in date',
       });
     }
 
-    // Update fields
-    if (status) reservation.status = status;
-    if (paymentStatus) reservation.paymentStatus = paymentStatus;
-    if (specialRequests) reservation.specialRequests = specialRequests;
-
     reservation = await reservation.save();
 
-    res.status(200).json({
-      success: true,
-      message: 'Reservation updated successfully',
-      data: reservation,
-    });
+    const roomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
+    const actorName   = req.user?.fullName || req.user?.email || 'Staff';
+
+    // ── Check-in email ────────────────────────────────────────────────────
+    if (status === 'checked-in' && oldStatus !== 'checked-in') {
+      const adminEmails = await getAdminEmailsForPref('checkIn');
+      if (adminEmails.length > 0) {
+        sendCheckInEmail({
+          adminEmails,
+          guestName:   reservation.guestName,
+          roomNumbers,
+          checkInDate:  reservation.checkInDate,
+          checkOutDate: reservation.checkOutDate,
+          checkedInBy:  actorName,
+        }).catch(err => console.error('[checkIn] email failed:', err.message));
+      }
+    }
+
+    // ── Check-out email ───────────────────────────────────────────────────
+    if (status === 'checked-out' && oldStatus !== 'checked-out') {
+      const adminEmails = await getAdminEmailsForPref('checkOut');
+      if (adminEmails.length > 0) {
+        sendCheckOutEmail({
+          adminEmails,
+          guestName:    reservation.guestName,
+          roomNumbers,
+          checkOutDate: reservation.checkOutDate,
+          checkedOutBy: actorName,
+        }).catch(err => console.error('[checkOut] email failed:', err.message));
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Reservation updated successfully', data: reservation });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error updating reservation',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error updating reservation' });
   }
 };
 
-// @desc      Cancel reservation
+// @desc      Cancel / delete reservation
 // @route     DELETE /api/reservations/:id
 // @access    Private
 exports.cancelReservation = async (req, res) => {
   try {
-    const reservation = await Reservation.findById(req.params.id);
+    const reservation = await Reservation.findById(req.params.id)
+      .populate('roomIds', 'roomNumber roomType floor');
 
     if (!reservation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Reservation not found',
-      });
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
     reservation.status = 'cancelled';
     await reservation.save();
 
-    res.status(200).json({
-      success: true,
-      message: 'Reservation cancelled successfully',
-      data: reservation,
-    });
+    // ── Cancellation email ────────────────────────────────────────────────
+    const adminEmails = await getAdminEmailsForPref('cancellation');
+    if (adminEmails.length > 0) {
+      const roomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
+      sendCancellationEmail({
+        adminEmails,
+        guestName:   reservation.guestName,
+        roomNumbers,
+        checkInDate:  reservation.checkInDate,
+        checkOutDate: reservation.checkOutDate,
+        cancelledBy:  req.user?.fullName || req.user?.email || 'Guest/Staff',
+        reason:       req.body?.reason || null,
+      }).catch(err => console.error('[cancel] email failed:', err.message));
+    }
+
+    res.status(200).json({ success: true, message: 'Reservation cancelled successfully', data: reservation });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error cancelling reservation',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error cancelling reservation' });
   }
 };
 
-// @desc      Get reservations by email
+// @desc      Get reservations by guest email
 // @route     GET /api/reservations/guest/:email
 // @access    Public
 exports.getReservationsByEmail = async (req, res) => {
@@ -292,15 +336,8 @@ exports.getReservationsByEmail = async (req, res) => {
       .populate('roomIds', 'roomNumber roomType floor')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: reservations.length,
-      data: reservations,
-    });
+    res.status(200).json({ success: true, count: reservations.length, data: reservations });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching reservations',
-    });
+    res.status(500).json({ success: false, message: error.message || 'Error fetching reservations' });
   }
 };

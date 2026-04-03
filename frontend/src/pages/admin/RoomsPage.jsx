@@ -1,17 +1,13 @@
 // frontend/src/pages/admin/RoomsPage.jsx
-//
-// Endpoints:
-//   GET    /api/rooms          → { success, count, data: Room[] }
-//   DELETE /api/rooms/:id      → { success, message }
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   BedDouble, Plus, Search, RefreshCw,
-  ChevronRight, Trash2, Eye,
+  Trash2, Eye,
   CheckCircle, XCircle, Wrench, Sparkles,
-  Filter,
+  Filter, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import AddRoomModal from './modals/AddRoomModal';
 import './RoomsPage.css';
@@ -21,33 +17,36 @@ const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
 });
 
+const ROWS_PER_PAGE = 5;
+
 const STATUS_META = {
-  available:   { label: 'Available',   cls: 'pill--green', Icon: CheckCircle },
-  occupied:    { label: 'Occupied',    cls: 'pill--blue',  Icon: BedDouble   },
-  maintenance: { label: 'Maintenance', cls: 'pill--amber', Icon: Wrench      },
-  cleaning:    { label: 'Cleaning',    cls: 'pill--purple',Icon: Sparkles    },
+  available:   { label: 'Available',   cls: 'pill--green',  Icon: CheckCircle },
+  occupied:    { label: 'Occupied',    cls: 'pill--blue',   Icon: BedDouble   },
+  maintenance: { label: 'Maintenance', cls: 'pill--amber',  Icon: Wrench      },
+  cleaning:    { label: 'Cleaning',    cls: 'pill--purple', Icon: Sparkles    },
 };
 
 const TYPE_COLORS = {
-  single:  '#6366f1',
-  double:  '#0ea5e9',
-  deluxe:  '#f59e0b',
-  suite:   '#ec4899',
-  family:  '#10b981',
+  single: '#6366f1',
+  double: '#0ea5e9',
+  deluxe: '#f59e0b',
+  suite:  '#ec4899',
+  family: '#10b981',
 };
 
 const RoomsPage = () => {
   const navigate = useNavigate();
-  const [rooms, setRooms]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch]       = useState('');
-  const [filterType, setFilterType]   = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [showModal, setShowModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // room _id
-  const [deleting, setDeleting]   = useState(false);
-  const [error, setError]         = useState('');
+  const [rooms,         setRooms]         = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [search,        setSearch]        = useState('');
+  const [filterType,    setFilterType]    = useState('all');
+  const [filterStatus,  setFilterStatus]  = useState('all');
+  const [showModal,     setShowModal]     = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting,      setDeleting]      = useState(false);
+  const [error,         setError]         = useState('');
+  const [page,          setPage]          = useState(1);
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -62,6 +61,9 @@ const RoomsPage = () => {
   }, []);
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
 
   const handleRefresh = () => { setRefreshing(true); fetchRooms(); };
 
@@ -78,17 +80,35 @@ const RoomsPage = () => {
     }
   };
 
-  // Filtered list
+  // ── Filtered list ──────────────────────────────────────────
   const filtered = rooms.filter(r => {
     const matchSearch = search === '' ||
       r.roomNumber.toLowerCase().includes(search.toLowerCase()) ||
       r.roomType.toLowerCase().includes(search.toLowerCase());
-    const matchType   = filterType   === 'all' || r.roomType   === filterType;
-    const matchStatus = filterStatus === 'all' || r.status     === filterStatus;
+    const matchType   = filterType   === 'all' || r.roomType === filterType;
+    const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
     return matchSearch && matchType && matchStatus;
   });
 
-  // Summary counts
+  // ── Pagination ─────────────────────────────────────────────
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+  const safePage    = Math.min(page, totalPages);
+  const pageStart   = (safePage - 1) * ROWS_PER_PAGE;
+  const pageRows    = filtered.slice(pageStart, pageStart + ROWS_PER_PAGE);
+
+  const goTo    = (p) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const goPrev  = () => goTo(safePage - 1);
+  const goNext  = () => goTo(safePage + 1);
+
+  // Build visible page numbers (max 5 shown, with ellipsis logic)
+  const pageNumbers = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (safePage <= 3)   return [1, 2, 3, 4, '…', totalPages];
+    if (safePage >= totalPages - 2) return [1, '…', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '…', safePage - 1, safePage, safePage + 1, '…', totalPages];
+  };
+
+  // ── Summary counts ─────────────────────────────────────────
   const counts = {
     total:       rooms.length,
     available:   rooms.filter(r => r.status === 'available').length,
@@ -139,7 +159,11 @@ const RoomsPage = () => {
           { label: 'Occupied',    value: counts.occupied,    color: '#0ea5e9', bg: '#f0f9ff' },
           { label: 'Maintenance', value: counts.maintenance, color: '#f59e0b', bg: '#fffbeb' },
         ].map(({ label, value, color, bg }) => (
-          <div className="rp-summary-card" key={label} style={{ '--card-color': color, '--card-bg': bg }}>
+          <div
+            className="rp-summary-card"
+            key={label}
+            style={{ '--card-color': color, '--card-bg': bg }}
+          >
             <span className="rp-summary-value">{value}</span>
             <span className="rp-summary-label">{label}</span>
           </div>
@@ -162,13 +186,13 @@ const RoomsPage = () => {
           <select value={filterType} onChange={e => setFilterType(e.target.value)}>
             <option value="all">All Types</option>
             {['single','double','deluxe','suite','family'].map(t => (
-              <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>
+              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="all">All Statuses</option>
             {['available','occupied','maintenance','cleaning'].map(s => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
         </div>
@@ -183,91 +207,132 @@ const RoomsPage = () => {
           <p>{rooms.length === 0 ? 'No rooms yet. Add your first room!' : 'No rooms match your filters.'}</p>
         </div>
       ) : (
-        <div className="rp-table-wrap">
-          <table className="rp-table">
-            <thead>
-              <tr>
-                <th>Room</th>
-                <th>Type</th>
-                <th>Floor</th>
-                <th>Capacity</th>
-                <th>Price / Night</th>
-                <th>Amenities</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((room, i) => {
-                const sm = STATUS_META[room.status] || STATUS_META.available;
-                return (
-                  <tr
-                    key={room._id || i}
-                    className="rp-row"
-                    onClick={() => navigate(`/admin/rooms/${room._id}`)}
-                  >
-                    <td>
-                      <span className="rp-room-num">#{room.roomNumber}</span>
-                    </td>
-                    <td>
-                      <span
-                        className="rp-type-badge"
-                        style={{ '--type-color': TYPE_COLORS[room.roomType] || '#6366f1' }}
-                      >
-                        {room.roomType}
-                      </span>
-                    </td>
-                    <td className="rp-floor">Floor {room.floor}</td>
-                    <td className="rp-capacity">{room.capacity} guest{room.capacity !== 1 ? 's' : ''}</td>
-                    <td className="rp-price"><strong>${room.pricePerNight}</strong></td>
-                    <td>
-                      <div className="rp-amenity-chips">
-                        {(room.amenities || []).slice(0, 3).map(a => (
-                          <span key={a} className="rp-amenity-chip">{a}</span>
-                        ))}
-                        {(room.amenities || []).length > 3 && (
-                          <span className="rp-amenity-chip rp-amenity-more">
-                            +{room.amenities.length - 3}
-                          </span>
-                        )}
-                        {(room.amenities || []).length === 0 && (
-                          <span className="rp-amenity-none">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`rp-status-pill ${sm.cls}`}>
-                        <sm.Icon size={11} />
-                        {sm.label}
-                      </span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <div className="rp-action-btns">
-                        <button
-                          className="rp-act-btn rp-act-view"
-                          onClick={() => navigate(`/admin/rooms/${room._id}`)}
-                          title="View details"
+        <>
+          <div className="rp-table-wrap">
+            <table className="rp-table">
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Type</th>
+                  <th>Floor</th>
+                  <th>Capacity</th>
+                  <th>Price / Night</th>
+                  <th>Amenities</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((room, i) => {
+                  const sm = STATUS_META[room.status] || STATUS_META.available;
+                  return (
+                    <tr
+                      key={room._id || i}
+                      className="rp-row"
+                      onClick={() => navigate(`/admin/rooms/${room._id}`)}
+                    >
+                      <td><span className="rp-room-num">#{room.roomNumber}</span></td>
+                      <td>
+                        <span
+                          className="rp-type-badge"
+                          style={{ '--type-color': TYPE_COLORS[room.roomType] || '#6366f1' }}
                         >
-                          <Eye size={15} />
-                        </button>
-                        <button
-                          className="rp-act-btn rp-act-delete"
-                          onClick={() => setDeleteConfirm(room._id)}
-                          title="Delete room"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <p className="rp-table-count">
-            Showing {filtered.length} of {rooms.length} rooms
-          </p>
-        </div>
+                          {room.roomType}
+                        </span>
+                      </td>
+                      <td className="rp-floor">Floor {room.floor}</td>
+                      <td className="rp-capacity">{room.capacity} guest{room.capacity !== 1 ? 's' : ''}</td>
+                      <td className="rp-price"><strong>${room.pricePerNight}</strong></td>
+                      <td>
+                        <div className="rp-amenity-chips">
+                          {(room.amenities || []).slice(0, 3).map(a => (
+                            <span key={a} className="rp-amenity-chip">{a}</span>
+                          ))}
+                          {(room.amenities || []).length > 3 && (
+                            <span className="rp-amenity-chip rp-amenity-more">
+                              +{room.amenities.length - 3}
+                            </span>
+                          )}
+                          {(room.amenities || []).length === 0 && (
+                            <span className="rp-amenity-none">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`rp-status-pill ${sm.cls}`}>
+                          <sm.Icon size={11} />
+                          {sm.label}
+                        </span>
+                      </td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <div className="rp-action-btns">
+                          <button
+                            className="rp-act-btn rp-act-view"
+                            onClick={() => navigate(`/admin/rooms/${room._id}`)}
+                            title="View details"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            className="rp-act-btn rp-act-delete"
+                            onClick={() => setDeleteConfirm(room._id)}
+                            title="Delete room"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* ── Pagination Footer ── */}
+            <div className="rp-pagination">
+              <span className="rp-pagination-info">
+                Showing {pageStart + 1}–{Math.min(pageStart + ROWS_PER_PAGE, filtered.length)} of {filtered.length} rooms
+              </span>
+
+              <div className="rp-pagination-controls">
+                {/* Prev */}
+                <button
+                  className="rp-page-btn rp-page-arrow"
+                  onClick={goPrev}
+                  disabled={safePage === 1}
+                  title="Previous page"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+
+                {/* Page numbers */}
+                {pageNumbers().map((p, idx) =>
+                  p === '…' ? (
+                    <span key={`ellipsis-${idx}`} className="rp-page-ellipsis">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      className={`rp-page-btn ${safePage === p ? 'rp-page-btn--active' : ''}`}
+                      onClick={() => goTo(p)}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                {/* Next */}
+                <button
+                  className="rp-page-btn rp-page-arrow"
+                  onClick={goNext}
+                  disabled={safePage === totalPages}
+                  title="Next page"
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── Delete Confirm Modal ── */}

@@ -1,0 +1,373 @@
+/* ================================================================
+   ReceptionistLayout.css
+   ================================================================ */
+
+/* ── Root variables ─────────────────────────────────────────────── */
+:root {
+  --rc-sidebar-bg:        #1a1f3a;
+  --rc-sidebar-border:    #272d52;
+  --rc-brand-color:       #7c6ef7;
+  --rc-nav-hover-bg:      rgba(124, 110, 247, 0.10);
+  --rc-nav-active-bg:     rgba(124, 110, 247, 0.18);
+  --rc-nav-active-color:  #a99eff;
+  --rc-nav-text:          #8892b0;
+  --rc-footer-border:     #272d52;
+  --rc-badge-bg:          rgba(124, 110, 247, 0.15);
+  --rc-badge-color:       #a99eff;
+  --rc-logout-hover:      rgba(255, 99, 99, 0.12);
+  --rc-logout-color:      #ff7a7a;
+  --rc-content-bg:        #f0f2f8;
+  --rc-status-ok:         #4dd9ac;
+  --rc-status-err:        #ff7a7a;
+  --rc-sidebar-width:     240px;
+  --rc-transition:        0.2s ease;
+}
+
+/* ── Layout shell ───────────────────────────────────────────────── */
+.rc-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--rc-content-bg);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+.rc-sidebar {
+  width: var(--rc-sidebar-width);
+  min-height: 100vh;
+  background: var(--rc-sidebar-bg);
+  border-right: 1px solid var(--rc-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* ── Brand ──────────────────────────────────────────────────────── */
+.rc-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--rc-sidebar-border);
+}
+.rc-brand-icon { font-size: 22px; line-height: 1; }
+.rc-brand-text {
+  font-size: 15px; font-weight: 700;
+  color: var(--rc-brand-color);
+  letter-spacing: 0.4px; white-space: nowrap;
+}
+
+/* ── Nav ────────────────────────────────────────────────────────── */
+.rc-nav {
+  display: flex; flex-direction: column;
+  gap: 4px; padding: 16px 12px; flex: 1;
+}
+.rc-nav-item {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; padding: 10px 12px;
+  border: none; border-radius: 8px;
+  background: transparent; color: var(--rc-nav-text);
+  font-size: 13.5px; font-weight: 500;
+  cursor: pointer; text-align: left;
+  transition: background var(--rc-transition), color var(--rc-transition);
+  position: relative;
+}
+.rc-nav-item:hover  { background: var(--rc-nav-hover-bg);  color: #c5cafe; }
+.rc-nav-item.active { background: var(--rc-nav-active-bg); color: var(--rc-nav-active-color); font-weight: 600; }
+.rc-nav-arrow { margin-left: auto; opacity: 0.7; }
+
+/* ── Dark Mode Toggle Row ───────────────────────────────────────── */
+.rc-dark-toggle-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 10px 14px;
+  margin: 0 12px 8px; border-radius: 9px;
+  background: rgba(124, 110, 247, 0.06);
+  border: 1px solid rgba(124, 110, 247, 0.12);
+}
+.rc-dark-toggle-info { display: flex; align-items: center; gap: 8px; }
+.rc-dark-icon  { color: var(--rc-brand-color); flex-shrink: 0; }
+.rc-dark-label { font-size: 12.5px; font-weight: 500; color: var(--rc-nav-text); white-space: nowrap; }
+
+/* Toggle switch */
+.rc-toggle {
+  width: 36px; height: 20px;
+  border-radius: 10px; background: #2a3060;
+  border: none; cursor: pointer;
+  position: relative; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.rc-toggle::after {
+  content: ''; position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%; background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.rc-toggle--on { background: var(--rc-brand-color); }
+.rc-toggle--on::after { transform: translateX(16px); }
+
+/* ── Server status ──────────────────────────────────────────────── */
+.rc-server-status {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 20px; font-size: 11.5px;
+  color: var(--rc-nav-text);
+  border-top: 1px solid var(--rc-sidebar-border);
+}
+.rc-status-icon.ok  { color: var(--rc-status-ok);  }
+.rc-status-icon.err { color: var(--rc-status-err); }
+
+/* ── Sidebar footer ─────────────────────────────────────────────── */
+.rc-sidebar-footer {
+  padding: 14px 16px; border-top: 1px solid var(--rc-footer-border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rc-user-info  { display: flex; align-items: center; gap: 10px; }
+.rc-avatar-sm  {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--rc-brand-color); flex-shrink: 0;
+}
+.rc-user-name {
+  font-size: 13px; font-weight: 600;
+  color: #c5cafe; margin: 0 0 3px;
+  white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 130px;
+}
+.rc-role-badge {
+  font-size: 10px; font-weight: 600;
+  color: var(--rc-badge-color); background: var(--rc-badge-bg);
+  padding: 2px 8px; border-radius: 20px;
+  letter-spacing: 0.3px; text-transform: uppercase;
+}
+.rc-logout-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--rc-nav-text);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background var(--rc-transition), color var(--rc-transition);
+}
+.rc-logout-btn:hover { background: var(--rc-logout-hover); color: var(--rc-logout-color); }
+
+/* ── Content area ───────────────────────────────────────────────── */
+.rc-content {
+  margin-left: var(--rc-sidebar-width);
+  flex: 1; min-height: 100vh; padding: 0;
+  background: var(--rc-content-bg);
+  box-sizing: border-box;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — comprehensive overrides for all three pages
+   ══════════════════════════════════════════════════════════════════ */
+.rc-content--dark { background: #0d1117; color: #e5e7eb; }
+
+/* Generic text — but NOT badges/pills (they carry their own bg+color) */
+.rc-content--dark h1,
+.rc-content--dark h2,
+.rc-content--dark h3,
+.rc-content--dark h4 { color: #f9fafb; }
+
+.rc-content--dark p  { color: #d1d5db; }
+
+/* Inputs, textareas, selects */
+.rc-content--dark input,
+.rc-content--dark textarea,
+.rc-content--dark select {
+  background: #1e2340 !important;
+  color: #f9fafb !important;
+  border-color: #3a4060 !important;
+}
+.rc-content--dark input::placeholder,
+.rc-content--dark textarea::placeholder { color: #6b7280 !important; }
+.rc-content--dark input:focus,
+.rc-content--dark textarea:focus,
+.rc-content--dark select:focus {
+  border-color: #7c6ef7 !important;
+  box-shadow: 0 0 0 3px rgba(124,110,247,0.18) !important;
+  background: #252a48 !important;
+}
+
+/* ── BOOKINGS PAGE ──────────────────────────────────────────────── */
+.rc-content--dark .rcb-page         { background: #0d1117; }
+
+/* Date strip */
+.rc-content--dark .rcb-date-strip   { background: #13172b; border-bottom-color: #272d52; }
+.rc-content--dark .rcb-date-nav     { color: #a99eff; }
+.rc-content--dark .rcb-date-nav:hover:not(:disabled) { background: rgba(124,110,247,0.15); }
+.rc-content--dark .rcb-date-item    { background: #1a1f3a; border-color: #272d52; }
+.rc-content--dark .rcb-day-name     { color: #6b7280; }
+.rc-content--dark .rcb-day-num      { color: #d1d5db; }
+.rc-content--dark .rcb-date-item.today  { background: #221d50; border-color: #7c6ef7; }
+.rc-content--dark .rcb-date-item.today .rcb-day-name { color: #a99eff; }
+.rc-content--dark .rcb-date-item.today .rcb-day-num  { color: #c5bfff; }
+.rc-content--dark .rcb-date-item.selected { background: #7c6ef7; border-color: #7c6ef7; }
+.rc-content--dark .rcb-date-item.selected .rcb-day-name,
+.rc-content--dark .rcb-date-item.selected .rcb-day-num { color: #fff; }
+.rc-content--dark .rcb-date-item:hover:not(.selected) { background: #222740; }
+
+/* Stats bar */
+.rc-content--dark .rcb-stats-bar    { background: linear-gradient(135deg, #1a1550 0%, #261e70 100%); }
+.rc-content--dark .rcb-stat-divider { background: rgba(255,255,255,0.12); }
+.rc-content--dark .rcb-stat-num     { color: #fff; }
+.rc-content--dark .rcb-stat-lbl     { color: rgba(255,255,255,0.6); }
+
+/* Toolbar */
+.rc-content--dark .rcb-toolbar      { background: #13172b; border-bottom-color: #272d52; }
+.rc-content--dark .rcb-search-icon  { color: #4b5563; }
+.rc-content--dark .rcb-search       { background: #1a1f3a !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcb-search:focus { border-color: #7c6ef7 !important; background: #20254a !important; }
+.rc-content--dark .rcb-filter-btn   { background: #1a1f3a; border-color: #3a4060; color: #8892b0; }
+.rc-content--dark .rcb-filter-btn:hover { background: #222740; border-color: #6655d9; color: #c5bfff; }
+.rc-content--dark .rcb-filter-btn.active { background: #2d2478; border-color: #7c6ef7; color: #c5bfff; }
+.rc-content--dark .rcb-refresh-btn  { background: #1a1f3a; border-color: #3a4060; color: #8892b0; }
+.rc-content--dark .rcb-refresh-btn:hover { background: #222740; color: #a99eff; }
+.rc-content--dark .rcb-new-btn      { background: #7c6ef7; color: #fff; }
+.rc-content--dark .rcb-new-btn:hover { background: #6655d9; }
+
+/* Content area + groups */
+.rc-content--dark .rcb-content-area { background: #0d1117; }
+.rc-content--dark .rcb-section-title { color: #c5cafe; }
+.rc-content--dark .rcb-section-count { background: #1a1f3a; color: #6b7280; }
+
+/* Booking cards */
+.rc-content--dark .rcb-booking-card { background: #13172b; border-color: #272d52; }
+.rc-content--dark .rcb-booking-card:hover { background: #1a1f3a; border-color: #4a3f8f; box-shadow: 0 4px 20px rgba(124,110,247,0.18); }
+.rc-content--dark .rcb-room-nums    { color: #f9fafb; }
+.rc-content--dark .rcb-guest-name   { color: #f9fafb; }
+.rc-content--dark .rcb-guest-sub    { color: #4b5563; }
+.rc-content--dark .rcb-dates        { color: #6b7280; }
+.rc-content--dark .rcb-date-range   { color: #8892b0; }
+.rc-content--dark .rcb-date-arrow   { color: #374151; }
+.rc-content--dark .rcb-card-footer  { border-top-color: #1f2640; }
+.rc-content--dark .rcb-price        { color: #c5bfff; }
+.rc-content--dark .rcb-guests-count,
+.rc-content--dark .rcb-rooms-count  { color: #6b7280; }
+.rc-content--dark .rcb-empty        { background: #13172b; border-color: #272d52; color: #4b5563; }
+
+/* Modal */
+.rc-content--dark .rcb-modal            { background: #13172b; }
+.rc-content--dark .rcb-modal-header     { border-bottom-color: #272d52; } /* if any */
+.rc-content--dark .rcb-modal-title      { color: #f9fafb; }
+.rc-content--dark .rcb-modal-conf       { color: #6b7280; }
+.rc-content--dark .rcb-modal-close      { background: #1e2340; color: #9ca3af; }
+.rc-content--dark .rcb-modal-close:hover { background: #3d1a1a; color: #f87171; }
+.rc-content--dark .rcb-modal-section-title { color: #6b7280; }
+.rc-content--dark .rcb-field label      { color: #6b7280; }
+.rc-content--dark .rcb-field input,
+.rc-content--dark .rcb-field select,
+.rc-content--dark .rcb-field textarea   { background: #1e2340 !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcb-modal-footer     { border-top-color: #1e2340; }
+.rc-content--dark .rcb-modal-btn--secondary { background: #1e2340; color: #9ca3af; }
+.rc-content--dark .rcb-modal-btn--secondary:hover { background: #272d52; color: #d1d5db; }
+.rc-content--dark .rcb-room-picker      { }
+.rc-content--dark .rcb-room-chip        { background: #1e2340; border-color: #3a4060; }
+.rc-content--dark .rcb-room-chip-num    { color: #d1d5db; }
+.rc-content--dark .rcb-room-chip-floor  { color: #6b7280; }
+.rc-content--dark .rcb-room-chip:hover  { background: #2a2060; border-color: #7c6ef7; }
+.rc-content--dark .rcb-room-chip.selected { background: #2d2478; border-color: #7c6ef7; }
+.rc-content--dark .rcb-room-chip.selected .rcb-room-chip-num { color: #c5bfff; }
+.rc-content--dark .rcb-price-preview    { background: #1e1a40; color: #a99eff; }
+.rc-content--dark .rcb-modal-empty      { color: #4b5563; }
+.rc-content--dark .rcb-detail-badges    { }
+.rc-content--dark .rcb-detail-grid      { background: #1a1f3a; }
+.rc-content--dark .rcb-dl               { color: #6b7280; }
+.rc-content--dark .rcb-dv               { color: #d1d5db; }
+.rc-content--dark .rcb-dv--price        { color: #a99eff; }
+
+/* ── ROOMS PAGE (TABLE) ─────────────────────────────────────────── */
+.rc-content--dark .rcr-page             { background: #0d1117; }
+.rc-content--dark .rcr-title            { color: #f9fafb; }
+.rc-content--dark .rcr-subtitle         { color: #4b5563; }
+
+/* Summary cards */
+.rc-content--dark .rcr-sum-card         { border-color: #272d52 !important; }
+.rc-content--dark .rcr-sum--total       { background: #1a1a40 !important; }
+.rc-content--dark .rcr-sum--avail       { background: #0d2218 !important; }
+.rc-content--dark .rcr-sum--occ         { background: #0c1e3a !important; }
+.rc-content--dark .rcr-sum--maint       { background: #1c1508 !important; }
+.rc-content--dark .rcr-sum-val          { color: #f9fafb; }
+.rc-content--dark .rcr-sum-lbl          { color: #6b7280; }
+
+/* Toolbar */
+.rc-content--dark .rcr-toolbar          { background: transparent; }
+.rc-content--dark .rcr-search           { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcr-search-icon      { color: #4b5563; }
+.rc-content--dark .rcr-filter           { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+
+/* Table */
+.rc-content--dark .rcr-table-wrap       { background: #13172b; border-color: #272d52; }
+.rc-content--dark .rcr-table thead th   { background: #1a1f3a !important; color: #6b7280 !important; border-bottom-color: #272d52 !important; }
+.rc-content--dark .rcr-table tbody tr   { border-bottom-color: #1e2340; }
+.rc-content--dark .rcr-table tbody tr:hover { background: #1a1f3a !important; }
+.rc-content--dark .rcr-td-room          { color: #f9fafb; }
+.rc-content--dark .rcr-td-floor,
+.rc-content--dark .rcr-td-cap,
+.rc-content--dark .rcr-td-price,
+.rc-content--dark .rcr-td-amenity       { color: #8892b0; }
+.rc-content--dark .rcr-amenity-chip     { background: #1e2340; border-color: #3a4060; color: #8892b0; }
+.rc-content--dark .rcr-table-footer     { background: #1a1f3a; border-top-color: #272d52; color: #6b7280; }
+.rc-content--dark .rcr-empty            { background: #13172b; border-color: #272d52; color: #4b5563; }
+
+/* ── SETTINGS PAGE ──────────────────────────────────────────────── */
+.rc-content--dark .rcs-page             { background: #0d1117; }
+.rc-content--dark .rcs-greeting         { color: #f9fafb; }
+.rc-content--dark .rcs-date             { color: #4b5563; }
+.rc-content--dark .rcs-role-pill        { background: #1a1a40; border-color: #3a3570; color: #a99eff; }
+
+/* Cards */
+.rc-content--dark .rcs-card             { background: #13172b; border-color: #272d52; box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+.rc-content--dark .rcs-card-header      { background: #1a1f3a; border-bottom-color: #272d52; }
+.rc-content--dark .rcs-card-icon        { color: #7c6ef7; }
+.rc-content--dark .rcs-section-title    { color: #c5cafe; }
+.rc-content--dark .rcs-readonly-badge   { background: #1e2340; color: #4b5563; }
+
+/* Profile */
+.rc-content--dark .rcs-profile-name     { color: #f9fafb; }
+.rc-content--dark .rcs-profile-role     { color: #4b5563; }
+.rc-content--dark .rcs-divider          { background: #1e2340; }
+
+/* Field rows */
+.rc-content--dark .rcs-field-row        { background: #1a1f3a; border-color: #272d52; }
+.rc-content--dark .rcs-label            { color: #4b5563; }
+.rc-content--dark .rcs-value            { color: #c5cafe; }
+
+/* Edit note */
+.rc-content--dark .rcs-edit-note        { background: #0c1a2e; border-color: #1e3a5f; color: #60a5fa; }
+
+/* Password fields */
+.rc-content--dark .rcs-pw-field label   { color: #4b5563; }
+.rc-content--dark .rcs-pw-wrap input    { background: #1a1f3a !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcs-pw-wrap input:focus { background: #20254a !important; }
+.rc-content--dark .rcs-pw-eye           { color: #4b5563; }
+.rc-content--dark .rcs-pw-eye:hover     { color: #7c6ef7; }
+.rc-content--dark .rcs-strength-bar[style*="e5e7eb"] { background: #1e2340 !important; }
+
+/* Preferences */
+.rc-content--dark .rcs-pref-row         { border-bottom-color: #1e2340; }
+.rc-content--dark .rcs-pref-label       { color: #d1d5db; }
+.rc-content--dark .rcs-pref-desc        { color: #4b5563; }
+.rc-content--dark .rcs-toggle           { background: #2a3060; }
+.rc-content--dark .rcs-toggle--on       { background: #7c6ef7; }
+
+/* Alert */
+.rc-content--dark .rcs-alert--success   { background: #052e16; border-color: #166534; color: #4ade80; }
+.rc-content--dark .rcs-alert--error     { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rc-sidebar { width: 64px; }
+  .rc-brand-text, .rc-nav-item span, .rc-nav-arrow,
+  .rc-server-status span, .rc-user-name, .rc-role-badge,
+  .rc-logout-btn span, .rc-dark-label { display: none; }
+  .rc-dark-toggle-row  { justify-content: center; padding: 8px; margin: 0 6px 8px; }
+  .rc-nav-item         { justify-content: center; padding: 10px 0; }
+  .rc-user-info        { justify-content: center; }
+  .rc-logout-btn       { justify-content: center; }
+  .rc-content          { margin-left: 64px; }
+}
