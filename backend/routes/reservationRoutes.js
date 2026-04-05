@@ -1,7 +1,5 @@
-// backend/routes/reservationRoutes.js
-
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const {
   getAllReservations,
   getAvailableRooms,
@@ -10,20 +8,34 @@ const {
   updateReservation,
   cancelReservation,
   getReservationsByEmail,
+  getRoomBookingStatus,
+  getRoomBookingStatuses,
 } = require('../controllers/reservationController');
-const { protect, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isAdmin, authorize } = require('../middleware/authMiddleware');
 
-// Public routes
-router.get('/available', getAvailableRooms); // Get available rooms (must be before other GET routes)
-router.post('/', createReservation); // Create reservation
-router.get('/guest/:email', getReservationsByEmail); // Get reservations by email
+// ─────────────────────────────────────────────────────────────
+// Public routes — no auth required
+// ─────────────────────────────────────────────────────────────
+router.get('/available',     getAvailableRooms);
+router.post('/',             createReservation);
+router.get('/guest/:email',  getReservationsByEmail);
 
-// Protected routes
-router.use(protect); // All routes below require authentication
+// ─────────────────────────────────────────────────────────────
+// Protected routes — must be logged in
+// ─────────────────────────────────────────────────────────────
+router.use(protect);
 
-router.get('/', getAllReservations); // Get all reservations (protected)
-router.get('/:id', getReservationById); // Get reservation by ID
-router.put('/:id', updateReservation); // Update reservation
-router.delete('/:id', cancelReservation); // Cancel reservation
+// ── Room booking-status helpers (used by housekeeper dashboard) ────────────
+// Batch: POST /api/reservations/room-statuses  { roomIds: [...] }
+router.post('/room-statuses', getRoomBookingStatuses);
+// Single: GET /api/reservations/room-status/:roomId
+router.get('/room-status/:roomId', getRoomBookingStatus);
+
+router.get('/',    authorize('admin', 'receptionist'), getAllReservations);
+router.get('/:id', authorize('admin', 'receptionist'), getReservationById);
+router.put('/:id', authorize('admin', 'receptionist'), updateReservation);
+
+// Cancel (active) or permanently delete (already-cancelled) — admin + receptionist
+router.delete('/:id', authorize('admin', 'receptionist'), cancelReservation);
 
 module.exports = router;

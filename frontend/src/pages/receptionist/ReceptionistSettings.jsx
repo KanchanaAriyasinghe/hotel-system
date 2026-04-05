@@ -68,13 +68,15 @@ const ReceptionistSettings = () => {
   };
   const strength     = pwStrength(pwForm.newPw);
   const strengthInfo = [
-    { label: '',         color: '#e5e7eb' },
-    { label: 'Weak',     color: '#ef4444' },
-    { label: 'Fair',     color: '#f97316' },
-    { label: 'Good',     color: '#eab308' },
-    { label: 'Strong',   color: '#22c55e' },
+    { label: '',       color: '#e5e7eb' },
+    { label: 'Weak',   color: '#ef4444' },
+    { label: 'Fair',   color: '#f97316' },
+    { label: 'Good',   color: '#eab308' },
+    { label: 'Strong', color: '#22c55e' },
   ][strength] || { label: '', color: '#e5e7eb' };
 
+  // ── Password save ──────────────────────────────────────────
+  // Uses /:id/password — same pattern as HousekeeperSettings
   const handlePasswordSave = async () => {
     if (!pwForm.current || !pwForm.newPw || !pwForm.confirm) {
       showAlert('error', 'Please fill all password fields.'); return;
@@ -87,8 +89,10 @@ const ReceptionistSettings = () => {
     }
     setPwLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${API}/users/me/password`,
+      const token  = localStorage.getItem('token');
+      const userId = user?._id || user?.id;           // read ID from stored user
+      await axios.put(
+        `${API}/users/${userId}/password`,             // /:id/password — matches the backend route
         { currentPassword: pwForm.current, newPassword: pwForm.newPw },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -139,10 +143,10 @@ const ReceptionistSettings = () => {
             <div className="rcs-divider"/>
             <div className="rcs-fields">
               {[
-                { Icon: User,  label: 'Full Name', val: user?.fullName  },
-                { Icon: Mail,  label: 'Email',     val: user?.email     },
-                { Icon: Phone, label: 'Phone',     val: user?.phone || '—' },
-                { Icon: Shield,label: 'Role',      val: 'Receptionist'  },
+                { Icon: User,   label: 'Full Name', val: user?.fullName          },
+                { Icon: Mail,   label: 'Email',     val: user?.email             },
+                { Icon: Phone,  label: 'Phone',     val: user?.phoneNumber || '—' },
+                { Icon: Shield, label: 'Role',      val: 'Receptionist'          },
               ].map(({ Icon, label, val }) => (
                 <div key={label} className="rcs-field-row">
                   <span className="rcs-label"><Icon size={12}/>{label}</span>
@@ -165,9 +169,9 @@ const ReceptionistSettings = () => {
           </div>
           <div className="rcs-card-body">
             {[
-              { key: 'current', label: 'Current Password',  placeholder: 'Enter current password' },
-              { key: 'newPw',   label: 'New Password',       placeholder: 'Min. 6 characters'      },
-              { key: 'confirm', label: 'Confirm New Password', placeholder: 'Repeat new password'  },
+              { key: 'current', label: 'Current Password',     placeholder: 'Enter current password' },
+              { key: 'newPw',   label: 'New Password',         placeholder: 'Min. 6 characters'      },
+              { key: 'confirm', label: 'Confirm New Password', placeholder: 'Repeat new password'    },
             ].map(({ key, label, placeholder }) => (
               <div key={key} className="rcs-pw-field">
                 <label>{label}</label>
@@ -176,9 +180,9 @@ const ReceptionistSettings = () => {
                     type={showPw[key] ? 'text' : 'password'}
                     placeholder={placeholder}
                     value={pwForm[key]}
-                    onChange={e => setPwForm(p => ({...p, [key]: e.target.value}))}
+                    onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))}
                   />
-                  <button className="rcs-pw-eye" onClick={() => setShowPw(p => ({...p, [key]: !p[key]}))}>
+                  <button className="rcs-pw-eye" onClick={() => setShowPw(p => ({ ...p, [key]: !p[key] }))}>
                     {showPw[key] ? <EyeOff size={15}/> : <Eye size={15}/>}
                   </button>
                 </div>

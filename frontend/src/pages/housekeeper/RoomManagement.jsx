@@ -1,8 +1,9 @@
 // frontend/src/pages/housekeeper/RoomManagement.jsx
 //
 // Endpoints:
-//   GET /api/rooms       → { success, count, data: Room[] }  (filtered to assigned rooms for housekeepers)
-//   PUT /api/rooms/:id   → { success, data: Room }
+//   GET  /api/rooms                          → { success, count, data: Room[] }  (filtered to assigned rooms)
+//   PUT  /api/rooms/:id                      → { success, data: Room }
+//   POST /api/reservations/room-statuses     → { success, data: { [roomId]: { bookingStatus, guestName, ... } } }
 
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
@@ -11,7 +12,7 @@ import {
   CheckCircle, Wrench, Sparkles, Edit3,
   Save, X, AlertCircle, Layers, Users,
   Tag, Wifi, Tv, Wind, Wine, Droplets, Zap, Shield, FileText,
-  ClipboardList,
+  ClipboardList, CalendarCheck, Clock, Ban, LogOut, HelpCircle,
 } from 'lucide-react';
 import './RoomManagement.css';
 import housekeeper from '../../assets/housekeeper.jpeg';
@@ -29,6 +30,16 @@ const STATUS_META = {
   cleaning:    { label: 'Cleaning',    cls: 'rm-pill--purple', Icon: Sparkles    },
 };
 
+// Booking status display config
+const BOOKING_STATUS_META = {
+  'pending':      { label: 'Pending',      cls: 'rm-bpill--orange', Icon: Clock         },
+  'confirmed':    { label: 'Confirmed',    cls: 'rm-bpill--blue',   Icon: CalendarCheck },
+  'checked-in':   { label: 'Checked In',   cls: 'rm-bpill--green',  Icon: CheckCircle   },
+  'checked-out':  { label: 'Checked Out',  cls: 'rm-bpill--gray',   Icon: LogOut        },
+  'cancelled':    { label: 'Cancelled',    cls: 'rm-bpill--red',    Icon: Ban           },
+};
+const BOOKING_STATUS_NONE = { label: 'Not Booked', cls: 'rm-bpill--none', Icon: HelpCircle };
+
 const TYPE_COLORS = {
   single: '#6366f1', double: '#0ea5e9',
   deluxe: '#f59e0b', suite:  '#ec4899', family: '#10b981',
@@ -44,10 +55,15 @@ const RoomManagement = () => {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch]         = useState('');
-  const [filterType, setFilterType]     = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterType, setFilterType]       = useState('all');
+  const [filterStatus, setFilterStatus]   = useState('all');
+  const [filterBooking, setFilterBooking] = useState('all');
   const [error, setError]           = useState('');
   const [user, setUser]             = useState({});
+
+  // Booking status map: roomId → { bookingStatus, guestName, ... }
+  const [bookingStatusMap, setBookingStatusMap]         = useState({});
+  const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
 
   // Inline edit state
   const [editingId, setEditingId]     = useState(null);
@@ -56,18 +72,39 @@ const RoomManagement = () => {
   const [saveError, setSaveError]     = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
 
+  // ── Fetch booking statuses for a list of room objects ─────────────────
+  const fetchBookingStatuses = useCallback(async (roomList) => {
+    if (!roomList || roomList.length === 0) return;
+    setBookingStatusLoading(true);
+    try {
+      const ids = roomList.map(r => r._id);
+      const res = await axios.post(
+        `${API}/reservations/room-statuses`,
+        { roomIds: ids },
+        getAuthHeaders(),
+      );
+      setBookingStatusMap(res.data?.data ?? {});
+    } catch (err) {
+      console.error('Failed to load booking statuses:', err.message);
+      // Non-fatal — table still renders, booking column shows "Not Booked"
+    } finally {
+      setBookingStatusLoading(false);
+    }
+  }, []);
+
   const fetchRooms = useCallback(async () => {
     try {
-      // API returns only rooms assigned to this housekeeper (filtered server-side)
       const res = await axios.get(`${API}/rooms`, getAuthHeaders());
-      setRooms(res.data?.data ?? []);
+      const fetched = res.data?.data ?? [];
+      setRooms(fetched);
+      fetchBookingStatuses(fetched);
     } catch {
       setError('Failed to load rooms.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [fetchBookingStatuses]);
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
@@ -110,7 +147,6 @@ const RoomManagement = () => {
   const handleSave = async (room, e) => {
     e.stopPropagation();
 
-    // Validate: maintenanceReason is required when status is maintenance
     if (editForm.status === 'maintenance' && !editForm.maintenanceReason?.trim()) {
       setSaveError('Please provide a maintenance reason before saving.');
       return;
@@ -159,10 +195,14 @@ const RoomManagement = () => {
       r.roomType.toLowerCase().includes(search.toLowerCase());
     const matchType   = filterType   === 'all' || r.roomType === filterType;
     const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
-    return matchSearch && matchType && matchStatus;
+
+    const bStatus = bookingStatusMap[r._id]?.bookingStatus ?? null;
+    const matchBooking = filterBooking === 'all' ||
+      (filterBooking === 'not-booked' ? bStatus === null : bStatus === filterBooking);
+
+    return matchSearch && matchType && matchStatus && matchBooking;
   });
 
-  // Only rooms with status === 'maintenance' AND a non-empty reason
   const maintenanceLog = rooms.filter(
     r => r.status === 'maintenance' && r.maintenanceReason?.trim()
   );
@@ -197,7 +237,6 @@ const RoomManagement = () => {
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             })}
-            {/* Assigned room count indicator */}
             {rooms.length > 0 && (
               <span className="rm-assigned-count">
                 &nbsp;·&nbsp;{rooms.length} room{rooms.length !== 1 ? 's' : ''} assigned to you
@@ -280,6 +319,15 @@ const RoomManagement = () => {
               <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
             ))}
           </select>
+          <select value={filterBooking} onChange={e => setFilterBooking(e.target.value)}>
+            <option value="all">All Bookings</option>
+            <option value="not-booked">Not Booked</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="checked-in">Checked In</option>
+            <option value="checked-out">Checked Out</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
         </div>
       </div>
 
@@ -290,13 +338,11 @@ const RoomManagement = () => {
         <div className="rm-empty">
           <BedDouble size={40} />
           {rooms.length === 0 ? (
-            // No rooms assigned to this housekeeper at all
             <>
               <p>No rooms are currently assigned to you.</p>
               <p className="rm-empty-sub">Contact your admin to get rooms assigned to your account.</p>
             </>
           ) : (
-            // Rooms exist but filters hide them all
             <p>No rooms match your filters.</p>
           )}
         </div>
@@ -309,7 +355,13 @@ const RoomManagement = () => {
                 <th>Type</th>
                 <th>Floor</th>
                 <th>Capacity</th>
-                <th>Status</th>
+                <th>Room Status</th>
+                <th className="rm-th-booking">
+                  Booking Status
+                  {bookingStatusLoading && (
+                    <span className="rm-bstatus-loading-dot" title="Loading…" />
+                  )}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -320,6 +372,12 @@ const RoomManagement = () => {
                 const isMaintenance = isEditing
                   ? editForm.status === 'maintenance'
                   : room.status === 'maintenance';
+
+                // Booking status for this room
+                const bInfo = bookingStatusMap[room._id];
+                const bKey  = bInfo?.bookingStatus ?? null;
+                const bMeta = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
+                const BIcon = bMeta.Icon;
 
                 return (
                   <React.Fragment key={room._id}>
@@ -373,7 +431,7 @@ const RoomManagement = () => {
                         )}
                       </td>
 
-                      {/* Status */}
+                      {/* Room Status */}
                       <td>
                         {isEditing ? (
                           <select
@@ -396,6 +454,23 @@ const RoomManagement = () => {
                           <span className={`rm-status-pill ${sm.cls}`}>
                             <sm.Icon size={11} /> {sm.label}
                           </span>
+                        )}
+                      </td>
+
+                      {/* Booking Status */}
+                      <td>
+                        {bookingStatusLoading && bKey === null && !bookingStatusMap[room._id] ? (
+                          <span className="rm-bstatus-skeleton" />
+                        ) : (
+                          <div className="rm-bstatus-wrap">
+                            <span className={`rm-booking-pill ${bMeta.cls}`}>
+                              <BIcon size={11} /> {bMeta.label}
+                            </span>
+                            {/* Show guest name under the pill for active bookings */}
+                            {bInfo?.guestName && bKey !== 'cancelled' && bKey !== null && (
+                              <span className="rm-bstatus-guest">{bInfo.guestName}</span>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -436,10 +511,9 @@ const RoomManagement = () => {
                     {/* Expanded panel — amenities + maintenance reason */}
                     {isEditing && (
                       <tr className="rm-amenity-row">
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <div className="rm-amenity-panel">
 
-                            {/* ── Maintenance Reason (shown only when status = maintenance) ── */}
                             {isMaintenance && (
                               <div className="rm-maintenance-block">
                                 <p className="rm-amenity-panel-label rm-maintenance-label">
@@ -473,7 +547,6 @@ const RoomManagement = () => {
                               </div>
                             )}
 
-                            {/* ── Amenities ── */}
                             <p className="rm-amenity-panel-label">
                               <Tag size={12} /> Amenities
                             </p>
@@ -508,7 +581,7 @@ const RoomManagement = () => {
         </div>
       )}
 
-      {/* ── Maintenance Log Table (read-only, shown below main table) ── */}
+      {/* ── Maintenance Log Table ── */}
       {maintenanceLog.length > 0 && (
         <div className="rm-mlog-section">
           <div className="rm-mlog-header">

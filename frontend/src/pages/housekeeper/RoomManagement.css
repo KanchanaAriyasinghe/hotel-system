@@ -161,7 +161,6 @@
 }
 .rm-empty p { font-size: 0.9rem; margin: 0; }
 
-/* Sub-text shown when no rooms are assigned at all */
 .rm-empty-sub {
   font-size: 0.8rem;
   color: #c4b5fd;
@@ -199,6 +198,11 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
+.rm-th-booking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .rm-row {
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.15s;
@@ -235,7 +239,7 @@
 }
 .rm-cell-icon { color: #9ca3af; flex-shrink: 0; }
 
-/* Status pills */
+/* Room status pills */
 .rm-status-pill {
   display: inline-flex;
   align-items: center;
@@ -250,6 +254,103 @@
 .rm-pill--blue   { background: #eff6ff; color: #2563eb; }
 .rm-pill--amber  { background: #fffbeb; color: #d97706; }
 .rm-pill--purple { background: #f5f3ff; color: #7c3aed; }
+
+/* ── Booking Status pills ────────────────────────────────────────────────── */
+.rm-bstatus-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rm-booking-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* pending  → warm orange */
+.rm-bpill--orange {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+/* confirmed → sky blue */
+.rm-bpill--blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+/* checked-in → emerald green */
+.rm-bpill--green {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+/* checked-out → neutral gray */
+.rm-bpill--gray {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+/* cancelled → red */
+.rm-bpill--red {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+/* not booked → dashed / muted */
+.rm-bpill--none {
+  background: #f9fafb;
+  color: #9ca3af;
+  border: 1px dashed #d1d5db;
+}
+
+/* Guest name sub-label under booking pill */
+.rm-bstatus-guest {
+  font-size: 0.72rem;
+  color: #6b7280;
+  padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Loading skeleton for booking status cell */
+.rm-bstatus-skeleton {
+  display: inline-block;
+  width: 90px;
+  height: 24px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: rm-shimmer 1.2s infinite;
+}
+@keyframes rm-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Tiny animated dot next to "Booking Status" header while loading */
+.rm-bstatus-loading-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #4dd9ac;
+  animation: rm-pulse 1s ease-in-out infinite;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+@keyframes rm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
 
 /* ── Inline inputs ── */
 .rm-inline-input {
@@ -358,7 +459,7 @@
   font-weight: 600;
 }
 
-/* ── Maintenance Reason block (inside edit panel) ── */
+/* ── Maintenance Reason block ── */
 .rm-maintenance-block {
   background: #fffbeb;
   border: 1.5px solid #fde68a;
@@ -447,7 +548,7 @@
 }
 
 /* ══════════════════════════════════════════════
-   ── Maintenance Log Section (below main table)
+   ── Maintenance Log Section
    ══════════════════════════════════════════════ */
 .rm-mlog-section {
   margin-top: 32px;
@@ -579,7 +680,6 @@
   margin: 3px 0 0;
 }
 
-/* Assigned room count shown inline next to the date */
 .rm-assigned-count {
   font-size: 0.78rem;
   color: #6366f1;
@@ -618,12 +718,61 @@
   .rm-root { padding: 16px; }
   .rm-summary-row { grid-template-columns: repeat(2, 1fr); }
   .rm-filters { flex-direction: column; align-items: stretch; }
+  /* Hide floor column on small screens */
   .rm-table th:nth-child(3),
   .rm-table td:nth-child(3) { display: none; }
   .rm-mlog-table th:nth-child(3),
   .rm-mlog-table td:nth-child(3) { display: none; }
   .rm-mlog-subtitle { display: none; }
+  /* Truncate guest name more aggressively */
+  .rm-bstatus-guest { max-width: 90px; }
+}
+@media (max-width: 600px) {
+  /* Also hide capacity on very small screens */
+  .rm-table th:nth-child(4),
+  .rm-table td:nth-child(4) { display: none; }
 }
 @media (max-width: 500px) {
   .rm-summary-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* Add this to your HousekeeperLayout.css dark mode section */
+/* Replace .hk-content--dark with whatever class your housekeeper layout actually applies */
+
+.hk-content--dark .rm-bpill--orange,
+.admin-content--dark .rm-bpill--orange {
+  background: #2d1a08 !important;
+  color: #fb923c !important;
+  border-color: #92400e !important;
+}
+.hk-content--dark .rm-bpill--blue,
+.admin-content--dark .rm-bpill--blue {
+  background: #0c1e3a !important;
+  color: #60a5fa !important;
+  border-color: #1e40af !important;
+}
+.hk-content--dark .rm-bpill--green,
+.admin-content--dark .rm-bpill--green {
+  background: #052e16 !important;
+  color: #4ade80 !important;
+  border-color: #166534 !important;
+}
+.hk-content--dark .rm-bpill--gray,
+.admin-content--dark .rm-bpill--gray {
+  background: #1f2937 !important;
+  color: #9ca3af !important;
+  border-color: #374151 !important;
+}
+.hk-content--dark .rm-bpill--red,
+.admin-content--dark .rm-bpill--red {
+  background: #2d0a0a !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+.hk-content--dark .rm-bpill--none,
+.admin-content--dark .rm-bpill--none {
+  background: #111827 !important;
+  color: #6b7280 !important;
+  border-color: #374151 !important;
+  border-style: dashed !important;
 }

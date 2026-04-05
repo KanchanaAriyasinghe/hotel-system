@@ -163,16 +163,14 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   DARK MODE — comprehensive overrides for all three pages
+   DARK MODE — rc-content--dark
    ══════════════════════════════════════════════════════════════════ */
 .rc-content--dark { background: #0d1117; color: #e5e7eb; }
 
-/* Generic text — but NOT badges/pills (they carry their own bg+color) */
 .rc-content--dark h1,
 .rc-content--dark h2,
 .rc-content--dark h3,
 .rc-content--dark h4 { color: #f9fafb; }
-
 .rc-content--dark p  { color: #d1d5db; }
 
 /* Inputs, textareas, selects */
@@ -193,7 +191,9 @@
   background: #252a48 !important;
 }
 
-/* ── BOOKINGS PAGE ──────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — BOOKINGS PAGE (rcb-*)
+   ══════════════════════════════════════════════════════════════════ */
 .rc-content--dark .rcb-page         { background: #0d1117; }
 
 /* Date strip */
@@ -250,22 +250,17 @@
 .rc-content--dark .rcb-rooms-count  { color: #6b7280; }
 .rc-content--dark .rcb-empty        { background: #13172b; border-color: #272d52; color: #4b5563; }
 
-/* Modal */
+/* Bookings Modal */
 .rc-content--dark .rcb-modal            { background: #13172b; }
-.rc-content--dark .rcb-modal-header     { border-bottom-color: #272d52; } /* if any */
 .rc-content--dark .rcb-modal-title      { color: #f9fafb; }
 .rc-content--dark .rcb-modal-conf       { color: #6b7280; }
-.rc-content--dark .rcb-modal-close      { background: #1e2340; color: #9ca3af; }
+.rc-content--dark .rcb-modal-close      { background: #1e2340; color: #9ca3af; border-color: #374151; }
 .rc-content--dark .rcb-modal-close:hover { background: #3d1a1a; color: #f87171; }
 .rc-content--dark .rcb-modal-section-title { color: #6b7280; }
 .rc-content--dark .rcb-field label      { color: #6b7280; }
-.rc-content--dark .rcb-field input,
-.rc-content--dark .rcb-field select,
-.rc-content--dark .rcb-field textarea   { background: #1e2340 !important; border-color: #3a4060 !important; color: #f9fafb !important; }
 .rc-content--dark .rcb-modal-footer     { border-top-color: #1e2340; }
 .rc-content--dark .rcb-modal-btn--secondary { background: #1e2340; color: #9ca3af; }
 .rc-content--dark .rcb-modal-btn--secondary:hover { background: #272d52; color: #d1d5db; }
-.rc-content--dark .rcb-room-picker      { }
 .rc-content--dark .rcb-room-chip        { background: #1e2340; border-color: #3a4060; }
 .rc-content--dark .rcb-room-chip-num    { color: #d1d5db; }
 .rc-content--dark .rcb-room-chip-floor  { color: #6b7280; }
@@ -274,13 +269,15 @@
 .rc-content--dark .rcb-room-chip.selected .rcb-room-chip-num { color: #c5bfff; }
 .rc-content--dark .rcb-price-preview    { background: #1e1a40; color: #a99eff; }
 .rc-content--dark .rcb-modal-empty      { color: #4b5563; }
-.rc-content--dark .rcb-detail-badges    { }
 .rc-content--dark .rcb-detail-grid      { background: #1a1f3a; }
 .rc-content--dark .rcb-dl               { color: #6b7280; }
 .rc-content--dark .rcb-dv               { color: #d1d5db; }
 .rc-content--dark .rcb-dv--price        { color: #a99eff; }
 
-/* ── ROOMS PAGE (TABLE) ─────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — ROOMS PAGE (rcr-*)
+   Both the card grid AND the modal need full coverage.
+   ══════════════════════════════════════════════════════════════════ */
 .rc-content--dark .rcr-page             { background: #0d1117; }
 .rc-content--dark .rcr-title            { color: #f9fafb; }
 .rc-content--dark .rcr-subtitle         { color: #4b5563; }
@@ -295,26 +292,137 @@
 .rc-content--dark .rcr-sum-lbl          { color: #6b7280; }
 
 /* Toolbar */
-.rc-content--dark .rcr-toolbar          { background: transparent; }
-.rc-content--dark .rcr-search           { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
-.rc-content--dark .rcr-search-icon      { color: #4b5563; }
-.rc-content--dark .rcr-filter           { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcr-search     { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcr-search-icon { color: #4b5563; }
+.rc-content--dark .rcr-filter     { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
 
-/* Table */
-.rc-content--dark .rcr-table-wrap       { background: #13172b; border-color: #272d52; }
-.rc-content--dark .rcr-table thead th   { background: #1a1f3a !important; color: #6b7280 !important; border-bottom-color: #272d52 !important; }
-.rc-content--dark .rcr-table tbody tr   { border-bottom-color: #1e2340; }
+/* Toggle buttons on rooms page */
+.rc-content--dark .rcr-toggle-btn { background: #1a1d27; border-color: #374151; color: #9ca3af; }
+.rc-content--dark .rcr-toggle-btn:not(.rcr-toggle-btn--unavail):hover { background: #1e2433; border-color: #7c6ef7; color: #a78bfa; }
+.rc-content--dark .rcr-toggle-btn--active { background: #7c6ef7; border-color: #7c6ef7; color: #fff; }
+.rc-content--dark .rcr-toggle-btn--unavail { background: #1c1408; border-color: #78350f; color: #fbbf24; }
+.rc-content--dark .rcr-toggle-btn--active-unavail { background: #d97706; border-color: #d97706; color: #fff; }
+.rc-content--dark .rcr-toggle-btn:not(.rcr-toggle-btn--active):not(.rcr-toggle-btn--active-unavail) .rcr-toggle-count {
+  background: #1f2937; border-color: #374151; color: #9ca3af;
+}
+
+/* ── Booking cards (rooms page card grid) ── */
+.rc-content--dark .rcr-booking-card         { background: #1a1d27; border-color: #2d3748; }
+.rc-content--dark .rcr-booking-card:hover   { box-shadow: 0 6px 20px rgba(124,110,247,0.2); }
+.rc-content--dark .rcr-card-header          { background: #111827; border-bottom-color: #2d3748; }
+.rc-content--dark .rcr-card-room-single     { color: #f9fafb; }
+.rc-content--dark .rcr-card-room-num        { background: #2d1f6e; color: #a78bfa; }
+.rc-content--dark .rcr-card-body            { background: #1a1d27; }
+.rc-content--dark .rcr-card-guest-name      { color: #f9fafb; }
+.rc-content--dark .rcr-card-guest-email     { color: #6b7280; }
+.rc-content--dark .rcr-card-dates           { background: #111827; border-color: #2d3748; }
+.rc-content--dark .rcr-card-date-label      { color: #6b7280; }
+.rc-content--dark .rcr-card-date-val        { color: #f9fafb; }
+.rc-content--dark .rcr-card-nights          { background: #2d1f6e; color: #a78bfa; }
+.rc-content--dark .rcr-card-date-line       { background: linear-gradient(90deg, transparent, #4c3f9a, transparent); }
+.rc-content--dark .rcr-card-meta-item       { background: #1f2937; color: #9ca3af; }
+.rc-content--dark .rcr-card-meta-price      { background: #2d1f6e; color: #c4b5fd; }
+.rc-content--dark .rcr-card-meta-total      { background: #052e16; }
+.rc-content--dark .rcr-card-meta-total strong { color: #4ade80; }
+.rc-content--dark .rcr-card-footer          { background: #111827; border-top-color: #2d3748; }
+.rc-content--dark .rcr-card-conf            { background: #1e1240; border-color: #3730a3; color: #a78bfa; }
+.rc-content--dark .rcr-cards-footer         { color: #4b5563; }
+.rc-content--dark .rcr-cards-footer strong  { color: #9ca3af; }
+.rc-content--dark .rcr-empty-state          { background: #1a1d27; border-color: #2d3748; color: #6b7280; }
+
+/* ── Table view on rooms page ── */
+.rc-content--dark .rcr-table-wrap           { background: #13172b; border-color: #272d52; }
+.rc-content--dark .rcr-table thead th       { background: #1a1f3a !important; color: #6b7280 !important; border-bottom-color: #272d52 !important; }
+.rc-content--dark .rcr-table tbody tr       { border-bottom-color: #1e2340; }
 .rc-content--dark .rcr-table tbody tr:hover { background: #1a1f3a !important; }
-.rc-content--dark .rcr-td-room          { color: #f9fafb; }
+.rc-content--dark .rcr-td-room              { color: #f9fafb; }
+.rc-content--dark .rcr-td-secondary,
 .rc-content--dark .rcr-td-floor,
 .rc-content--dark .rcr-td-cap,
 .rc-content--dark .rcr-td-price,
-.rc-content--dark .rcr-td-amenity       { color: #8892b0; }
-.rc-content--dark .rcr-amenity-chip     { background: #1e2340; border-color: #3a4060; color: #8892b0; }
-.rc-content--dark .rcr-table-footer     { background: #1a1f3a; border-top-color: #272d52; color: #6b7280; }
-.rc-content--dark .rcr-empty            { background: #13172b; border-color: #272d52; color: #4b5563; }
+.rc-content--dark .rcr-td-amenity           { color: #8892b0; }
+.rc-content--dark .rcr-per-night            { color: #6b7280; }
+.rc-content--dark .rcr-td-none              { color: #374151; }
+.rc-content--dark .rcr-td-empty             { color: #6b7280; }
+.rc-content--dark .rcr-table-footer         { background: #1a1f3a; border-top-color: #272d52; color: #6b7280; }
+.rc-content--dark .rcr-table-footer strong  { color: #9ca3af; }
 
-/* ── SETTINGS PAGE ──────────────────────────────────────────────── */
+/* ── Shared rcr chips/badges (both views) ── */
+.rc-content--dark .rcr-amenity-chip    { background: #1e2340; border-color: #3a4060; color: #8892b0; }
+.rc-content--dark .rcr-type--single   { background: #0c1e3a; color: #60a5fa; }
+.rc-content--dark .rcr-type--double   { background: #052e16; color: #4ade80; }
+.rc-content--dark .rcr-type--deluxe   { background: #1a0f2e; color: #c084fc; }
+.rc-content--dark .rcr-type--suite    { background: #1c1408; color: #fbbf24; }
+.rc-content--dark .rcr-type--family   { background: #2d0a0a; color: #f87171; }
+.rc-content--dark .rcr-type--mixed    { background: #1f2937; color: #9ca3af; }
+.rc-content--dark .rcr-pill--green    { background: #052e16; color: #4ade80; }
+.rc-content--dark .rcr-pill--blue     { background: #0c1e3a; color: #60a5fa; }
+.rc-content--dark .rcr-pill--amber    { background: #1c1408; color: #fbbf24; }
+.rc-content--dark .rcr-pill--purple   { background: #1a0f2e; color: #c084fc; }
+.rc-content--dark .rcr-bpill--yellow  { background: #1c1000; color: #fbbf24; }
+.rc-content--dark .rcr-bpill--green   { background: #052e16; color: #4ade80; }
+.rc-content--dark .rcr-bpill--blue    { background: #0c1e3a; color: #60a5fa; }
+.rc-content--dark .rcr-bpill--gray    { background: #1f2937; color: #9ca3af; }
+.rc-content--dark .rcr-bpill--red     { background: #2d0a0a; color: #f87171; }
+.rc-content--dark .rcr-maint-indicator { background: #1c1408; border-color: #78350f; color: #fbbf24; }
+.rc-content--dark .rcr-view-btn        { background: #1f2937; border-color: #374151; color: #d1d5db; }
+.rc-content--dark .rcr-view-btn:hover  { background: #2d1f6e; border-color: #7c6ef7; color: #a78bfa; }
+.rc-content--dark .rcr-refresh-btn     { background: #1a1d27; border-color: #374151; color: #9ca3af; }
+.rc-content--dark .rcr-refresh-btn:hover { background: #1e2433; color: #7c6ef7; border-color: #7c6ef7; }
+
+/* ── Rooms page MODAL — full dark coverage ──
+   This is the "View Details" popup showing room info cards inside.
+   Every white/light surface must be overridden here. ── */
+
+/* Overlay */
+.rc-content--dark .rcr-modal-overlay  { background: rgba(0,0,0,0.78); }
+
+/* Modal shell */
+.rc-content--dark .rcr-modal {
+  background: #13172b;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+/* Sticky header */
+.rc-content--dark .rcr-modal-header {
+  background: #0d1117;
+  border-bottom-color: #2d3748;
+  border-radius: 16px 16px 0 0;
+}
+.rc-content--dark .rcr-modal-room-num { color: #f9fafb; }
+
+/* Close button */
+.rc-content--dark .rcr-modal-close { background: #1f2937; border-color: #374151; color: #9ca3af; }
+.rc-content--dark .rcr-modal-close:hover { background: #2d0a0a; border-color: #991b1b; color: #f87171; }
+
+/* Loading / error */
+.rc-content--dark .rcr-modal-loading     { color: #6b7280; }
+.rc-content--dark .rcr-modal-spinner     { color: #7c6ef7; }
+.rc-content--dark .rcr-modal-fetch-error { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
+
+/* Modal body — was #fff */
+.rc-content--dark .rcr-modal-body { background: #13172b; }
+
+/* Section wrappers — were #fff with light border */
+.rc-content--dark .rcr-modal-section       { background: #13172b; border-color: #2d3748; }
+
+/* Section title bars — were #f8f9fd */
+.rc-content--dark .rcr-modal-section-title { background: #0d1117; border-bottom-color: #2d3748; color: #9ca3af; }
+
+/* Data field cells — were #fff */
+.rc-content--dark .rcr-modal-field         { background: #13172b; border-bottom-color: #2d3748; border-right-color: #2d3748; }
+.rc-content--dark .rcr-modal-label         { color: #6b7280; }
+.rc-content--dark .rcr-modal-value         { color: #e5e7eb; }
+.rc-content--dark .rcr-modal-price         { color: #f9fafb; }
+.rc-content--dark .rcr-modal-conf          { background: #1e1240; border-color: #3730a3; color: #a78bfa; }
+.rc-content--dark .rcr-modal-warn-block    { background: #1c1408; border-color: #78350f; border-left-color: #d97706; color: #fbbf24; }
+
+/* Amenity chips inside modal */
+.rc-content--dark .rcr-modal-body .rcr-amenity-chip { background: #1f2937; border-color: #374151; color: #9ca3af; }
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — SETTINGS PAGE (rcs-*)
+   ══════════════════════════════════════════════════════════════════ */
 .rc-content--dark .rcs-page             { background: #0d1117; }
 .rc-content--dark .rcs-greeting         { color: #f9fafb; }
 .rc-content--dark .rcs-date             { color: #4b5563; }

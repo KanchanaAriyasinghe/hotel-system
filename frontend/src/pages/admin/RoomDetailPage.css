@@ -104,7 +104,7 @@
 }
 .rdp-hero-label  { font-size: 0.78rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
 .rdp-hero-number { font-size: 2rem; font-weight: 800; color: #111827; margin: 2px 0 0; line-height: 1; }
-.rdp-hero-right  { display: flex; align-items: center; gap: 10px; }
+.rdp-hero-right  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .rdp-type-badge {
   padding: 5px 14px;
@@ -126,6 +126,7 @@
 .rdp-pill--blue   { background: #eff6ff; color: #2563eb; }
 .rdp-pill--amber  { background: #fffbeb; color: #d97706; }
 .rdp-pill--purple { background: #f5f3ff; color: #7c3aed; }
+.rdp-pill--red    { background: #fef2f2; color: #dc2626; }
 
 /* ── Layout ── */
 .rdp-body {
@@ -193,6 +194,34 @@
 .rdp-empty-val { color: #d1d5db; font-style: italic; font-size: 0.85rem; }
 .capitalize { text-transform: capitalize; }
 
+/* ── Read-only badge (for Maintenance Reason label) ── */
+.rdp-readonly-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Read-only box (used for maintenance reason value) ── */
+.rdp-readonly-box {
+  padding: 10px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  min-height: 42px;
+  display: flex;
+  align-items: flex-start;
+}
+.rdp-readonly-box .rdp-field-val { color: #92400e; }
+.rdp-readonly-box .rdp-empty-val { color: #d97706; }
+
 /* ── Amenities ── */
 .rdp-amenity-grid {
   display: flex; flex-wrap: wrap; gap: 8px;
@@ -214,6 +243,39 @@
   border-color: #a5b4fc;
 }
 .rdp-amenity-chip--view { cursor: default; }
+
+/* ── Housekeeper Block ── */
+.rdp-housekeeper-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.rdp-hk-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #6366f1;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid #c7d2fe;
+}
+.rdp-hk-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+.rdp-hk-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+.rdp-hk-detail {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
 
 /* ── Images ── */
 .rdp-img-input-row {

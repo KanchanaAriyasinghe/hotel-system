@@ -215,6 +215,11 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
+.rp-th-booking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .rp-row {
   border-bottom: 1px solid #f3f4f6;
   cursor: pointer;
@@ -257,7 +262,7 @@
 .rp-amenity-more { background: #e5e7eb; font-weight: 600; }
 .rp-amenity-none { color: #d1d5db; }
 
-/* Status pills */
+/* Room status pills */
 .rp-status-pill {
   display: inline-flex;
   align-items: center;
@@ -274,6 +279,103 @@
 .pill--purple { background: #f5f3ff; color: #7c3aed; }
 .pill--red    { background: #fef2f2; color: #dc2626; }
 
+/* ── Booking Status Pills ─────────────────────────────────────────────────── */
+.rp-bstatus-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rp-booking-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+/* pending → warm orange */
+.rp-bpill--orange {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+/* confirmed → sky blue */
+.rp-bpill--blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+/* checked-in → emerald green */
+.rp-bpill--green {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+/* checked-out → neutral gray */
+.rp-bpill--gray {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+/* cancelled → red */
+.rp-bpill--red {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+/* not booked → dashed / muted */
+.rp-bpill--none {
+  background: #f9fafb;
+  color: #9ca3af;
+  border: 1px dashed #d1d5db;
+}
+
+/* Guest name sub-label under booking pill */
+.rp-bstatus-guest {
+  font-size: 0.72rem;
+  color: #6b7280;
+  padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Loading skeleton for booking status cell */
+.rp-bstatus-skeleton {
+  display: inline-block;
+  width: 90px;
+  height: 24px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: rp-shimmer 1.2s infinite;
+}
+@keyframes rp-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Tiny animated dot next to "Booking Status" header while loading */
+.rp-bstatus-loading-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: rp-pulse 1s ease-in-out infinite;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+@keyframes rp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
 /* Action Buttons */
 .rp-action-btns {
   display: flex;
@@ -289,20 +391,10 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.rp-act-view { color: #6366f1; }
-.rp-act-view:hover { background: #eef2ff; border-color: #6366f1; }
+.rp-act-view   { color: #6366f1; }
+.rp-act-view:hover   { background: #eef2ff; border-color: #6366f1; }
 .rp-act-delete { color: #ef4444; }
 .rp-act-delete:hover { background: #fef2f2; border-color: #ef4444; }
-
-.rp-table-count {
-  padding: 10px 16px;
-  font-size: 0.78rem;
-  color: #9ca3af;
-  text-align: right;
-  background: #f9fafb;
-  border-top: 1px solid #f3f4f6;
-  margin: 0;
-}
 
 /* ── Delete Confirm ── */
 .rp-overlay {
@@ -327,43 +419,23 @@
 .rp-confirm-btns   { display: flex; gap: 10px; justify-content: center; }
 .rp-btn-cancel {
   padding: 9px 22px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  color: #374151;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  background: #fff; color: #374151;
+  font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: background 0.2s;
 }
 .rp-btn-cancel:hover { background: #f3f4f6; }
 .rp-btn-danger {
   padding: 9px 22px;
-  border: none;
-  border-radius: 8px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
+  border: none; border-radius: 8px;
+  background: #ef4444; color: #fff;
+  font-size: 0.875rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
 }
-.rp-btn-danger:hover { background: #dc2626; }
+.rp-btn-danger:hover    { background: #dc2626; }
 .rp-btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .rp-root { padding: 16px; }
-  .rp-summary-row { grid-template-columns: repeat(2, 1fr); }
-  .rp-filters { flex-direction: column; align-items: stretch; }
-  .rp-table th:nth-child(4),
-  .rp-table td:nth-child(4),
-  .rp-table th:nth-child(6),
-  .rp-table td:nth-child(6) { display: none; }
-}
-
-/* ── Pagination ── (append to RoomsPage.css) */
-
+/* ── Pagination ── */
 .rp-pagination {
   display: flex;
   align-items: center;
@@ -374,66 +446,77 @@
   flex-wrap: wrap;
   gap: 10px;
 }
-
-.rp-pagination-info {
-  font-size: 0.78rem;
-  color: #9ca3af;
-}
-
-.rp-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+.rp-pagination-info { font-size: 0.78rem; color: #9ca3af; }
+.rp-pagination-controls { display: flex; align-items: center; gap: 4px; }
 
 .rp-page-btn {
-  min-width: 32px;
-  height: 32px;
+  min-width: 32px; height: 32px;
   padding: 0 6px;
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  background: #fff;
-  color: #374151;
-  font-size: 0.8rem;
-  font-weight: 500;
+  border: 1px solid #e5e7eb; border-radius: 7px;
+  background: #fff; color: #374151;
+  font-size: 0.8rem; font-weight: 500;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.15s;
 }
 .rp-page-btn:hover:not(:disabled):not(.rp-page-btn--active) {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: #f3f4f6; border-color: #d1d5db;
 }
 .rp-page-btn--active {
-  background: #6366f1;
-  border-color: #6366f1;
-  color: #fff;
-  font-weight: 700;
-  cursor: default;
+  background: #6366f1; border-color: #6366f1;
+  color: #fff; font-weight: 700; cursor: default;
 }
-.rp-page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.rp-page-arrow {
-  color: #6b7280;
-}
-
+.rp-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.rp-page-arrow        { color: #6b7280; }
 .rp-page-ellipsis {
-  min-width: 28px;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #9ca3af;
-  user-select: none;
+  min-width: 28px; text-align: center;
+  font-size: 0.85rem; color: #9ca3af; user-select: none;
 }
 
-/* Responsive */
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .rp-root { padding: 16px; }
+  .rp-summary-row { grid-template-columns: repeat(2, 1fr); }
+  .rp-filters { flex-direction: column; align-items: stretch; }
+  /* Hide capacity and amenities on small screens */
+  .rp-table th:nth-child(4), .rp-table td:nth-child(4),
+  .rp-table th:nth-child(6), .rp-table td:nth-child(6) { display: none; }
+}
 @media (max-width: 480px) {
-  .rp-pagination {
-    flex-direction: column;
-    align-items: center;
-  }
+  .rp-pagination { flex-direction: column; align-items: center; }
+  /* Also hide floor on very small screens */
+  .rp-table th:nth-child(3), .rp-table td:nth-child(3) { display: none; }
+  .rp-bstatus-guest { max-width: 80px; }
+}
+
+.admin-content--dark .rp-bpill--orange {
+  background: #2d1a08 !important;
+  color: #fb923c !important;
+  border-color: #92400e !important;
+}
+.admin-content--dark .rp-bpill--blue {
+  background: #0c1e3a !important;
+  color: #60a5fa !important;
+  border-color: #1e40af !important;
+}
+.admin-content--dark .rp-bpill--green {
+  background: #052e16 !important;
+  color: #4ade80 !important;
+  border-color: #166534 !important;
+}
+.admin-content--dark .rp-bpill--gray {
+  background: #1f2937 !important;
+  color: #9ca3af !important;
+  border-color: #374151 !important;
+}
+.admin-content--dark .rp-bpill--red {
+  background: #2d0a0a !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+.admin-content--dark .rp-bpill--none {
+  background: #111827 !important;
+  color: #6b7280 !important;
+  border-color: #374151 !important;
+  border-style: dashed !important;
 }

@@ -12,7 +12,7 @@ import {
   DollarSign, Users, Layers, Tag, FileText,
   Wifi, Tv, Wind, Wine, Sunrise, Droplets,
   Eye, Shield, Zap, CheckCircle, Wrench, Sparkles,
-  AlertCircle, ImageIcon, Trash2,
+  AlertCircle, ImageIcon, Trash2, UserCheck, Lock,
 } from 'lucide-react';
 import './RoomDetailPage.css';
 
@@ -136,7 +136,6 @@ const RoomDetailPage = () => {
   };
 
   const handleCancel = () => {
-    // Reset form to current room data
     setForm({
       roomNumber:    room.roomNumber    || '',
       roomType:      room.roomType      || 'single',
@@ -172,6 +171,7 @@ const RoomDetailPage = () => {
   }
 
   const sm = STATUS_META[room.status] || STATUS_META.available;
+  const showMaintenanceReason = room.status === 'maintenance' || form.status === 'maintenance';
 
   return (
     <div className="rdp-root">
@@ -226,6 +226,11 @@ const RoomDetailPage = () => {
           </span>
           <span className={`rdp-status-pill ${sm.cls}`}>
             <sm.Icon size={12} /> {sm.label}
+          </span>
+          {/* Active badge in hero */}
+          <span className={`rdp-status-pill ${room.isActive ? 'rdp-pill--green' : 'rdp-pill--red'}`}>
+            {room.isActive ? <CheckCircle size={12}/> : <AlertCircle size={12}/>}
+            {room.isActive ? 'Active' : 'Inactive'}
           </span>
         </div>
       </div>
@@ -331,6 +336,23 @@ const RoomDetailPage = () => {
                   </span>
               }
             </div>
+
+            {/* Maintenance Reason — always read-only, shown only when status is maintenance */}
+            {showMaintenanceReason && (
+              <div className="rdp-field rdp-field--full">
+                <label>
+                  <Wrench size={13}/>
+                  Maintenance Reason
+                  <span className="rdp-readonly-badge"><Lock size={10}/> Read Only</span>
+                </label>
+                <div className="rdp-readonly-box">
+                  {room.maintenanceReason
+                    ? <span className="rdp-field-val rdp-field-val--desc">{room.maintenanceReason}</span>
+                    : <em className="rdp-empty-val">No reason provided by housekeeper</em>
+                  }
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Amenities */}
@@ -421,6 +443,29 @@ const RoomDetailPage = () => {
                 <ImageIcon size={28}/>
                 <p>{editing ? 'Add image URLs above' : 'No images uploaded'}</p>
               </div>
+            )}
+          </section>
+
+          {/* Assigned Housekeeper */}
+          <section className="rdp-card">
+            <h2 className="rdp-card-title"><UserCheck size={15}/> Assigned Housekeeper</h2>
+            {room.assignedHousekeeper ? (
+              <div className="rdp-housekeeper-block">
+                <div className="rdp-hk-avatar">
+                  {(room.assignedHousekeeper.fullName || 'H').charAt(0).toUpperCase()}
+                </div>
+                <div className="rdp-hk-info">
+                  <span className="rdp-hk-name">{room.assignedHousekeeper.fullName}</span>
+                  {room.assignedHousekeeper.email && (
+                    <span className="rdp-hk-detail">{room.assignedHousekeeper.email}</span>
+                  )}
+                  {room.assignedHousekeeper.phoneNumber && (
+                    <span className="rdp-hk-detail">{room.assignedHousekeeper.phoneNumber}</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="rdp-empty-val">No housekeeper assigned.</p>
             )}
           </section>
 

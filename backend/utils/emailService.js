@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ── Shared HTML wrapper ───────────────────────────────────────────
+// ── Shared HTML wrapper (admin / internal) ────────────────────────
 const htmlWrap = (title, bodyHtml) => `
 <!DOCTYPE html>
 <html>
@@ -36,6 +36,12 @@ const htmlWrap = (title, bodyHtml) => `
     .info-row:last-child { border-bottom:none; }
     .info-row .lbl { color:#6b7280; font-size:.85rem; }
     .info-row .val { font-weight:600; color:#111827; }
+    .change-row { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 16px; border-bottom:1px solid #f3f4f6; }
+    .change-row:last-child { border-bottom:none; }
+    .change-row .lbl { color:#6b7280; font-size:.85rem; padding-top:2px; }
+    .change-row .changes { display:flex; flex-direction:column; gap:2px; align-items:flex-end; }
+    .val-old { font-size:.78rem; color:#9ca3af; text-decoration:line-through; }
+    .val-new { font-weight:700; color:#111827; font-size:.88rem; }
     .footer  { background:#f9fafb; padding:16px 32px; font-size:.78rem; color:#9ca3af; text-align:center; border-top:1px solid #f3f4f6; }
     .btn     { display:inline-block; margin-top:18px; padding:10px 24px; background:#6366f1; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; font-size:.88rem; }
   </style>
@@ -48,6 +54,113 @@ const htmlWrap = (title, bodyHtml) => `
     </div>
     <div class="body">${bodyHtml}</div>
     <div class="footer">This is an automated notification — please do not reply.</div>
+  </div>
+</body>
+</html>`;
+
+// ── Guest-facing HTML wrapper ─────────────────────────────────────
+const guestHtmlWrap = (title, subtitle, bodyHtml) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4ff; margin: 0; padding: 0; }
+    .wrapper { max-width: 580px; margin: 32px auto; background: #fff;
+               border-radius: 16px; overflow: hidden;
+               box-shadow: 0 8px 32px rgba(99,102,241,.13); }
+    .header  { background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 36px 36px 28px; text-align: center; }
+    .header-icon { font-size: 2.5rem; margin-bottom: 10px; display:block; }
+    .header h1 { color:#fff; margin:0 0 6px; font-size:1.5rem; font-weight:800; letter-spacing:-.4px; }
+    .header p  { color:rgba(255,255,255,.8); margin:0; font-size:.9rem; }
+    .body    { padding: 32px 36px; color: #374151; font-size: .92rem; line-height: 1.7; }
+    .greeting { font-size: 1.05rem; font-weight: 600; color: #111827; margin-bottom: 8px; }
+    .conf-box {
+      background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+      border: 1.5px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .conf-box .conf-label { font-size: .75rem; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: .07em; }
+    .conf-box .conf-number { font-size: 1.5rem; font-weight: 800; color: #4f46e5; letter-spacing: .04em; font-family: monospace; }
+    .detail-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .detail-card-title {
+      background: #f3f4f6;
+      padding: 10px 18px;
+      font-size: .75rem;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .info-row { display:flex; justify-content:space-between; align-items:center; padding: 11px 18px; border-bottom:1px solid #f3f4f6; }
+    .info-row:last-child { border-bottom:none; }
+    .info-row .lbl { color:#6b7280; font-size:.85rem; }
+    .info-row .val { font-weight:600; color:#111827; text-align:right; max-width: 65%; }
+    .change-row { display:flex; justify-content:space-between; align-items:flex-start; padding: 11px 18px; border-bottom:1px solid #f3f4f6; }
+    .change-row:last-child { border-bottom:none; }
+    .change-row .lbl { color:#6b7280; font-size:.85rem; padding-top:3px; }
+    .change-row .changes { display:flex; flex-direction:column; gap:3px; align-items:flex-end; }
+    .val-old { font-size:.78rem; color:#9ca3af; text-decoration:line-through; }
+    .val-new { font-weight:700; color:#111827; font-size:.88rem; }
+    .badge   { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.78rem; font-weight:600; }
+    .badge--green  { background:#f0fdf4; color:#16a34a; }
+    .badge--blue   { background:#eff6ff; color:#2563eb; }
+    .badge--amber  { background:#fffbeb; color:#d97706; }
+    .badge--purple { background:#f5f3ff; color:#7c3aed; }
+    .badge--red    { background:#fef2f2; color:#dc2626; }
+    .highlight-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 13px 18px;
+      background: #eef2ff;
+      border-top: 2px solid #c7d2fe;
+    }
+    .highlight-row .lbl { font-weight:700; color:#4f46e5; font-size:.9rem; }
+    .highlight-row .val { font-size:1.15rem; font-weight:800; color:#4f46e5; }
+    .amenity-list { padding: 10px 18px 14px; }
+    .amenity-tag {
+      display:inline-block; margin: 3px 4px 3px 0;
+      padding:3px 10px; background:#eef2ff; color:#6366f1;
+      border-radius:20px; font-size:.78rem; font-weight:600;
+    }
+    .notice-box {
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      margin: 18px 0;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .notice-box.info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .notice-box.warn    { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .notice-box.error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .notice-box.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+    .footer  { background: #f9fafb; padding: 20px 36px; font-size:.78rem; color:#9ca3af; text-align:center; border-top:1px solid #f3f4f6; }
+    .footer a { color: #6366f1; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <span class="header-icon">🏨</span>
+      <h1>Grand Hotel</h1>
+      <p>${subtitle}</p>
+    </div>
+    <div class="body">${bodyHtml}</div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} Grand Hotel &mdash; All rights reserved.<br/>
+      Questions? Contact us at <a href="mailto:${process.env.SMTP_USER}">${process.env.SMTP_USER}</a>
+    </div>
   </div>
 </body>
 </html>`;
@@ -71,6 +184,13 @@ const sendMail = async ({ to, subject, html }) => {
   }
 };
 
+// ── Date formatter helpers ────────────────────────────────────────
+const fmtDate = (d) =>
+  new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+const fmtDateTime = () =>
+  new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
 // ═══════════════════════════════════════════════════════════════════
 // 1. ROLE ASSIGNED
 // ═══════════════════════════════════════════════════════════════════
@@ -88,14 +208,8 @@ const sendRoleAssignedEmail = async ({ toEmail, toName, newRole, assignedBy }) =
         <span class="lbl">New Role</span>
         <span class="val"><span class="badge ${roleColors[newRole] || 'badge--blue'}">${newRole.toUpperCase()}</span></span>
       </div>
-      <div class="info-row">
-        <span class="lbl">Updated by</span>
-        <span class="val">${assignedBy}</span>
-      </div>
-      <div class="info-row">
-        <span class="lbl">Date</span>
-        <span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-      </div>
+      <div class="info-row"><span class="lbl">Updated by</span><span class="val">${assignedBy}</span></div>
+      <div class="info-row"><span class="lbl">Date</span><span class="val">${fmtDateTime()}</span></div>
     </div>
     <p>If you believe this was a mistake, please contact your system administrator immediately.</p>`;
 
@@ -132,7 +246,7 @@ const sendRoomStatusEmail = async ({ adminEmails, roomNumber, roomType, oldStatu
       <div class="info-row"><span class="lbl">Previous Status</span><span class="val"><span class="badge ${from.cls}">${from.label}</span></span></div>
       <div class="info-row"><span class="lbl">New Status</span><span class="val"><span class="badge ${to.cls}">${to.label}</span></span></div>
       <div class="info-row"><span class="lbl">Updated by</span><span class="val">${updatedBy}</span></div>
-      <div class="info-row"><span class="lbl">Time</span><span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div class="info-row"><span class="lbl">Time</span><span class="val">${fmtDateTime()}</span></div>
     </div>
     <p>Log in to the dashboard to view the current room list.</p>`;
 
@@ -172,7 +286,7 @@ const sendHousekeeperAssignedEmail = async ({ toEmail, toName, roomNumber, roomT
       <div class="info-row"><span class="lbl">Room Type</span><span class="val"><span class="badge badge--blue">${roomType.toUpperCase()}</span></span></div>
       <div class="info-row"><span class="lbl">Floor</span><span class="val">${floor}</span></div>
       <div class="info-row"><span class="lbl">Assigned by</span><span class="val">${assignedBy}</span></div>
-      <div class="info-row"><span class="lbl">Date</span><span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div class="info-row"><span class="lbl">Date</span><span class="val">${fmtDateTime()}</span></div>
     </div>
     <p>Please log in to the dashboard to view your assigned rooms and update statuses as needed.</p>`;
 
@@ -184,7 +298,7 @@ const sendHousekeeperAssignedEmail = async ({ toEmail, toName, roomNumber, roomT
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 5. NEW RESERVATION — notify admins
+// 5a. NEW RESERVATION — notify admins (internal)
 // ═══════════════════════════════════════════════════════════════════
 const sendNewReservationEmail = async ({
   adminEmails, guestName, email, phone,
@@ -240,7 +354,185 @@ const sendNewReservationEmail = async ({
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 6. CHECK-IN — notify admins
+// 5b. NEW RESERVATION — confirmation email to GUEST
+// ═══════════════════════════════════════════════════════════════════
+const sendReservationConfirmationToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomType, roomNumbers, checkInDate, checkOutDate,
+  numberOfGuests, numberOfRooms, stayType,
+  totalPrice, amenitiesBreakdown, specialRequests,
+}) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
+  let amenitiesHtml = '';
+  const amenityEntries = amenitiesBreakdown ? Object.values(amenitiesBreakdown) : [];
+  if (amenityEntries.length > 0) {
+    const tags = amenityEntries.map(item =>
+      `<span class="amenity-tag">${item.name}</span>`
+    ).join('');
+    amenitiesHtml = `
+      <div class="detail-card" style="margin-top:0;">
+        <div class="detail-card-title">✨ Requested Amenities</div>
+        <div class="amenity-list">${tags}</div>
+      </div>`;
+  }
+
+  const specialReqHtml = specialRequests
+    ? `<div class="notice-box info">
+        <span>💬</span>
+        <div><strong>Special Requests:</strong><br/>${specialRequests}</div>
+      </div>`
+    : '';
+
+  const body = `
+    <p class="greeting">Dear ${guestName},</p>
+    <p>Thank you for choosing <strong>Grand Hotel</strong>! Your reservation has been received and is currently <strong>pending confirmation</strong>. You'll receive another email once it's confirmed by our team.</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Confirmation Number</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">🛏️ Stay Details</div>
+      <div class="info-row"><span class="lbl">Room Type</span><span class="val">${roomType?.charAt(0).toUpperCase() + roomType?.slice(1)}</span></div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Number of Rooms</span><span class="val">${numberOfRooms}</span></div>
+      <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
+      <div class="info-row"><span class="lbl">Stay Type</span><span class="val">${stayType === 'daytime' ? '☀️ Day-time Stay' : `🌙 Overnight (${nights} night${nights !== 1 ? 's' : ''})`}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
+    </div>
+
+    ${amenitiesHtml}
+    ${specialReqHtml}
+
+    <div class="notice-box warn">
+      <span>⏳</span>
+      <div>Your reservation is <strong>pending review</strong>. Our team will confirm it shortly. Please keep your confirmation number safe for reference.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      If you need to make changes or have any questions, please contact our front desk with your confirmation number.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `🏨 Booking Received — Confirmation #${confirmationNumber}`,
+    html:    guestHtmlWrap('Booking Confirmation', 'Your reservation has been received', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 5c. BOOKING UPDATED — notify admins (internal)
+//
+// changes = [{ label, oldVal, newVal }]  — only fields that changed
+// ═══════════════════════════════════════════════════════════════════
+const sendBookingUpdatedEmail = async ({
+  adminEmails, guestName, confirmationNumber,
+  roomNumbers, checkInDate, checkOutDate,
+  changes, updatedBy,
+}) => {
+  if (!adminEmails || adminEmails.length === 0) return;
+
+  const changeRowsHtml = changes.map(({ label, oldVal, newVal }) => `
+    <div class="change-row">
+      <span class="lbl">${label}</span>
+      <div class="changes">
+        <span class="val-old">${oldVal}</span>
+        <span class="val-new">${newVal}</span>
+      </div>
+    </div>`
+  ).join('');
+
+  const body = `
+    <p>A reservation has been edited. The following details were changed:</p>
+    <div style="margin:20px 0; padding:16px; background:#f9fafb; border-radius:8px;">
+      <div class="info-row"><span class="lbl">Guest</span><span class="val">${guestName}</span></div>
+      <div class="info-row"><span class="lbl">Confirmation #</span><span class="val" style="font-family:monospace;">${confirmationNumber}</span></div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="info-row"><span class="lbl">Updated by</span><span class="val">${updatedBy}</span></div>
+      <div class="info-row"><span class="lbl">Time</span><span class="val">${fmtDateTime()}</span></div>
+    </div>
+    <p style="font-weight:600; color:#374151; margin-bottom:6px;">Changed Fields:</p>
+    <div style="background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb; overflow:hidden;">
+      ${changeRowsHtml}
+    </div>
+    <p style="margin-top:18px;">Log in to the dashboard to review the updated reservation.</p>`;
+
+  await sendMail({
+    to:      adminEmails,
+    subject: `✏️ Booking Updated — ${guestName} (#${confirmationNumber})`,
+    html:    htmlWrap('Reservation Updated', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 5d. BOOKING UPDATED — notify GUEST
+//
+// changes = [{ label, oldVal, newVal }]  — only fields that changed
+// ═══════════════════════════════════════════════════════════════════
+const sendBookingUpdateToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomNumbers, checkInDate, checkOutDate,
+  numberOfGuests, totalPrice, changes,
+}) => {
+  const changeRowsHtml = changes.map(({ label, oldVal, newVal }) => `
+    <div class="change-row">
+      <span class="lbl">${label}</span>
+      <div class="changes">
+        <span class="val-old">${oldVal}</span>
+        <span class="val-new">${newVal}</span>
+      </div>
+    </div>`
+  ).join('');
+
+  const body = `
+    <p class="greeting">Dear ${guestName},</p>
+    <p>Your reservation at <strong>Grand Hotel</strong> has been updated. Please review the changes below.</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Confirmation Number</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">✏️ What Changed</div>
+      ${changeRowsHtml}
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">📋 Current Booking Summary</div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
+      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
+    </div>
+
+    <div class="notice-box warn">
+      <span>⚠️</span>
+      <div>If you did not request these changes or believe this is an error, please contact our front desk immediately with your confirmation number.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      Questions? Reach us at the front desk and quote your confirmation number.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `✏️ Booking Updated — #${confirmationNumber}`,
+    html:    guestHtmlWrap('Booking Updated', 'Your reservation details have changed', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 6a. CHECK-IN — notify admins (internal)
 // ═══════════════════════════════════════════════════════════════════
 const sendCheckInEmail = async ({ adminEmails, guestName, roomNumbers, checkInDate, checkOutDate, checkedInBy }) => {
   if (!adminEmails || adminEmails.length === 0) return;
@@ -253,7 +545,7 @@ const sendCheckInEmail = async ({ adminEmails, guestName, roomNumbers, checkInDa
       <div class="info-row"><span class="lbl">Check-in Date</span><span class="val">${checkInDate}</span></div>
       <div class="info-row"><span class="lbl">Check-out Date</span><span class="val">${checkOutDate}</span></div>
       <div class="info-row"><span class="lbl">Checked in by</span><span class="val">${checkedInBy}</span></div>
-      <div class="info-row"><span class="lbl">Time</span><span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div class="info-row"><span class="lbl">Time</span><span class="val">${fmtDateTime()}</span></div>
     </div>`;
 
   await sendMail({
@@ -264,7 +556,54 @@ const sendCheckInEmail = async ({ adminEmails, guestName, roomNumbers, checkInDa
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 7. CHECK-OUT — notify admins
+// 6b. CHECK-IN — confirmation email to GUEST
+// ═══════════════════════════════════════════════════════════════════
+const sendCheckInConfirmationToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomNumbers, roomType, checkInDate, checkOutDate,
+  numberOfGuests,
+}) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
+  const body = `
+    <p class="greeting">Welcome, ${guestName}! 🎉</p>
+    <p>You have successfully checked in to <strong>Grand Hotel</strong>. We hope you enjoy your stay!</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Confirmation Number</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">🔑 Check-in Details</div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Room Type</span><span class="val">${roomType?.charAt(0).toUpperCase() + roomType?.slice(1)}</span></div>
+      <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="info-row"><span class="lbl">Duration</span><span class="val">${nights} night${nights !== 1 ? 's' : ''}</span></div>
+    </div>
+
+    <div class="notice-box success">
+      <span>✅</span>
+      <div>You are now officially checked in. Please keep this email for your records and present your confirmation number at the front desk if needed.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      Need assistance during your stay? Don't hesitate to contact our front desk anytime.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `✅ Checked In — Welcome to Grand Hotel!`,
+    html:    guestHtmlWrap('You\'re Checked In!', 'Welcome — enjoy your stay', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 7a. CHECK-OUT — notify admins (internal)
 // ═══════════════════════════════════════════════════════════════════
 const sendCheckOutEmail = async ({ adminEmails, guestName, roomNumbers, checkOutDate, checkedOutBy }) => {
   if (!adminEmails || adminEmails.length === 0) return;
@@ -276,7 +615,7 @@ const sendCheckOutEmail = async ({ adminEmails, guestName, roomNumbers, checkOut
       <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
       <div class="info-row"><span class="lbl">Check-out Date</span><span class="val">${checkOutDate}</span></div>
       <div class="info-row"><span class="lbl">Checked out by</span><span class="val">${checkedOutBy}</span></div>
-      <div class="info-row"><span class="lbl">Time</span><span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div class="info-row"><span class="lbl">Time</span><span class="val">${fmtDateTime()}</span></div>
     </div>`;
 
   await sendMail({
@@ -287,7 +626,52 @@ const sendCheckOutEmail = async ({ adminEmails, guestName, roomNumbers, checkOut
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 8. CANCELLATION — notify admins
+// 7b. CHECK-OUT — farewell email to GUEST
+// ═══════════════════════════════════════════════════════════════════
+const sendCheckOutFarewellToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomNumbers, checkInDate, checkOutDate, totalPrice,
+}) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
+  const body = `
+    <p class="greeting">Thank you, ${guestName}! 👋</p>
+    <p>We hope you had a wonderful stay at <strong>Grand Hotel</strong>. It was a pleasure hosting you!</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Confirmation Number</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">🧾 Stay Summary</div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="info-row"><span class="lbl">Duration</span><span class="val">${nights} night${nights !== 1 ? 's' : ''}</span></div>
+      <div class="highlight-row"><span class="lbl">Total Charged</span><span class="val">$${totalPrice}</span></div>
+    </div>
+
+    <div class="notice-box info">
+      <span>💙</span>
+      <div>We'd love to welcome you back! Visit us again soon for an equally memorable experience.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      Please retain this email as your check-out receipt. If you have any billing questions, contact us with your confirmation number.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `👋 Thank You for Staying — Grand Hotel`,
+    html:    guestHtmlWrap('Safe Travels!', 'Thank you for your visit', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 8a. CANCELLATION — notify admins (internal)
 // ═══════════════════════════════════════════════════════════════════
 const sendCancellationEmail = async ({ adminEmails, guestName, roomNumbers, checkInDate, checkOutDate, cancelledBy, reason }) => {
   if (!adminEmails || adminEmails.length === 0) return;
@@ -301,7 +685,7 @@ const sendCancellationEmail = async ({ adminEmails, guestName, roomNumbers, chec
       <div class="info-row"><span class="lbl">Check-out Date</span><span class="val">${checkOutDate}</span></div>
       <div class="info-row"><span class="lbl">Cancelled by</span><span class="val">${cancelledBy}</span></div>
       ${reason ? `<div class="info-row"><span class="lbl">Reason</span><span class="val">${reason}</span></div>` : ''}
-      <div class="info-row"><span class="lbl">Time</span><span class="val">${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div class="info-row"><span class="lbl">Time</span><span class="val">${fmtDateTime()}</span></div>
     </div>`;
 
   await sendMail({
@@ -311,13 +695,70 @@ const sendCancellationEmail = async ({ adminEmails, guestName, roomNumbers, chec
   });
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// 8b. CANCELLATION — notification email to GUEST
+// ═══════════════════════════════════════════════════════════════════
+const sendCancellationNotificationToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomNumbers, checkInDate, checkOutDate, reason,
+}) => {
+  const reasonHtml = reason
+    ? `<div class="notice-box warn">
+        <span>💬</span>
+        <div><strong>Reason:</strong> ${reason}</div>
+      </div>`
+    : '';
+
+  const body = `
+    <p class="greeting">Dear ${guestName},</p>
+    <p>We're writing to confirm that your reservation at <strong>Grand Hotel</strong> has been <strong>cancelled</strong>.</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Cancelled Reservation</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">❌ Cancelled Booking Details</div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="info-row"><span class="lbl">Cancelled on</span><span class="val">${fmtDateTime()}</span></div>
+    </div>
+
+    ${reasonHtml}
+
+    <div class="notice-box error">
+      <span>ℹ️</span>
+      <div>If you did not request this cancellation or believe this is an error, please contact our front desk immediately with your confirmation number.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      We hope to welcome you back in the future. Feel free to make a new reservation at any time.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `❌ Reservation Cancelled — #${confirmationNumber}`,
+    html:    guestHtmlWrap('Reservation Cancelled', 'Your booking has been cancelled', body),
+  });
+};
+
 module.exports = {
   sendRoleAssignedEmail,
   sendRoomStatusEmail,
   sendWelcomeEmail,
   sendHousekeeperAssignedEmail,
+  // Admin notifications
   sendNewReservationEmail,
+  sendBookingUpdatedEmail,
   sendCheckInEmail,
   sendCheckOutEmail,
   sendCancellationEmail,
+  // Guest notifications
+  sendReservationConfirmationToGuest,
+  sendBookingUpdateToGuest,
+  sendCheckInConfirmationToGuest,
+  sendCheckOutFarewellToGuest,
+  sendCancellationNotificationToGuest,
 };

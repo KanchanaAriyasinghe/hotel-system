@@ -8,6 +8,7 @@ import {
   Trash2, Eye,
   CheckCircle, XCircle, Wrench, Sparkles,
   Filter, ChevronLeft, ChevronRight,
+  CalendarCheck, Clock, Ban, LogOut, HelpCircle,
 } from 'lucide-react';
 import AddRoomModal from './modals/AddRoomModal';
 import './RoomsPage.css';
@@ -26,6 +27,15 @@ const STATUS_META = {
   cleaning:    { label: 'Cleaning',    cls: 'pill--purple', Icon: Sparkles    },
 };
 
+const BOOKING_STATUS_META = {
+  'pending':     { label: 'Pending',     cls: 'rp-bpill--orange', Icon: Clock         },
+  'confirmed':   { label: 'Confirmed',   cls: 'rp-bpill--blue',   Icon: CalendarCheck },
+  'checked-in':  { label: 'Checked In',  cls: 'rp-bpill--green',  Icon: CheckCircle   },
+  'checked-out': { label: 'Checked Out', cls: 'rp-bpill--gray',   Icon: LogOut        },
+  'cancelled':   { label: 'Cancelled',   cls: 'rp-bpill--red',    Icon: Ban           },
+};
+const BOOKING_STATUS_NONE = { label: 'Not Booked', cls: 'rp-bpill--none', Icon: HelpCircle };
+
 const TYPE_COLORS = {
   single: '#6366f1',
   double: '#0ea5e9',
@@ -42,28 +52,54 @@ const RoomsPage = () => {
   const [search,        setSearch]        = useState('');
   const [filterType,    setFilterType]    = useState('all');
   const [filterStatus,  setFilterStatus]  = useState('all');
+  const [filterBooking, setFilterBooking] = useState('all');
   const [showModal,     setShowModal]     = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting,      setDeleting]      = useState(false);
   const [error,         setError]         = useState('');
   const [page,          setPage]          = useState(1);
 
+  // Booking status map: roomId → { bookingStatus, guestName, ... }
+  const [bookingStatusMap, setBookingStatusMap]         = useState({});
+  const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
+
+  // ── Fetch booking statuses for a list of room objects ─────────────────
+  const fetchBookingStatuses = useCallback(async (roomList) => {
+    if (!roomList || roomList.length === 0) return;
+    setBookingStatusLoading(true);
+    try {
+      const ids = roomList.map(r => r._id);
+      const res = await axios.post(
+        `${API}/reservations/room-statuses`,
+        { roomIds: ids },
+        getAuthHeaders(),
+      );
+      setBookingStatusMap(res.data?.data ?? {});
+    } catch (err) {
+      console.error('Failed to load booking statuses:', err.message);
+    } finally {
+      setBookingStatusLoading(false);
+    }
+  }, []);
+
   const fetchRooms = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/rooms`, getAuthHeaders());
-      setRooms(res.data?.data ?? []);
+      const fetched = res.data?.data ?? [];
+      setRooms(fetched);
+      fetchBookingStatuses(fetched);
     } catch {
       setError('Failed to load rooms.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [fetchBookingStatuses]);
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
+  useEffect(() => { setPage(1); }, [search, filterType, filterStatus, filterBooking]);
 
   const handleRefresh = () => { setRefreshing(true); fetchRooms(); };
 
@@ -72,6 +108,12 @@ const RoomsPage = () => {
     try {
       await axios.delete(`${API}/rooms/${id}`, getAuthHeaders());
       setRooms(prev => prev.filter(r => r._id !== id));
+      // Remove from booking status map too
+      setBookingStatusMap(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setDeleteConfirm(null);
     } catch {
       setError('Failed to delete room.');
@@ -87,18 +129,23 @@ const RoomsPage = () => {
       r.roomType.toLowerCase().includes(search.toLowerCase());
     const matchType   = filterType   === 'all' || r.roomType === filterType;
     const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
-    return matchSearch && matchType && matchStatus;
+
+    const bStatus = bookingStatusMap[r._id]?.bookingStatus ?? null;
+    const matchBooking = filterBooking === 'all' ||
+      (filterBooking === 'not-booked' ? bStatus === null : bStatus === filterBooking);
+
+    return matchSearch && matchType && matchStatus && matchBooking;
   });
 
   // ── Pagination ─────────────────────────────────────────────
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
-  const safePage    = Math.min(page, totalPages);
-  const pageStart   = (safePage - 1) * ROWS_PER_PAGE;
-  const pageRows    = filtered.slice(pageStart, pageStart + ROWS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+  const safePage   = Math.min(page, totalPages);
+  const pageStart  = (safePage - 1) * ROWS_PER_PAGE;
+  const pageRows   = filtered.slice(pageStart, pageStart + ROWS_PER_PAGE);
 
-  const goTo    = (p) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const goPrev  = () => goTo(safePage - 1);
-  const goNext  = () => goTo(safePage + 1);
+  const goTo   = (p) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const goPrev = () => goTo(safePage - 1);
+  const goNext = () => goTo(safePage + 1);
 
   // Build visible page numbers (max 5 shown, with ellipsis logic)
   const pageNumbers = () => {
@@ -195,6 +242,15 @@ const RoomsPage = () => {
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
+          <select value={filterBooking} onChange={e => setFilterBooking(e.target.value)}>
+            <option value="all">All Bookings</option>
+            <option value="not-booked">Not Booked</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="checked-in">Checked In</option>
+            <option value="checked-out">Checked Out</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
         </div>
       </div>
 
@@ -218,13 +274,25 @@ const RoomsPage = () => {
                   <th>Capacity</th>
                   <th>Price / Night</th>
                   <th>Amenities</th>
-                  <th>Status</th>
+                  <th>Room Status</th>
+                  <th className="rp-th-booking">
+                    Booking Status
+                    {bookingStatusLoading && (
+                      <span className="rp-bstatus-loading-dot" title="Loading…" />
+                    )}
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pageRows.map((room, i) => {
                   const sm = STATUS_META[room.status] || STATUS_META.available;
+
+                  const bInfo = bookingStatusMap[room._id];
+                  const bKey  = bInfo?.bookingStatus ?? null;
+                  const bMeta = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
+                  const BIcon = bMeta.Icon;
+
                   return (
                     <tr
                       key={room._id || i}
@@ -260,10 +328,26 @@ const RoomsPage = () => {
                       </td>
                       <td>
                         <span className={`rp-status-pill ${sm.cls}`}>
-                          <sm.Icon size={11} />
-                          {sm.label}
+                          <sm.Icon size={11} /> {sm.label}
                         </span>
                       </td>
+
+                      {/* Booking Status */}
+                      <td onClick={e => e.stopPropagation()}>
+                        {bookingStatusLoading && !bookingStatusMap[room._id] ? (
+                          <span className="rp-bstatus-skeleton" />
+                        ) : (
+                          <div className="rp-bstatus-wrap">
+                            <span className={`rp-booking-pill ${bMeta.cls}`}>
+                              <BIcon size={11} /> {bMeta.label}
+                            </span>
+                            {bInfo?.guestName && bKey !== 'cancelled' && bKey !== null && (
+                              <span className="rp-bstatus-guest">{bInfo.guestName}</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
                       <td onClick={e => e.stopPropagation()}>
                         <div className="rp-action-btns">
                           <button
@@ -295,7 +379,6 @@ const RoomsPage = () => {
               </span>
 
               <div className="rp-pagination-controls">
-                {/* Prev */}
                 <button
                   className="rp-page-btn rp-page-arrow"
                   onClick={goPrev}
@@ -305,7 +388,6 @@ const RoomsPage = () => {
                   <ChevronLeft size={15} />
                 </button>
 
-                {/* Page numbers */}
                 {pageNumbers().map((p, idx) =>
                   p === '…' ? (
                     <span key={`ellipsis-${idx}`} className="rp-page-ellipsis">…</span>
@@ -320,7 +402,6 @@ const RoomsPage = () => {
                   )
                 )}
 
-                {/* Next */}
                 <button
                   className="rp-page-btn rp-page-arrow"
                   onClick={goNext}

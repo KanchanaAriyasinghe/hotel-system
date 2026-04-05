@@ -1,7 +1,8 @@
 // backend/controllers/roomController.js
 
-const Room = require('../models/Room');
-const User = require('../models/User');
+const Room        = require('../models/Room');
+const User        = require('../models/User');
+const Reservation = require('../models/Reservation');
 const { sendRoomStatusEmail, sendHousekeeperAssignedEmail } = require('../utils/emailService');
 
 const validRoomTypes = ['single', 'double', 'deluxe', 'suite', 'family'];
@@ -96,7 +97,10 @@ exports.createRoom = async (req, res) => {
     }
 
     if (!validRoomTypes.includes(roomType)) {
-      return res.status(400).json({ success: false, message: `Room type must be one of: ${validRoomTypes.join(', ')}` });
+      return res.status(400).json({
+        success: false,
+        message: `Room type must be one of: ${validRoomTypes.join(', ')}`,
+      });
     }
 
     const existingRoom = await Room.findOne({ roomNumber });
@@ -107,7 +111,10 @@ exports.createRoom = async (req, res) => {
     if (assignedHousekeeper) {
       const hk = await User.findById(assignedHousekeeper);
       if (!hk || hk.role !== 'housekeeper') {
-        return res.status(400).json({ success: false, message: 'assignedHousekeeper must be a valid user with role housekeeper' });
+        return res.status(400).json({
+          success: false,
+          message: 'assignedHousekeeper must be a valid user with role housekeeper',
+        });
       }
     }
 
@@ -160,15 +167,18 @@ exports.updateRoom = async (req, res) => {
     // ── Housekeeper branch ────────────────────────────────────────────────
     if (role === 'housekeeper') {
       if (room.assignedHousekeeper?.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ success: false, message: 'You are not authorized to edit this room.' });
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to edit this room.',
+        });
       }
 
       const { status, amenities, floor, capacity, maintenanceReason } = req.body;
 
-      if (status !== undefined)    room.status    = status;
+      if (status    !== undefined) room.status    = status;
       if (amenities !== undefined) room.amenities = amenities;
-      if (floor !== undefined)     room.floor     = Number(floor);
-      if (capacity !== undefined)  room.capacity  = Number(capacity);
+      if (floor     !== undefined) room.floor     = Number(floor);
+      if (capacity  !== undefined) room.capacity  = Number(capacity);
 
       const effectiveStatus = status || room.status;
       if (effectiveStatus === 'maintenance') {
@@ -197,7 +207,11 @@ exports.updateRoom = async (req, res) => {
         });
       }
 
-      return res.status(200).json({ success: true, message: 'Room updated successfully', data: room.toObject() });
+      return res.status(200).json({
+        success: true,
+        message: 'Room updated successfully',
+        data:    room.toObject(),
+      });
     }
 
     // ── Admin branch ──────────────────────────────────────────────────────
@@ -206,15 +220,15 @@ exports.updateRoom = async (req, res) => {
       description, amenities, status, isActive, assignedHousekeeper, maintenanceReason,
     } = req.body;
 
-    if (roomNumber !== undefined)    room.roomNumber    = roomNumber;
-    if (roomType !== undefined)      room.roomType      = roomType;
-    if (floor !== undefined)         room.floor         = floor;
-    if (capacity !== undefined)      room.capacity      = capacity;
+    if (roomNumber    !== undefined) room.roomNumber    = roomNumber;
+    if (roomType      !== undefined) room.roomType      = roomType;
+    if (floor         !== undefined) room.floor         = floor;
+    if (capacity      !== undefined) room.capacity      = capacity;
     if (pricePerNight !== undefined) room.pricePerNight = pricePerNight;
-    if (description !== undefined)   room.description   = description;
-    if (amenities !== undefined)     room.amenities     = amenities;
-    if (status !== undefined)        room.status        = status;
-    if (isActive !== undefined)      room.isActive      = isActive;
+    if (description   !== undefined) room.description   = description;
+    if (amenities     !== undefined) room.amenities     = amenities;
+    if (status        !== undefined) room.status        = status;
+    if (isActive      !== undefined) room.isActive      = isActive;
 
     if (assignedHousekeeper !== undefined) {
       if (assignedHousekeeper === null) {
@@ -222,7 +236,10 @@ exports.updateRoom = async (req, res) => {
       } else {
         const hk = await User.findById(assignedHousekeeper);
         if (!hk || hk.role !== 'housekeeper') {
-          return res.status(400).json({ success: false, message: 'assignedHousekeeper must be a valid user with role housekeeper' });
+          return res.status(400).json({
+            success: false,
+            message: 'assignedHousekeeper must be a valid user with role housekeeper',
+          });
         }
         room.assignedHousekeeper = assignedHousekeeper;
       }
@@ -296,7 +313,7 @@ exports.deleteRoom = async (req, res) => {
   }
 };
 
-// @desc      Get available rooms
+// @desc      Get available rooms — checks both room status AND reservation conflicts
 // @route     GET /api/rooms/available
 // @access    Private
 exports.getAvailableRooms = async (req, res) => {
@@ -304,16 +321,38 @@ exports.getAvailableRooms = async (req, res) => {
     const { roomType, checkInDate, checkOutDate } = req.query;
 
     if (!roomType || !checkInDate || !checkOutDate) {
-      return res.status(400).json({ success: false, message: 'Room type, check-in date, and check-out date are required' });
+      return res.status(400).json({
+        success: false,
+        message: 'Room type, check-in date, and check-out date are required',
+      });
     }
 
+    const checkIn  = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+
+    // Only rooms whose own status is 'available' (not in cleaning/maintenance/occupied)
     const allRooms = await Room.find({
       roomType,
       isActive: true,
       status: 'available',
     }).populate('assignedHousekeeper', 'fullName email phoneNumber');
 
-    res.status(200).json({ success: true, count: allRooms.length, data: allRooms });
+    // Also exclude rooms that have an overlapping active reservation
+    // (pending/confirmed/checked-in) even if the room record itself says 'available'
+    const bookedRooms = await Reservation.find({
+      checkInDate:  { $lt: checkOut },
+      checkOutDate: { $gt: checkIn  },
+      status: { $in: ['pending', 'confirmed', 'checked-in'] },
+    }).select('roomIds');
+
+    const bookedRoomIds = new Set();
+    bookedRooms.forEach(r =>
+      r.roomIds.forEach(id => bookedRoomIds.add(id.toString()))
+    );
+
+    const available = allRooms.filter(r => !bookedRoomIds.has(r._id.toString()));
+
+    res.status(200).json({ success: true, count: available.length, data: available });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message || 'Error fetching available rooms' });
   }
@@ -327,7 +366,10 @@ exports.getRoomsByType = async (req, res) => {
     const { roomType } = req.params;
 
     if (!validRoomTypes.includes(roomType)) {
-      return res.status(400).json({ success: false, message: `Room type must be one of: ${validRoomTypes.join(', ')}` });
+      return res.status(400).json({
+        success: false,
+        message: `Room type must be one of: ${validRoomTypes.join(', ')}`,
+      });
     }
 
     const rooms = await Room.find({ roomType })

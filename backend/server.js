@@ -1,7 +1,7 @@
 // backend/server.js
 
-const express = require('express');
-const cors = require('cors');
+const express  = require('express');
+const cors     = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: process.env.REACT_APP_URL || 'http://localhost:3000',
+  origin:      process.env.REACT_APP_URL || 'http://localhost:3000',
   credentials: true,
 }));
 
@@ -67,9 +67,9 @@ if (guestRoutes)       { app.use('/api/guests',        guestRoutes);       conso
 // Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date(),
+    success:     true,
+    message:     'Server is running',
+    timestamp:   new Date(),
     environment: process.env.NODE_ENV || 'development',
     routes: {
       auth:         '/api/auth',
@@ -95,8 +95,8 @@ app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
-    path: req.originalUrl,
-    hint: 'See /api/health for all available routes',
+    path:    req.originalUrl,
+    hint:    'See /api/health for all available routes',
   });
 });
 
@@ -140,51 +140,62 @@ const server = app.listen(PORT, () => {
 ✓ Health    →  http://localhost:${PORT}/api/health
 
 📝 Registered Endpoints:
-   AUTH          POST  /api/auth/register
-                 POST  /api/auth/login
+   AUTH          POST   /api/auth/register
+                 POST   /api/auth/login
 
-   USERS         GET   /api/users                    ← admin only
-                 POST  /api/users                    ← admin only
-                 GET   /api/users/:id                ← admin only
-                 PUT   /api/users/:id                ← admin only
-                 DELETE /api/users/:id               ← admin only
-                 GET   /api/users/role/:role         ← admin only
-                 PUT   /api/users/:id/password       ← any authenticated user (own account)
+   USERS         GET    /api/users                        ← admin only
+                 POST   /api/users                        ← admin only
+                 GET    /api/users/:id                    ← admin only
+                 PUT    /api/users/:id                    ← admin only
+                 DELETE /api/users/:id                    ← admin only
+                 GET    /api/users/role/:role             ← admin only
+                 PUT    /api/users/:id/password           ← any authenticated user (own account)
 
-   STAFF         GET   /api/staff
-                 POST  /api/staff
+   STAFF         GET    /api/staff
+                 POST   /api/staff
 
-   ROOMS         GET   /api/rooms                    ← public
-                 GET   /api/rooms/available           ← public
-                 GET   /api/rooms/type/:roomType      ← public
-                 GET   /api/rooms/:id                 ← public
-                 POST  /api/rooms                    ← admin only
-                 PUT   /api/rooms/:id                ← admin (all fields) | housekeeper (status + maintenanceReason)
-                 DELETE /api/rooms/:id               ← admin only
+   ROOMS         GET    /api/rooms                        ← private (housekeeper: assigned only)
+                 GET    /api/rooms/all                    ← admin + housekeeper (all rooms, no filter)
+                 GET    /api/rooms/available              ← private
+                 GET    /api/rooms/type/:roomType         ← private
+                 GET    /api/rooms/:id                    ← private
+                 POST   /api/rooms                        ← admin only
+                 PUT    /api/rooms/:id                    ← admin (all fields) | housekeeper (status + maintenanceReason)
+                 DELETE /api/rooms/:id                    ← admin only
 
-   RESERVATIONS  GET   /api/reservations
-                 POST  /api/reservations
-                 GET   /api/reservations/:id
-                 PUT   /api/reservations/:id
-                 DELETE /api/reservations/:id
+   RESERVATIONS  GET    /api/reservations/available       ← public  (room availability check)
+                 POST   /api/reservations                 ← public  (guest booking; sends emails to admin + guest)
+                 GET    /api/reservations/guest/:email    ← public  (guest self-lookup by email)
+                 GET    /api/reservations                 ← admin + receptionist
+                 GET    /api/reservations/:id             ← admin + receptionist
+                 PUT    /api/reservations/:id             ← admin + receptionist
+                                                             check-in  → sends email to admin + guest
+                                                             check-out → sends email to admin + guest
+                 DELETE /api/reservations/:id             ← admin only (cancels; sends email to admin + guest)
 
-   HOTEL         GET   /api/hotel                    ← public
-                 GET   /api/hotel/public             ← public (landing page)
-                 GET   /api/hotel/:id
-                 POST  /api/hotel                    ← admin only
-                 PUT   /api/hotel/:id                ← admin only
-                 PATCH /api/hotel                    ← upsert (admin)
-                 POST  /api/hotel/:id/images         ← admin only
-                 DELETE /api/hotel/:id/images        ← admin only
-                 POST  /api/hotel/:id/amenities
+   HOTEL         GET    /api/hotel                        ← public
+                 GET    /api/hotel/public                 ← public (landing page)
+                 GET    /api/hotel/:id
+                 POST   /api/hotel                        ← admin only
+                 PUT    /api/hotel/:id                    ← admin only
+                 PATCH  /api/hotel                        ← upsert (admin)
+                 POST   /api/hotel/:id/images             ← admin only
+                 DELETE /api/hotel/:id/images             ← admin only
+                 POST   /api/hotel/:id/amenities
                  DELETE /api/hotel/:id/amenities
-                 DELETE /api/hotel/:id               ← admin only
+                 DELETE /api/hotel/:id                    ← admin only
 
-   GUESTS        GET   /api/guests
-                 POST  /api/guests
-                 GET   /api/guests/:id
-                 PUT   /api/guests/:id
+   GUESTS        GET    /api/guests
+                 POST   /api/guests
+                 GET    /api/guests/:id
+                 PUT    /api/guests/:id
                  DELETE /api/guests/:id
+
+📧 Email Notifications:
+   New Reservation  → admin (notificationPrefs.newReservation) + guest (confirmation)
+   Check-in         → admin (notificationPrefs.checkIn)        + guest (welcome)
+   Check-out        → admin (notificationPrefs.checkOut)       + guest (farewell + receipt)
+   Cancellation     → admin (notificationPrefs.cancellation)   + guest (cancellation notice)
 `);
 });
 

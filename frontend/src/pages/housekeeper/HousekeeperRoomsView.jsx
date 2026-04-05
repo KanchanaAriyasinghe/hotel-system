@@ -2,8 +2,9 @@
 //
 // Read-only view of ALL hotel rooms for housekeepers.
 // Endpoint: GET /api/rooms/all  →  { success, count, data: Room[] }
+//           POST /api/reservations/room-statuses → { success, data: { [roomId]: { bookingStatus, ... } } }
 //
-// Columns: Room · Type · Floor · Capacity · Status · Actions (view only)
+// Columns: Room · Type · Floor · Capacity · Status · Booking Status · Actions
 // Pagination: 5 rows per page with prev/next controls.
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -15,6 +16,7 @@ import {
   Wifi, Tv, Wind, Wine, Droplets, Shield, Zap,
   ImageIcon, Eye, AlertCircle,
   ChevronLeft, ChevronRight,
+  CalendarCheck, Clock, Ban, LogOut, HelpCircle,
 } from 'lucide-react';
 import './HousekeeperRoomsView.css';
 
@@ -31,6 +33,15 @@ const STATUS_META = {
   maintenance: { label: 'Maintenance', cls: 'hrv-pill--amber',  Icon: Wrench      },
   cleaning:    { label: 'Cleaning',    cls: 'hrv-pill--purple', Icon: Sparkles    },
 };
+
+const BOOKING_STATUS_META = {
+  'pending':     { label: 'Pending',     cls: 'hrv-bpill--orange', Icon: Clock         },
+  'confirmed':   { label: 'Confirmed',   cls: 'hrv-bpill--blue',   Icon: CalendarCheck },
+  'checked-in':  { label: 'Checked In',  cls: 'hrv-bpill--green',  Icon: CheckCircle   },
+  'checked-out': { label: 'Checked Out', cls: 'hrv-bpill--gray',   Icon: LogOut        },
+  'cancelled':   { label: 'Cancelled',   cls: 'hrv-bpill--red',    Icon: Ban           },
+};
+const BOOKING_STATUS_NONE = { label: 'Not Booked', cls: 'hrv-bpill--none', Icon: HelpCircle };
 
 const TYPE_COLORS = {
   single: '#6366f1', double: '#0ea5e9',
@@ -214,29 +225,55 @@ const HousekeeperRoomsView = () => {
   const [search, setSearch]             = useState('');
   const [filterType, setFilterType]     = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterBooking, setFilterBooking] = useState('all');
   const [error, setError]               = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [page, setPage]                 = useState(1);   // 1-based current page
+  const [page, setPage]                 = useState(1);
+
+  // Booking status map: roomId → { bookingStatus, guestName, ... }
+  const [bookingStatusMap, setBookingStatusMap]         = useState({});
+  const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
+
+  // ── Fetch booking statuses for a list of room objects ─────────────────
+  const fetchBookingStatuses = useCallback(async (roomList) => {
+    if (!roomList || roomList.length === 0) return;
+    setBookingStatusLoading(true);
+    try {
+      const ids = roomList.map(r => r._id);
+      const res = await axios.post(
+        `${API}/reservations/room-statuses`,
+        { roomIds: ids },
+        getAuthHeaders(),
+      );
+      setBookingStatusMap(res.data?.data ?? {});
+    } catch (err) {
+      console.error('Failed to load booking statuses:', err.message);
+    } finally {
+      setBookingStatusLoading(false);
+    }
+  }, []);
 
   const fetchRooms = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/rooms/all`, getAuthHeaders());
-      setRooms(res.data?.data ?? []);
+      const fetched = res.data?.data ?? [];
+      setRooms(fetched);
       setError('');
+      fetchBookingStatuses(fetched);
     } catch {
       setError('Failed to load rooms.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [fetchBookingStatuses]);
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
   const handleRefresh = () => { setRefreshing(true); fetchRooms(); };
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
+  useEffect(() => { setPage(1); }, [search, filterType, filterStatus, filterBooking]);
 
   const filtered = rooms.filter(r => {
     const q = search.toLowerCase();
@@ -245,14 +282,19 @@ const HousekeeperRoomsView = () => {
       r.roomType?.toLowerCase().includes(q);
     const matchType   = filterType   === 'all' || r.roomType === filterType;
     const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
-    return matchSearch && matchType && matchStatus;
+
+    const bStatus = bookingStatusMap[r._id]?.bookingStatus ?? null;
+    const matchBooking = filterBooking === 'all' ||
+      (filterBooking === 'not-booked' ? bStatus === null : bStatus === filterBooking);
+
+    return matchSearch && matchType && matchStatus && matchBooking;
   });
 
   // Pagination math
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
-  const safePage    = Math.min(page, totalPages);
-  const startIdx    = (safePage - 1) * ROWS_PER_PAGE;
-  const pageRows    = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
+  const safePage   = Math.min(page, totalPages);
+  const startIdx   = (safePage - 1) * ROWS_PER_PAGE;
+  const pageRows   = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE);
 
   const counts = {
     total:       rooms.length,
@@ -334,6 +376,15 @@ const HousekeeperRoomsView = () => {
                 <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
               ))}
             </select>
+            <select value={filterBooking} onChange={e => setFilterBooking(e.target.value)}>
+              <option value="all">All Bookings</option>
+              <option value="not-booked">Not Booked</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="checked-in">Checked In</option>
+              <option value="checked-out">Checked Out</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
         </div>
 
@@ -356,7 +407,13 @@ const HousekeeperRoomsView = () => {
                   <th>Type</th>
                   <th>Floor</th>
                   <th>Capacity</th>
-                  <th>Status</th>
+                  <th>Room Status</th>
+                  <th className="hrv-th-booking">
+                    Booking Status
+                    {bookingStatusLoading && (
+                      <span className="hrv-bstatus-loading-dot" title="Loading…" />
+                    )}
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -364,6 +421,12 @@ const HousekeeperRoomsView = () => {
                 {pageRows.map((room, i) => {
                   const sm = STATUS_META[room.status] || STATUS_META.available;
                   const isSelected = selectedRoom?._id === room._id;
+
+                  const bInfo = bookingStatusMap[room._id];
+                  const bKey  = bInfo?.bookingStatus ?? null;
+                  const bMeta = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
+                  const BIcon = bMeta.Icon;
+
                   return (
                     <tr
                       key={room._id || i}
@@ -386,6 +449,23 @@ const HousekeeperRoomsView = () => {
                           <sm.Icon size={11} /> {sm.label}
                         </span>
                       </td>
+
+                      {/* Booking Status */}
+                      <td onClick={e => e.stopPropagation()}>
+                        {bookingStatusLoading && !bookingStatusMap[room._id] ? (
+                          <span className="hrv-bstatus-skeleton" />
+                        ) : (
+                          <div className="hrv-bstatus-wrap">
+                            <span className={`hrv-booking-pill ${bMeta.cls}`}>
+                              <BIcon size={11} /> {bMeta.label}
+                            </span>
+                            {bInfo?.guestName && bKey !== 'cancelled' && bKey !== null && (
+                              <span className="hrv-bstatus-guest">{bInfo.guestName}</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
                       <td onClick={e => e.stopPropagation()}>
                         <button
                           className={`hrv-view-btn${isSelected ? ' hrv-view-btn--active' : ''}`}
@@ -408,7 +488,6 @@ const HousekeeperRoomsView = () => {
               </span>
 
               <div className="hrv-pagination-controls">
-                {/* Previous */}
                 <button
                   className="hrv-page-btn"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -418,7 +497,6 @@ const HousekeeperRoomsView = () => {
                   <ChevronLeft size={16} />
                 </button>
 
-                {/* Page number pills */}
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                   <button
                     key={n}
@@ -429,7 +507,6 @@ const HousekeeperRoomsView = () => {
                   </button>
                 ))}
 
-                {/* Next */}
                 <button
                   className="hrv-page-btn"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
