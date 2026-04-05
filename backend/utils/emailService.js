@@ -744,6 +744,38 @@ const sendCancellationNotificationToGuest = async ({
   });
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// 9. PASSWORD RESET EMAIL
+// ═══════════════════════════════════════════════════════════════════
+const sendPasswordResetEmail = async ({ toEmail, toName, resetURL, expiresIn }) => {
+  const body = `
+    <p>Hi <strong>${toName}</strong>,</p>
+    <p>We received a request to reset the password for your Hotel Management account. Click the button below to set a new password.</p>
+    <div style="margin:24px 0; padding:16px; background:#f9fafb; border-radius:8px;">
+      <div class="info-row"><span class="lbl">Account</span><span class="val">${toEmail}</span></div>
+      <div class="info-row"><span class="lbl">Link expires in</span><span class="val" style="color:#d97706; font-weight:700;">${expiresIn}</span></div>
+      <div class="info-row"><span class="lbl">Requested at</span><span class="val">${fmtDateTime()}</span></div>
+    </div>
+    <div style="text-align:center; margin:28px 0;">
+      <a href="${resetURL}" class="btn" style="font-size:.95rem; padding:12px 32px;">
+        🔑 Reset My Password
+      </a>
+    </div>
+    <p style="color:#6b7280; font-size:.85rem; background:#f9fafb; border-radius:8px; padding:12px 16px; border-left:3px solid #d1d5db;">
+      If the button above doesn't work, copy and paste this link into your browser:<br/>
+      <a href="${resetURL}" style="color:#6366f1; word-break:break-all;">${resetURL}</a>
+    </p>
+    <p style="color:#ef4444; font-size:.82rem; margin-top:20px;">
+      ⚠️ If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged. Do not share this link with anyone.
+    </p>`;
+
+  await sendMail({
+    to:      toEmail,
+    subject: '🔑 Password Reset Request — Hotel Management',
+    html:    htmlWrap('Password Reset', body),
+  });
+};
+
 module.exports = {
   sendRoleAssignedEmail,
   sendRoomStatusEmail,
@@ -761,4 +793,6 @@ module.exports = {
   sendCheckInConfirmationToGuest,
   sendCheckOutFarewellToGuest,
   sendCancellationNotificationToGuest,
+  // Auth
+  sendPasswordResetEmail,
 };

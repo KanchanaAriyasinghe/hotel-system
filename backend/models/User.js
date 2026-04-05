@@ -1,54 +1,57 @@
+// backend/models/User.js
+
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt   = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
     fullName: {
-      type: String,
-      required: [true, 'Please provide a full name'],
-      trim: true,
+      type:      String,
+      required:  [true, 'Please provide a full name'],
+      trim:      true,
       minlength: 2,
     },
     email: {
-      type: String,
-      required: [true, 'Please provide an email'],
-      unique: true,
+      type:      String,
+      required:  [true, 'Please provide an email'],
+      unique:    true,
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
+      match:     [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
     },
     phoneNumber: {
-      type: String,
+      type:     String,
       required: [true, 'Please provide a phone number'],
-      trim: true,
+      trim:     true,
     },
     password: {
-      type: String,
-      required: [true, 'Please provide a password'],
+      type:      String,
+      required:  [true, 'Please provide a password'],
       minlength: 6,
-      select: false,
+      select:    false,
     },
     role: {
       type: String,
       enum: {
-        values: ['admin', 'receptionist', 'housekeeper'],
+        values:  ['admin', 'receptionist', 'housekeeper'],
         message: 'Invalid role provided. Must be admin, receptionist, or housekeeper.',
       },
-      default: 'receptionist',
+      default:  'receptionist',
       required: [true, 'Please specify a role'],
     },
     isActive: {
-      type: Boolean,
+      type:    Boolean,
       default: true,
     },
     profileImage: {
-      type: String,
+      type:    String,
       default: null,
     },
     lastLogin: {
-      type: Date,
+      type:    Date,
       default: null,
     },
-    // ── Notification preferences (per-admin email triggers) ───────────────
+
+    // ── Notification preferences (per-admin email triggers) ───────
     notificationPrefs: {
       newReservation: { type: Boolean, default: true  },
       checkIn:        { type: Boolean, default: true  },
@@ -57,28 +60,40 @@ const userSchema = new mongoose.Schema(
       payment:        { type: Boolean, default: true  },
       systemAlerts:   { type: Boolean, default: true  },
     },
+
+    // ── Password reset ────────────────────────────────────────────
+    // Raw token is NEVER stored — only the SHA-256 hash goes here.
+    // The raw token travels only in the reset email link.
+    passwordResetToken: {
+      type:    String,
+      default: null,
+    },
+    passwordResetExpires: {
+      type:    Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-// Hash password before saving
+// ── Hash password before saving ───────────────────────────────────
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
+  const salt    = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Hash password on findOneAndUpdate
+// ── Hash password on findOneAndUpdate ─────────────────────────────
 userSchema.pre('findOneAndUpdate', async function (next) {
   const update = this.getUpdate();
   if (!update.password) return next();
-  const salt = await bcrypt.genSalt(10);
+  const salt     = await bcrypt.genSalt(10);
   update.password = await bcrypt.hash(update.password, salt);
   next();
 });
 
-// Compare password
+// ── Compare password ──────────────────────────────────────────────
 userSchema.methods.matchPassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };

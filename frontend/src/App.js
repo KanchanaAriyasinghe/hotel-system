@@ -24,6 +24,7 @@ import ReceptionistLayout   from './pages/receptionist/ReceptionistLayout';
 import ReceptionistBookings from './pages/receptionist/ReceptionistBookings';
 import ReceptionistRooms    from './pages/receptionist/ReceptionistRooms';
 import ReceptionistSettings from './pages/receptionist/ReceptionistSettings';
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 import './App.css';
 
@@ -40,6 +41,7 @@ function App() {
         <Route path="/"        element={<LandingPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/booking" element={<Booking />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         {/* ── Non-admin protected ────────────────────────────── */}
         <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

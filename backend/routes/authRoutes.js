@@ -1,5 +1,3 @@
-// backend/routes/authRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -8,12 +6,16 @@ const {
   logout,
   getMe,
   updateProfile,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
 
 // Protected routes
 router.get('/me', protect, getMe);
