@@ -153,12 +153,12 @@ const guestHtmlWrap = (title, subtitle, bodyHtml) => `
   <div class="wrapper">
     <div class="header">
       <span class="header-icon">🏨</span>
-      <h1>Grand Hotel</h1>
+      <h1>Luxury Hotel</h1>
       <p>${subtitle}</p>
     </div>
     <div class="body">${bodyHtml}</div>
     <div class="footer">
-      &copy; ${new Date().getFullYear()} Grand Hotel &mdash; All rights reserved.<br/>
+      &copy; ${new Date().getFullYear()} Luxury Hotel &mdash; All rights reserved.<br/>
       Questions? Contact us at <a href="mailto:${process.env.SMTP_USER}">${process.env.SMTP_USER}</a>
     </div>
   </div>
@@ -388,7 +388,7 @@ const sendReservationConfirmationToGuest = async ({
 
   const body = `
     <p class="greeting">Dear ${guestName},</p>
-    <p>Thank you for choosing <strong>Grand Hotel</strong>! Your reservation has been received and is currently <strong>pending confirmation</strong>. You'll receive another email once it's confirmed by our team.</p>
+    <p>Thank you for choosing <strong>Luxury Hotel</strong>! Your reservation has been received and is currently <strong>pending confirmation</strong>. You'll receive another email once it's confirmed by our team.</p>
 
     <div class="conf-box">
       <div class="conf-label">Confirmation Number</div>
@@ -427,7 +427,56 @@ const sendReservationConfirmationToGuest = async ({
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 5c. BOOKING UPDATED — notify admins (internal)
+// 5c. BOOKING CONFIRMED — notify GUEST when status → confirmed
+// ═══════════════════════════════════════════════════════════════════
+const sendBookingConfirmedToGuest = async ({
+  guestName, guestEmail, confirmationNumber,
+  roomType, roomNumbers, checkInDate, checkOutDate,
+  numberOfGuests, numberOfRooms, stayType, totalPrice,
+}) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
+  const body = `
+    <p class="greeting">Great news, ${guestName}! 🎉</p>
+    <p>Your reservation at <strong>Luxury Hotel</strong> has been <strong>confirmed</strong> by our team. We look forward to welcoming you!</p>
+
+    <div class="conf-box">
+      <div class="conf-label">Confirmation Number</div>
+      <div class="conf-number">${confirmationNumber}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">✅ Confirmed Booking Details</div>
+      <div class="info-row"><span class="lbl">Room Type</span><span class="val">${roomType?.charAt(0).toUpperCase() + roomType?.slice(1)}</span></div>
+      <div class="info-row"><span class="lbl">Room(s)</span><span class="val">${roomNumbers}</span></div>
+      <div class="info-row"><span class="lbl">Number of Rooms</span><span class="val">${numberOfRooms}</span></div>
+      <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
+      <div class="info-row"><span class="lbl">Stay Type</span><span class="val">${stayType === 'daytime' ? '☀️ Day-time Stay' : `🌙 Overnight (${nights} night${nights !== 1 ? 's' : ''})`}</span></div>
+      <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
+      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
+    </div>
+
+    <div class="notice-box success">
+      <span>✅</span>
+      <div>Your booking is <strong>confirmed</strong>. Please present your confirmation number at the front desk upon arrival.</div>
+    </div>
+
+    <p style="color:#6b7280; font-size:.85rem; margin-top:24px;">
+      Need to make changes or have any questions? Contact our front desk and quote your confirmation number — we're happy to help.
+    </p>`;
+
+  await sendMail({
+    to:      guestEmail,
+    subject: `✅ Booking Confirmed — #${confirmationNumber} | Luxury Hotel`,
+    html:    guestHtmlWrap('Booking Confirmed!', 'Your reservation is officially confirmed', body),
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// 5d. BOOKING UPDATED — notify admins (internal)
 //
 // changes = [{ label, oldVal, newVal }]  — only fields that changed
 // ═══════════════════════════════════════════════════════════════════
@@ -473,7 +522,7 @@ const sendBookingUpdatedEmail = async ({
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// 5d. BOOKING UPDATED — notify GUEST
+// 5e. BOOKING UPDATED — notify GUEST
 //
 // changes = [{ label, oldVal, newVal }]  — only fields that changed
 // ═══════════════════════════════════════════════════════════════════
@@ -494,7 +543,7 @@ const sendBookingUpdateToGuest = async ({
 
   const body = `
     <p class="greeting">Dear ${guestName},</p>
-    <p>Your reservation at <strong>Grand Hotel</strong> has been updated. Please review the changes below.</p>
+    <p>Your reservation at <strong>Luxury Hotel</strong> has been updated. Please review the changes below.</p>
 
     <div class="conf-box">
       <div class="conf-label">Confirmation Number</div>
@@ -569,7 +618,7 @@ const sendCheckInConfirmationToGuest = async ({
 
   const body = `
     <p class="greeting">Welcome, ${guestName}! 🎉</p>
-    <p>You have successfully checked in to <strong>Grand Hotel</strong>. We hope you enjoy your stay!</p>
+    <p>You have successfully checked in to <strong>Luxury Hotel</strong>. We hope you enjoy your stay!</p>
 
     <div class="conf-box">
       <div class="conf-label">Confirmation Number</div>
@@ -597,7 +646,7 @@ const sendCheckInConfirmationToGuest = async ({
 
   await sendMail({
     to:      guestEmail,
-    subject: `✅ Checked In — Welcome to Grand Hotel!`,
+    subject: `✅ Checked In — Welcome to Luxury Hotel!`,
     html:    guestHtmlWrap('You\'re Checked In!', 'Welcome — enjoy your stay', body),
   });
 };
@@ -638,7 +687,7 @@ const sendCheckOutFarewellToGuest = async ({
 
   const body = `
     <p class="greeting">Thank you, ${guestName}! 👋</p>
-    <p>We hope you had a wonderful stay at <strong>Grand Hotel</strong>. It was a pleasure hosting you!</p>
+    <p>We hope you had a wonderful stay at <strong>Luxury Hotel</strong>. It was a pleasure hosting you!</p>
 
     <div class="conf-box">
       <div class="conf-label">Confirmation Number</div>
@@ -665,7 +714,7 @@ const sendCheckOutFarewellToGuest = async ({
 
   await sendMail({
     to:      guestEmail,
-    subject: `👋 Thank You for Staying — Grand Hotel`,
+    subject: `👋 Thank You for Staying — Luxury Hotel`,
     html:    guestHtmlWrap('Safe Travels!', 'Thank you for your visit', body),
   });
 };
@@ -711,7 +760,7 @@ const sendCancellationNotificationToGuest = async ({
 
   const body = `
     <p class="greeting">Dear ${guestName},</p>
-    <p>We're writing to confirm that your reservation at <strong>Grand Hotel</strong> has been <strong>cancelled</strong>.</p>
+    <p>We're writing to confirm that your reservation at <strong>Luxury Hotel</strong> has been <strong>cancelled</strong>.</p>
 
     <div class="conf-box">
       <div class="conf-label">Cancelled Reservation</div>
@@ -789,6 +838,7 @@ module.exports = {
   sendCancellationEmail,
   // Guest notifications
   sendReservationConfirmationToGuest,
+  sendBookingConfirmedToGuest,        // ← NEW: fires when status → confirmed
   sendBookingUpdateToGuest,
   sendCheckInConfirmationToGuest,
   sendCheckOutFarewellToGuest,

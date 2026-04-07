@@ -2,891 +2,782 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Calendar, Home, Wifi, Waves, Droplets, UtensilsCrossed, Wine, Dumbbell, Check, X } from 'lucide-react';
+import {
+  ArrowLeft, Users, Calendar, Wifi, Waves, Droplets,
+  UtensilsCrossed, Wine, Dumbbell, Check, Loader,
+  Moon, Sun, ChevronRight, Search, BedDouble, CreditCard,
+} from 'lucide-react';
 import axios from 'axios';
 import './Booking.css';
 
+const API = process.env.REACT_APP_API_URL;
+
+// ── Room prices (mirrors receptionist page) ─────────────────────
+const ROOM_PRICES = { single: 80, double: 120, deluxe: 180, suite: 300, family: 220 };
+
 const Booking = () => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    guestName: '',
-    email: '',
-    phone: '',
-    checkInDate: '',
-    checkOutDate: '',
-    roomType: 'deluxe',
-    numberOfGuests: 1,
-    numberOfRooms: 1,
-    selectedRooms: [],
-    amenities: [], // Selected paid amenities
-    freeAmenities: [], // Free amenities included with room
-    amenityHours: {}, // Hours for amenities like pool, spa, gym
+    guestName:       '',
+    email:           '',
+    phone:           '',
+    checkInDate:     '',
+    checkOutDate:    '',
+    roomType:        'deluxe',
+    numberOfGuests:  1,
+    numberOfRooms:   1,
+    amenities:       [],
+    freeAmenities:   [],
+    amenityHours:    {},
     selectedRestaurant: false,
-    selectedBar: false,
+    selectedBar:        false,
     specialRequests: '',
-    stayType: 'overnight',
+    stayType:        'overnight',
   });
 
+  // Room search state (receptionist-style)
+  const [availableRooms,  setAvailableRooms]  = useState([]);
+  const [selectedRoomIds, setSelectedRoomIds] = useState([]);
+  const [searching,       setSearching]       = useState(false);
+  const [searched,        setSearched]        = useState(false);
+  const [roomSearchError, setRoomSearchError] = useState('');
+
   const [bookingStep, setBookingStep] = useState(1);
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState('');
+  const [scrolled,    setScrolled]    = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const roomTypes = [
-    { id: 'single', name: 'Single Room', priceNight: 100, priceDay: 50, capacity: 1, description: 'Comfortable room with basic amenities for 1 person' },
-    { id: 'double', name: 'Double Room', priceNight: 120, priceDay: 60, capacity: 2, description: 'Comfortable room with basic amenities for 2 persons' },
-    { id: 'deluxe', name: 'Deluxe Room', priceNight: 150, priceDay: 75, capacity: 3, description: 'Spacious room with premium amenities' },
-    { id: 'suite', name: 'Suite', priceNight: 250, priceDay: 125, capacity: 4, description: 'Luxurious suite with separate living area' },
-    { id: 'family', name: 'Family Room', priceNight: 180, priceDay: 90, capacity: 4, description: 'Perfect for families with multiple beds' },
+    { id: 'single', name: 'Single Room', priceNight: ROOM_PRICES.single, priceDay: 50,  capacity: 1, description: 'Comfortable room for 1 guest with essential amenities' },
+    { id: 'double', name: 'Double Room', priceNight: ROOM_PRICES.double, priceDay: 60,  capacity: 2, description: 'Elegant room for 2 guests with premium comfort' },
+    { id: 'deluxe', name: 'Deluxe Room', priceNight: ROOM_PRICES.deluxe, priceDay: 75,  capacity: 3, description: 'Spacious room with upgraded furnishings and amenities' },
+    { id: 'suite',  name: 'Suite',       priceNight: ROOM_PRICES.suite,  priceDay: 125, capacity: 4, description: 'Luxurious suite with separate living area and panoramic views' },
+    { id: 'family', name: 'Family Room', priceNight: ROOM_PRICES.family, priceDay: 90,  capacity: 4, description: 'Generously sized for families with multiple sleeping arrangements' },
   ];
 
-  // Amenities with pricing
   const amenitiesOptions = [
-    { id: 'wifi', name: 'WiFi', icon: <Wifi size={20} />, type: 'free', price: 0, pricingModel: 'flat' },
-    { id: 'pool', name: 'Pool Access', icon: <Waves size={20} />, type: 'paid', price: 15, pricingModel: 'hourly', description: '$15 per hour' },
-    { id: 'spa', name: 'Spa', icon: <Droplets size={20} />, type: 'paid', price: 25, pricingModel: 'hourly', description: '$25 per hour' },
-    { id: 'gym', name: 'Gym', icon: <Dumbbell size={20} />, type: 'paid', price: 10, pricingModel: 'hourly', description: '$10 per hour' },
-    { id: 'restaurant', name: 'Restaurant', icon: <UtensilsCrossed size={20} />, type: 'paid', price: 30, pricingModel: 'daily', description: '$30 per day of stay' },
-    { id: 'bar', name: 'Bar', icon: <Wine size={20} />, type: 'paid', price: 20, pricingModel: 'daily', description: '$20 per day of stay' },
+    { id: 'wifi',       name: 'WiFi',        icon: <Wifi size={20}/>,            type: 'free',  price: 0,  pricingModel: 'flat',   description: 'Complimentary' },
+    { id: 'pool',       name: 'Pool Access', icon: <Waves size={20}/>,           type: 'paid',  price: 15, pricingModel: 'hourly', description: '$15 / hour' },
+    { id: 'spa',        name: 'Spa',         icon: <Droplets size={20}/>,        type: 'paid',  price: 25, pricingModel: 'hourly', description: '$25 / hour' },
+    { id: 'gym',        name: 'Gym',         icon: <Dumbbell size={20}/>,        type: 'paid',  price: 10, pricingModel: 'hourly', description: '$10 / hour' },
+    { id: 'restaurant', name: 'Restaurant',  icon: <UtensilsCrossed size={20}/>, type: 'paid',  price: 30, pricingModel: 'daily',  description: '$30 / day' },
+    { id: 'bar',        name: 'Bar',         icon: <Wine size={20}/>,            type: 'paid',  price: 20, pricingModel: 'daily',  description: '$20 / day' },
   ];
 
-  // Check if stay is same day (daytime only)
   const isSameDayStay = () => {
     if (!formData.checkInDate || !formData.checkOutDate) return false;
     return formData.checkInDate === formData.checkOutDate;
   };
 
-  // Update stay type when dates change
   useEffect(() => {
-    if (isSameDayStay()) {
-      setFormData(prev => ({ ...prev, stayType: 'daytime' }));
-    } else {
-      setFormData(prev => ({ ...prev, stayType: 'overnight' }));
-    }
+    setFormData(prev => ({ ...prev, stayType: isSameDayStay() ? 'daytime' : 'overnight' }));
   }, [formData.checkInDate, formData.checkOutDate]);
 
-  // Fetch available rooms when dates or room type changes
-  useEffect(() => {
-    if (formData.checkInDate && formData.checkOutDate && formData.roomType) {
-      fetchAvailableRooms();
-    }
-  }, [formData.checkInDate, formData.checkOutDate, formData.roomType]);
+  // ── Reset room search when dates or type change ──────────────
+  const resetRoomSearch = () => {
+    setSearched(false);
+    setAvailableRooms([]);
+    setSelectedRoomIds([]);
+    setRoomSearchError('');
+  };
 
-  const fetchAvailableRooms = async () => {
+  // ── Manual room search (receptionist-style) ──────────────────
+  const searchRooms = async () => {
+    if (!formData.checkInDate || !formData.checkOutDate) return;
+    setSearching(true);
+    setRoomSearchError('');
     try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/rooms/available`,
-        {
-          params: {
-            roomType: formData.roomType,
-            checkInDate: formData.checkInDate,
-            checkOutDate: formData.checkOutDate,
-            stayType: isSameDayStay() ? 'daytime' : 'overnight',
-          },
-        }
-      );
-
-      setAvailableRooms(response.data.data || []);
-      
-      // Extract free amenities from first available room
-      if (response.data.data && response.data.data.length > 0) {
-        const freeAmenities = response.data.data[0].amenities || [];
-        setFormData(prev => ({
-          ...prev,
-          freeAmenities: freeAmenities,
-        }));
+      const res = await axios.get(`${API}/reservations/available`, {
+        params: {
+          roomType:     formData.roomType,
+          checkInDate:  formData.checkInDate,
+          checkOutDate: formData.checkOutDate,
+        },
+      });
+      const rooms = res.data.data || [];
+      setAvailableRooms(rooms);
+      setSearched(true);
+      if (rooms.length > 0) {
+        setFormData(prev => ({ ...prev, freeAmenities: rooms[0].amenities || [] }));
       }
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching available rooms:', err);
-      setError('Unable to fetch available rooms. Please try again.');
-      setAvailableRooms([]);
-      setLoading(false);
+    } catch {
+      setRoomSearchError('Unable to fetch available rooms. Please try again.');
+      setSearched(true);
+    } finally {
+      setSearching(false);
     }
+  };
+
+  // ── Toggle room chip selection ───────────────────────────────
+  const toggleRoom = (room) => {
+    setSelectedRoomIds(prev => {
+      const already = prev.includes(room._id);
+      return already ? prev.filter(id => id !== room._id) : [...prev, room._id];
+    });
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleRoomSelect = (roomId) => {
-    setFormData(prev => {
-      const isSelected = prev.selectedRooms.includes(roomId);
-      const updatedRooms = isSelected
-        ? prev.selectedRooms.filter(id => id !== roomId)
-        : [...prev.selectedRooms, roomId];
-
-      if (updatedRooms.length <= prev.numberOfRooms) {
-        return {
-          ...prev,
-          selectedRooms: updatedRooms,
-        };
-      }
-      return prev;
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAmenityToggle = (amenityId) => {
     const amenity = amenitiesOptions.find(a => a.id === amenityId);
-
-    if (amenity.type === 'free') {
-      // Free amenities don't need special handling
-      return;
-    }
-
+    if (amenity.type === 'free') return;
     if (amenity.pricingModel === 'hourly') {
       setFormData(prev => {
         const isSelected = prev.amenities.includes(amenityId);
-        
         if (isSelected) {
-          const updatedAmenities = prev.amenities.filter(id => id !== amenityId);
           const updatedHours = { ...prev.amenityHours };
           delete updatedHours[amenityId];
-          
-          return {
-            ...prev,
-            amenities: updatedAmenities,
-            amenityHours: updatedHours,
-          };
-        } else {
-          return {
-            ...prev,
-            amenities: [...prev.amenities, amenityId],
-            amenityHours: { ...prev.amenityHours, [amenityId]: 1 }, // Default 1 hour
-          };
+          return { ...prev, amenities: prev.amenities.filter(id => id !== amenityId), amenityHours: updatedHours };
         }
+        return { ...prev, amenities: [...prev.amenities, amenityId], amenityHours: { ...prev.amenityHours, [amenityId]: 1 } };
       });
     } else if (amenity.pricingModel === 'daily') {
       setFormData(prev => {
-        const isSelected = amenityId === 'restaurant' ? prev.selectedRestaurant : prev.selectedBar;
-        
-        if (amenityId === 'restaurant') {
-          return { ...prev, selectedRestaurant: !isSelected };
-        } else if (amenityId === 'bar') {
-          return { ...prev, selectedBar: !isSelected };
-        }
+        if (amenityId === 'restaurant') return { ...prev, selectedRestaurant: !prev.selectedRestaurant };
+        if (amenityId === 'bar')        return { ...prev, selectedBar: !prev.selectedBar };
         return prev;
       });
     }
   };
 
   const handleAmenityHoursChange = (amenityId, hours) => {
-    const numHours = parseInt(hours) || 0;
-    if (numHours >= 0) {
-      setFormData(prev => ({
-        ...prev,
-        amenityHours: { ...prev.amenityHours, [amenityId]: numHours },
-      }));
-    }
+    const num = parseInt(hours) || 0;
+    if (num >= 0) setFormData(prev => ({ ...prev, amenityHours: { ...prev.amenityHours, [amenityId]: num } }));
   };
 
-  const handlePreviousStep = () => {
-    if (bookingStep > 1) {
-      setBookingStep(bookingStep - 1);
+  const getNumberOfNights = () => {
+    if (!formData.checkInDate || !formData.checkOutDate) return 0;
+    return Math.max(0, Math.ceil((new Date(formData.checkOutDate) - new Date(formData.checkInDate)) / 86400000));
+  };
+
+  const calculateAmenitiesBreakdown = () => {
+    let breakdown = {};
+    const nights = getNumberOfNights();
+    formData.amenities.forEach(amenityId => {
+      const amenity = amenitiesOptions.find(a => a.id === amenityId);
+      const hours = formData.amenityHours[amenityId] || 0;
+      if (amenity?.pricingModel === 'hourly') {
+        breakdown[amenityId] = { name: amenity.name, price: amenity.price, quantity: hours, unit: 'hours', subtotal: amenity.price * hours };
+      }
+    });
+    if (formData.selectedRestaurant) {
+      const a = amenitiesOptions.find(a => a.id === 'restaurant');
+      breakdown['restaurant'] = { name: a.name, price: a.price, quantity: nights, unit: 'days', subtotal: a.price * nights };
     }
+    if (formData.selectedBar) {
+      const a = amenitiesOptions.find(a => a.id === 'bar');
+      breakdown['bar'] = { name: a.name, price: a.price, quantity: nights, unit: 'days', subtotal: a.price * nights };
+    }
+    return breakdown;
+  };
+
+  const calculateTotalPrice = () => {
+    const nights = getNumberOfNights();
+    const roomPrice = isSameDayStay()
+      ? (selectedRoom?.priceDay || 0) * selectedRoomIds.length
+      : ROOM_PRICES[formData.roomType] * nights * (selectedRoomIds.length || 1);
+    const amenitiesPrice = Object.values(calculateAmenitiesBreakdown()).reduce((s, i) => s + i.subtotal, 0);
+    return roomPrice + amenitiesPrice;
   };
 
   const handleNextStep = () => {
     if (bookingStep === 1) {
-      if (!formData.checkInDate || !formData.checkOutDate) {
-        setError('Please select check-in and check-out dates');
-        return;
-      }
-      if (formData.selectedRooms.length === 0) {
-        setError('Please select at least one room');
-        return;
-      }
-      setError('');
+      if (!formData.checkInDate || !formData.checkOutDate) { setError('Please select check-in and check-out dates'); return; }
+      if (!searched)                                        { setError('Please search for available rooms first'); return; }
+      if (selectedRoomIds.length === 0)                    { setError('Please select at least one room'); return; }
     }
-
     if (bookingStep === 2) {
-      if (!formData.guestName || !formData.email || !formData.phone) {
-        setError('Please fill in all required fields');
-        return;
-      }
-      setError('');
+      if (!formData.guestName || !formData.email || !formData.phone) { setError('Please fill in all required fields'); return; }
     }
-
-    if (bookingStep < 3) {
-      setBookingStep(bookingStep + 1);
-    }
+    setError('');
+    if (bookingStep < 3) setBookingStep(bookingStep + 1);
   };
+
+  const handlePreviousStep = () => { if (bookingStep > 1) setBookingStep(bookingStep - 1); };
 
   const handleSubmitBooking = async () => {
     try {
       setLoading(true);
       setError('');
-
       const bookingData = {
-        guestName: formData.guestName,
-        email: formData.email,
-        phone: formData.phone,
-        checkInDate: formData.checkInDate,
-        checkOutDate: formData.checkOutDate,
-        roomIds: formData.selectedRooms,
-        roomType: formData.roomType,
-        numberOfGuests: formData.numberOfGuests,
-        numberOfRooms: formData.numberOfRooms,
-        freeAmenities: formData.freeAmenities,
-        paidAmenities: formData.amenities,
-        amenityHours: formData.amenityHours,
+        guestName:        formData.guestName,
+        email:            formData.email,
+        phone:            formData.phone,
+        checkInDate:      formData.checkInDate,
+        checkOutDate:     formData.checkOutDate,
+        roomIds:          selectedRoomIds,
+        roomType:         formData.roomType,
+        numberOfGuests:   formData.numberOfGuests,
+        numberOfRooms:    selectedRoomIds.length,
+        freeAmenities:    formData.freeAmenities,
+        paidAmenities:    formData.amenities,
+        amenityHours:     formData.amenityHours,
         selectedRestaurant: formData.selectedRestaurant,
-        selectedBar: formData.selectedBar,
-        specialRequests: formData.specialRequests,
-        stayType: formData.stayType,
-        totalPrice: calculateTotalPrice(),
+        selectedBar:        formData.selectedBar,
+        specialRequests:  formData.specialRequests,
+        stayType:         formData.stayType,
+        totalPrice:       calculateTotalPrice(),
         amenitiesBreakdown: calculateAmenitiesBreakdown(),
       };
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/reservations`,
-        bookingData
-      );
-
+      const response = await axios.post(`${API}/reservations`, bookingData);
       if (response.data.success) {
         alert('✅ Booking confirmed! Check your email for confirmation details.');
         navigate('/');
       } else {
         setError(response.data.message || 'Booking failed. Please try again.');
       }
-
-      setLoading(false);
     } catch (err) {
-      console.error('Booking error:', err);
       setError(err.response?.data?.message || 'Error submitting booking. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
-  const selectedRoom = roomTypes.find(r => r.id === formData.roomType);
-
-  const getNumberOfNights = () => {
-    if (!formData.checkInDate || !formData.checkOutDate) return 0;
-    const checkIn = new Date(formData.checkInDate);
-    const checkOut = new Date(formData.checkOutDate);
-    return Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-  };
-
-  const calculateAmenitiesBreakdown = () => {
-    let breakdown = {};
-    
-    // Hourly amenities
-    formData.amenities.forEach(amenityId => {
-      const amenity = amenitiesOptions.find(a => a.id === amenityId);
-      const hours = formData.amenityHours[amenityId] || 0;
-      if (amenity && amenity.pricingModel === 'hourly') {
-        breakdown[amenityId] = {
-          name: amenity.name,
-          price: amenity.price,
-          quantity: hours,
-          unit: 'hours',
-          subtotal: amenity.price * hours,
-        };
-      }
-    });
-
-    // Daily amenities (Restaurant & Bar)
-    const nights = getNumberOfNights();
-    if (formData.selectedRestaurant) {
-      const restaurant = amenitiesOptions.find(a => a.id === 'restaurant');
-      breakdown['restaurant'] = {
-        name: restaurant.name,
-        price: restaurant.price,
-        quantity: nights,
-        unit: 'days',
-        subtotal: restaurant.price * nights,
-      };
-    }
-
-    if (formData.selectedBar) {
-      const bar = amenitiesOptions.find(a => a.id === 'bar');
-      breakdown['bar'] = {
-        name: bar.name,
-        price: bar.price,
-        quantity: nights,
-        unit: 'days',
-        subtotal: bar.price * nights,
-      };
-    }
-
-    return breakdown;
-  };
-
-  const calculateTotalPrice = () => {
-    if (!selectedRoom) return 0;
-
-    let roomPrice = 0;
-    
-    // Calculate room price
-    if (isSameDayStay()) {
-      roomPrice = selectedRoom.priceDay * formData.numberOfRooms;
-    } else {
-      const nights = getNumberOfNights();
-      roomPrice = selectedRoom.priceNight * formData.numberOfRooms * nights;
-    }
-
-    // Calculate amenities price
-    let amenitiesPrice = 0;
-    const breakdown = calculateAmenitiesBreakdown();
-    
-    Object.values(breakdown).forEach(item => {
-      amenitiesPrice += item.subtotal;
-    });
-
-    return roomPrice + amenitiesPrice;
-  };
-
-  const totalPrice = calculateTotalPrice();
+  const selectedRoom       = roomTypes.find(r => r.id === formData.roomType);
+  const totalPrice         = calculateTotalPrice();
   const amenitiesBreakdown = calculateAmenitiesBreakdown();
+  const nights             = getNumberOfNights();
+
+  const isAmenityActive = (id) =>
+    id === 'restaurant' ? formData.selectedRestaurant :
+    id === 'bar'        ? formData.selectedBar :
+    formData.amenities.includes(id);
+
+  // Selected room objects for display
+  const selectedRoomObjects = availableRooms.filter(r => selectedRoomIds.includes(r._id));
+
+  const STEPS = ['Select Room', 'Guest Details', 'Confirm'];
 
   return (
-    <div className="booking-page">
-      {/* Header */}
-      <header className="booking-header">
-        <div className="booking-header-content">
-          <button className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={24} />
-            Back
+    <div className="bp-page">
+
+      {/* ── Header ──────────────────────────────────────────── */}
+      <header className={`bp-header ${scrolled ? 'bp-header--scrolled' : ''}`}>
+        <div className="bp-header-inner">
+          <button className="bp-back-btn" onClick={() => navigate('/')}>
+            <ArrowLeft size={16}/>
+            Back to Home
           </button>
-          <h1>🏨 Book Your Stay</h1>
-          <p>Reserve your perfect room at our hotel</p>
+          <div className="bp-header-title">
+            <span className="bp-header-eyebrow">Reservation</span>
+            <h1 className="bp-header-name">Book Your Stay</h1>
+          </div>
+          {totalPrice > 0 && (
+            <div className="bp-header-price">
+              <span className="bp-header-price-label">Estimated Total</span>
+              <span className="bp-header-price-val">${totalPrice.toLocaleString()}</span>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Booking Container */}
-      <div className="booking-container">
-        {/* Progress Steps */}
-        <div className="booking-steps">
-          <div className={`step ${bookingStep >= 1 ? 'active' : ''}`}>
-            <div className="step-number">1</div>
-            <div className="step-title">Select Room</div>
+      {/* ── Hero Band ────────────────────────────────────────── */}
+      <div className="bp-hero-band">
+        <div className="bp-hero-inner">
+          <div className="bp-hero-eyebrow">
+            <span className="bp-eyebrow-line"/>
+            Reserve Your Experience
+            <span className="bp-eyebrow-line"/>
           </div>
-          <div className={`step ${bookingStep >= 2 ? 'active' : ''}`}>
-            <div className="step-number">2</div>
-            <div className="step-title">Guest Details</div>
-          </div>
-          <div className={`step ${bookingStep >= 3 ? 'active' : ''}`}>
-            <div className="step-number">3</div>
-            <div className="step-title">Confirm</div>
-          </div>
+          <h2 className="bp-hero-title">Your Perfect Stay<br/><em>Awaits You</em></h2>
         </div>
+      </div>
 
-        {/* Error Message */}
+      {/* ── Progress Steps ──────────────────────────────────── */}
+      <div className="bp-steps-bar">
+        <div className="bp-steps">
+          {STEPS.map((label, idx) => {
+            const num   = idx + 1;
+            const state = bookingStep > num ? 'done' : bookingStep === num ? 'active' : 'idle';
+            return (
+              <React.Fragment key={num}>
+                <div className={`bp-step bp-step--${state}`}>
+                  <div className="bp-step-circle">
+                    {state === 'done' ? <Check size={14}/> : num}
+                  </div>
+                  <span className="bp-step-label">{label}</span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`bp-step-connector ${bookingStep > num ? 'bp-step-connector--done' : ''}`}/>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Main Content ─────────────────────────────────────── */}
+      <div className="bp-content">
+
         {error && (
-          <div className="error-message">
-            <p>{error}</p>
+          <div className="bp-error-banner">
+            <span>{error}</span>
+            <button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
-        {/* Step 1: Room Selection */}
+        {/* ══════════════════════════════════════════════════════
+            STEP 1: Select Room
+        ══════════════════════════════════════════════════════ */}
         {bookingStep === 1 && (
-          <div className="booking-step">
-            <h2>Step 1: Select Your Room</h2>
-            
-            {/* Date Selection */}
-            <div className="booking-form-group">
-              <label>Check-in Date</label>
-              <input
-                type="date"
-                name="checkInDate"
-                value={formData.checkInDate}
-                onChange={handleInputChange}
-                required
-              />
+          <div className="bp-card">
+            <div className="bp-card-header">
+              <div className="bp-card-eyebrow">
+                <span className="bp-eyebrow-line"/>
+                Step 1 of 3
+              </div>
+              <h2 className="bp-card-title">Select Your Room</h2>
             </div>
 
-            <div className="booking-form-group">
-              <label>Check-out Date</label>
-              <input
-                type="date"
-                name="checkOutDate"
-                value={formData.checkOutDate}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            {/* Stay Type Indicator */}
-            {formData.checkInDate && formData.checkOutDate && (
-              <div className="stay-type-indicator">
-                <p style={{ fontSize: '14px', fontWeight: '500', color: '#555' }}>
-                  📅 Stay Type: <span style={{ color: '#2ecc71', fontWeight: '600' }}>
-                    {isSameDayStay() ? '☀️ Day-time Stay' : '🌙 Overnight Stay'}
-                  </span>
-                </p>
-              </div>
-            )}
-
-            <div className="booking-form-row">
-              <div className="booking-form-group">
-                <label>Number of Guests</label>
-                <input
-                  type="number"
-                  name="numberOfGuests"
-                  value={formData.numberOfGuests}
-                  onChange={handleInputChange}
-                  min="1"
-                  max="10"
-                />
-              </div>
-
-              <div className="booking-form-group">
-                <label>Number of Rooms</label>
-                <input
-                  type="number"
-                  name="numberOfRooms"
-                  value={formData.numberOfRooms}
-                  onChange={handleInputChange}
-                  min="1"
-                  max="5"
-                />
-              </div>
-            </div>
-
-            {/* Room Type Selection */}
-            <label>Room Type</label>
-            <div className="room-type-grid">
-              {roomTypes.map(room => (
-                <div
-                  key={room.id}
-                  className={`room-type-card ${formData.roomType === room.id ? 'selected' : ''}`}
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, roomType: room.id, selectedRooms: [] }));
-                    setError('');
-                  }}
-                >
-                  <h3>{room.name}</h3>
-                  <p className="room-description">{room.description}</p>
-                  <div className="room-capacity">
-                    <Users size={16} />
-                    <span>Up to {room.capacity} guests</span>
-                  </div>
-                  <div className="room-price-display">
-                    {isSameDayStay() ? (
-                      <div>${room.priceDay} <span style={{ fontSize: '12px' }}>/day</span></div>
-                    ) : (
-                      <div>${room.priceNight} <span style={{ fontSize: '12px' }}>/night</span></div>
-                    )}
-                  </div>
+            {/* ── Dates + Guests ── */}
+            <div className="bp-section">
+              <h3 className="bp-section-title">Stay Dates</h3>
+              <div className="bp-form-row-2">
+                <div className="bp-form-group">
+                  <label className="bp-label"><Calendar size={12}/> Check-in Date</label>
+                  <input className="bp-input" type="date" name="checkInDate" value={formData.checkInDate}
+                    onChange={e => { handleInputChange(e); resetRoomSearch(); }}/>
                 </div>
-              ))}
+                <div className="bp-form-group">
+                  <label className="bp-label"><Calendar size={12}/> Check-out Date</label>
+                  <input className="bp-input" type="date" name="checkOutDate" value={formData.checkOutDate}
+                    onChange={e => { handleInputChange(e); resetRoomSearch(); }}/>
+                </div>
+              </div>
+
+              {formData.checkInDate && formData.checkOutDate && (
+                <div className={`bp-stay-badge ${isSameDayStay() ? 'bp-stay-badge--day' : 'bp-stay-badge--night'}`}>
+                  {isSameDayStay() ? <Sun size={15}/> : <Moon size={15}/>}
+                  {isSameDayStay() ? 'Day-time Stay' : `Overnight Stay — ${nights} night${nights !== 1 ? 's' : ''}`}
+                </div>
+              )}
+
+              <div className="bp-form-row-2" style={{ marginTop: '1.25rem' }}>
+                <div className="bp-form-group">
+                  <label className="bp-label"><Users size={12}/> Number of Guests</label>
+                  <input className="bp-input" type="number" name="numberOfGuests" value={formData.numberOfGuests}
+                    onChange={handleInputChange} min="1" max="10"/>
+                </div>
+              </div>
             </div>
 
-            {/* Available Rooms Display */}
-            {formData.checkInDate && formData.checkOutDate && (
-              <div className="available-rooms-section">
-                <h3>
-                  Available {selectedRoom?.name}s
-                  <span className="room-count"> ({availableRooms.length} available)</span>
-                </h3>
-                
-                {loading && <p className="loading">Loading available rooms...</p>}
-                
-                {error && <p className="error">{error}</p>}
-                
-                {!loading && availableRooms.length > 0 ? (
-                  <>
-                    <p className="selection-info">
-                      Select {formData.numberOfRooms} room{formData.numberOfRooms > 1 ? 's' : ''}
-                      {formData.selectedRooms.length > 0 && ` (${formData.selectedRooms.length} selected)`}
-                    </p>
-                    <div className="available-rooms-grid">
-                      {availableRooms.map(room => (
-                        <div
-                          key={room._id}
-                          className={`room-availability-card ${formData.selectedRooms.includes(room._id) ? 'selected' : ''}`}
-                          onClick={() => {
-                            if (formData.selectedRooms.length < formData.numberOfRooms || formData.selectedRooms.includes(room._id)) {
-                              handleRoomSelect(room._id);
-                            }
-                          }}
-                        >
-                          <div className="room-number">Room {room.roomNumber}</div>
-                          <div className="room-floor">Floor {room.floor}</div>
-                          <div className="room-amenities">
-                            {room.amenities && room.amenities.length > 0 && (
-                              <span className="amenity-count">✨ {room.amenities.length} free amenities</span>
-                            )}
-                          </div>
-                          {formData.selectedRooms.includes(room._id) && (
-                            <div className="selected-badge">
-                              <Check size={24} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+            {/* ── Room Type Grid ── */}
+            <div className="bp-section">
+              <h3 className="bp-section-title"><BedDouble size={12}/> Room Type</h3>
+              <div className="bp-room-type-grid">
+                {roomTypes.map(room => (
+                  <div
+                    key={room.id}
+                    className={`bp-room-type-card ${formData.roomType === room.id ? 'bp-room-type-card--selected' : ''}`}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, roomType: room.id }));
+                      resetRoomSearch();
+                      setError('');
+                    }}
+                  >
+                    {formData.roomType === room.id && (
+                      <div className="bp-room-type-selected-badge"><Check size={12}/></div>
+                    )}
+                    <div className="bp-room-type-name">{room.name}</div>
+                    <div className="bp-room-type-desc">{room.description}</div>
+                    <div className="bp-room-type-capacity">
+                      <Users size={13}/>
+                      Up to {room.capacity} guests
                     </div>
-                  </>
-                ) : (
-                  !loading && <p className="no-rooms">No rooms available for selected dates and type.</p>
+                    <div className="bp-room-type-price">
+                      ${isSameDayStay() ? room.priceDay : room.priceNight}
+                      <span>/{isSameDayStay() ? 'day' : 'night'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Room Search / Picker ── */}
+            <div className="bp-section">
+              <div className="bp-section-title-row">
+                <h3 className="bp-section-title">Available Rooms</h3>
+                {searched && availableRooms.length > 0 && (
+                  <span className="bp-avail-count">{availableRooms.length} available</span>
                 )}
               </div>
-            )}
 
-            {/* Free Amenities Display */}
+              {!searched ? (
+                <div className="bp-room-search-area">
+                  <button
+                    className="bp-search-btn"
+                    onClick={searchRooms}
+                    disabled={searching || !formData.checkInDate || !formData.checkOutDate}
+                  >
+                    {searching
+                      ? <><Loader size={15} className="bp-spinner"/> Searching…</>
+                      : <><Search size={15}/> Search Available Rooms</>}
+                  </button>
+                  {(!formData.checkInDate || !formData.checkOutDate) && (
+                    <p className="bp-room-hint">Set check-in and check-out dates first.</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="bp-room-search-meta">
+                    <span>
+                      {availableRooms.length} room{availableRooms.length !== 1 ? 's' : ''} available
+                      &nbsp;·&nbsp; {selectedRoom?.name}
+                      &nbsp;·&nbsp; {formData.checkInDate} → {formData.checkOutDate}
+                    </span>
+                    <button
+                      className="bp-re-search-btn"
+                      onClick={resetRoomSearch}
+                    >
+                      ↺ Re-search
+                    </button>
+                  </div>
+
+                  {roomSearchError && (
+                    <div className="bp-error-banner" style={{ marginBottom: '1rem' }}>
+                      <span>{roomSearchError}</span>
+                    </div>
+                  )}
+
+                  {availableRooms.length === 0 ? (
+                    <div className="bp-no-rooms">
+                      No rooms available for the selected dates and type.
+                    </div>
+                  ) : (
+                    <>
+                      {selectedRoomIds.length > 0 && (
+                        <div className="bp-select-hint">
+                          {selectedRoomIds.length} room{selectedRoomIds.length > 1 ? 's' : ''} selected
+                          — click to deselect
+                        </div>
+                      )}
+                      <div className="bp-rooms-grid">
+                        {availableRooms.map(room => {
+                          const sel = selectedRoomIds.includes(room._id);
+                          return (
+                            <div
+                              key={room._id}
+                              className={`bp-room-card ${sel ? 'bp-room-card--selected' : ''}`}
+                              onClick={() => toggleRoom(room)}
+                            >
+                              {sel && <div className="bp-room-check"><Check size={14}/></div>}
+                              <div className="bp-room-number">Room {room.roomNumber}</div>
+                              <div className="bp-room-floor">Floor {room.floor}</div>
+                              {room.amenities?.length > 0 && (
+                                <div className="bp-room-amenity-pill">✨ {room.amenities.length} amenities</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {selectedRoomIds.length > 0 && nights > 0 && (
+                    <div className="bp-price-preview">
+                      <CreditCard size={14}/>
+                      <span>
+                        Room subtotal: <strong>${(ROOM_PRICES[formData.roomType] * nights * selectedRoomIds.length).toLocaleString()}</strong>
+                        {' '}({nights} night{nights !== 1 ? 's' : ''} × {selectedRoomIds.length} room{selectedRoomIds.length > 1 ? 's' : ''} × ${ROOM_PRICES[formData.roomType]}/night)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Free Amenities ── */}
             {formData.freeAmenities.length > 0 && (
-              <div className="free-amenities-section">
-                <h3>✨ Free Amenities Included with Your Room</h3>
-                <div className="free-amenities-list">
-                  {formData.freeAmenities.map(amenityName => (
-                    <div key={amenityName} className="free-amenity-item">
-                      <Check size={18} style={{ color: '#2ecc71' }} />
-                      <span>{amenityName}</span>
+              <div className="bp-section">
+                <h3 className="bp-section-title">Complimentary Amenities</h3>
+                <div className="bp-free-amenities">
+                  {formData.freeAmenities.map(name => (
+                    <div key={name} className="bp-free-amenity-item">
+                      <Check size={14}/>
+                      {name}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Paid Amenities Selection */}
-            <div className="amenities-section">
-              <h3>Add Optional Paid Amenities</h3>
-              <div className="amenities-grid">
-                {amenitiesOptions.filter(a => a.type === 'paid').map(amenity => (
-                  <div key={amenity.id} className="amenity-card">
-                    <div
-                      className={`amenity-checkbox ${formData.amenities.includes(amenity.id) || (amenity.id === 'restaurant' && formData.selectedRestaurant) || (amenity.id === 'bar' && formData.selectedBar) ? 'checked' : ''}`}
-                      onClick={() => handleAmenityToggle(amenity.id)}
-                    >
-                      <div className="amenity-icon">{amenity.icon}</div>
-                      <div className="amenity-name">{amenity.name}</div>
-                      <div className="amenity-price">{amenity.description}</div>
+            {/* ── Optional Amenities ── */}
+            <div className="bp-section">
+              <h3 className="bp-section-title">Optional Amenities</h3>
+              <div className="bp-amenities-grid">
+                {amenitiesOptions.filter(a => a.type === 'paid').map(amenity => {
+                  const active = isAmenityActive(amenity.id);
+                  return (
+                    <div key={amenity.id} className={`bp-amenity-card ${active ? 'bp-amenity-card--active' : ''}`}>
+                      <div className="bp-amenity-toggle" onClick={() => handleAmenityToggle(amenity.id)}>
+                        <div className="bp-amenity-icon">{amenity.icon}</div>
+                        <div className="bp-amenity-info">
+                          <div className="bp-amenity-name">{amenity.name}</div>
+                          <div className="bp-amenity-price-label">{amenity.description}</div>
+                        </div>
+                        <div className={`bp-amenity-check ${active ? 'bp-amenity-check--on' : ''}`}>
+                          {active && <Check size={12}/>}
+                        </div>
+                      </div>
+                      {amenity.pricingModel === 'hourly' && active && (
+                        <div className="bp-amenity-hours">
+                          <label>Hours</label>
+                          <div className="bp-amenity-hours-row">
+                            <input
+                              className="bp-input bp-input--sm"
+                              type="number" min="1" max="24"
+                              value={formData.amenityHours[amenity.id] || 1}
+                              onChange={e => handleAmenityHoursChange(amenity.id, e.target.value)}
+                            />
+                            <span className="bp-amenity-subtotal">
+                              = ${amenity.price * (formData.amenityHours[amenity.id] || 1)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {amenity.pricingModel === 'daily' && active && (
+                        <div className="bp-amenity-daily-info">
+                          {nights} day{nights !== 1 ? 's' : ''} × ${amenity.price} = <strong>${amenity.price * nights}</strong>
+                        </div>
+                      )}
                     </div>
-
-                    {/* Hours input for hourly amenities */}
-                    {amenity.pricingModel === 'hourly' && formData.amenities.includes(amenity.id) && (
-                      <div className="amenity-hours-input">
-                        <label>Hours:</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="24"
-                          value={formData.amenityHours[amenity.id] || 1}
-                          onChange={(e) => handleAmenityHoursChange(amenity.id, e.target.value)}
-                          placeholder="Enter hours"
-                        />
-                        <span className="hours-cost">${amenity.price * (formData.amenityHours[amenity.id] || 1)}</span>
-                      </div>
-                    )}
-
-                    {/* Daily amenity info */}
-                    {amenity.pricingModel === 'daily' && ((amenity.id === 'restaurant' && formData.selectedRestaurant) || (amenity.id === 'bar' && formData.selectedBar)) && (
-                      <div className="daily-amenity-info">
-                        <p>For {getNumberOfNights()} day{getNumberOfNights() > 1 ? 's' : ''} of stay</p>
-                        <span className="daily-cost">${amenity.price * getNumberOfNights()}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* Price Summary */}
-            {formData.checkInDate && formData.checkOutDate && (
-              <div className="price-summary">
-                <div className="summary-row">
-                  <span>Room Type:</span>
-                  <span>{selectedRoom?.name}</span>
-                </div>
-                {isSameDayStay() ? (
-                  <>
-                    <div className="summary-row">
-                      <span>Day-time Rate:</span>
-                      <span>${selectedRoom?.priceDay}</span>
+            {/* ── Price Summary ── */}
+            {formData.checkInDate && formData.checkOutDate && selectedRoomIds.length > 0 && (
+              <div className="bp-section">
+                <div className="bp-price-summary">
+                  <div className="bp-price-summary-header">Price Summary</div>
+                  <div className="bp-price-row">
+                    <span>
+                      {selectedRoom?.name} × {selectedRoomIds.length} room{selectedRoomIds.length > 1 ? 's' : ''}
+                    </span>
+                    <span>
+                      {isSameDayStay()
+                        ? `$${selectedRoom?.priceDay} /day`
+                        : `${selectedRoomIds.length} × $${ROOM_PRICES[formData.roomType]} × ${nights} night${nights !== 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  {Object.entries(amenitiesBreakdown).map(([key, item]) => (
+                    <div key={key} className="bp-price-row bp-price-row--muted">
+                      <span>{item.name} ({item.quantity} {item.unit})</span>
+                      <span>${item.subtotal}</span>
                     </div>
-                    <div className="summary-row">
-                      <span>Number of Rooms:</span>
-                      <span>{formData.numberOfRooms}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="summary-row">
-                      <span>Night-time Rate:</span>
-                      <span>${selectedRoom?.priceNight}</span>
-                    </div>
-                    <div className="summary-row">
-                      <span>Number of Rooms:</span>
-                      <span>{formData.numberOfRooms}</span>
-                    </div>
-                    <div className="summary-row">
-                      <span>Number of Nights:</span>
-                      <span>{getNumberOfNights()}</span>
-                    </div>
-                  </>
-                )}
-
-                {/* Room subtotal */}
-                <div className="summary-row" style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
-                  <span>Room Subtotal:</span>
-                  <span>${isSameDayStay() ? selectedRoom?.priceDay * formData.numberOfRooms : selectedRoom?.priceNight * formData.numberOfRooms * getNumberOfNights()}</span>
-                </div>
-
-                {/* Amenities breakdown */}
-                {Object.keys(amenitiesBreakdown).length > 0 && (
-                  <>
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
-                      <p style={{ fontWeight: '600', marginBottom: '8px' }}>Amenities:</p>
-                      {Object.entries(amenitiesBreakdown).map(([key, item]) => (
-                        <div key={key} className="summary-row" style={{ fontSize: '14px', color: '#666' }}>
-                          <span>{item.name} ({item.quantity} {item.unit}):</span>
-                          <span>${item.subtotal}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <div className="summary-row total" style={{ marginTop: '15px', borderTop: '2px solid #333' }}>
-                  <span>Total Price:</span>
-                  <span>${totalPrice}</span>
+                  ))}
+                  <div className="bp-price-row bp-price-row--total">
+                    <span>Total</span>
+                    <span>${totalPrice.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Step 2: Guest Information */}
+        {/* ══════════════════════════════════════════════════════
+            STEP 2: Guest Details
+        ══════════════════════════════════════════════════════ */}
         {bookingStep === 2 && (
-          <div className="booking-step">
-            <h2>Step 2: Your Information</h2>
-
-            <div className="booking-form-group">
-              <label>Full Name *</label>
-              <input
-                type="text"
-                name="guestName"
-                value={formData.guestName}
-                onChange={handleInputChange}
-                placeholder="Enter your full name"
-                required
-              />
+          <div className="bp-card">
+            <div className="bp-card-header">
+              <div className="bp-card-eyebrow">
+                <span className="bp-eyebrow-line"/>
+                Step 2 of 3
+              </div>
+              <h2 className="bp-card-title">Your Details</h2>
             </div>
 
-            <div className="booking-form-group">
-              <label>Email Address *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Enter your email"
-                required
-              />
+            <div className="bp-section">
+              <h3 className="bp-section-title">Personal Information</h3>
+              <div className="bp-form-group">
+                <label className="bp-label">Full Name <span className="bp-required">*</span></label>
+                <input className="bp-input" type="text" name="guestName" value={formData.guestName}
+                  onChange={handleInputChange} placeholder="Enter your full name"/>
+              </div>
+              <div className="bp-form-row-2">
+                <div className="bp-form-group">
+                  <label className="bp-label">Email Address <span className="bp-required">*</span></label>
+                  <input className="bp-input" type="email" name="email" value={formData.email}
+                    onChange={handleInputChange} placeholder="your@email.com"/>
+                </div>
+                <div className="bp-form-group">
+                  <label className="bp-label">Phone Number <span className="bp-required">*</span></label>
+                  <input className="bp-input" type="tel" name="phone" value={formData.phone}
+                    onChange={handleInputChange} placeholder="+1 (000) 000-0000"/>
+                </div>
+              </div>
+              <div className="bp-form-group">
+                <label className="bp-label">Special Requests</label>
+                <textarea className="bp-input bp-textarea" name="specialRequests" value={formData.specialRequests}
+                  onChange={handleInputChange} placeholder="Any special requests or preferences for your stay?" rows="4"/>
+              </div>
             </div>
 
-            <div className="booking-form-group">
-              <label>Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="Enter your phone number"
-                required
-              />
-            </div>
-
-            <div className="booking-form-group">
-              <label>Special Requests</label>
-              <textarea
-                name="specialRequests"
-                value={formData.specialRequests}
-                onChange={handleInputChange}
-                placeholder="Any special requests for your stay?"
-                rows="4"
-              ></textarea>
+            {/* Booking recap */}
+            <div className="bp-recap">
+              <div className="bp-recap-title">Your Booking Recap</div>
+              <div className="bp-recap-grid">
+                <div className="bp-recap-item">
+                  <div className="bp-recap-label">Check-in</div>
+                  <div className="bp-recap-val">{formData.checkInDate}</div>
+                </div>
+                <div className="bp-recap-item">
+                  <div className="bp-recap-label">Check-out</div>
+                  <div className="bp-recap-val">{formData.checkOutDate}</div>
+                </div>
+                <div className="bp-recap-item">
+                  <div className="bp-recap-label">Room</div>
+                  <div className="bp-recap-val">{selectedRoom?.name}</div>
+                </div>
+                <div className="bp-recap-item">
+                  <div className="bp-recap-label">Total</div>
+                  <div className="bp-recap-val bp-recap-val--gold">${totalPrice.toLocaleString()}</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 3: Confirmation */}
+        {/* ══════════════════════════════════════════════════════
+            STEP 3: Confirm
+        ══════════════════════════════════════════════════════ */}
         {bookingStep === 3 && (
-          <div className="booking-step">
-            <h2>Step 3: Confirm Your Booking</h2>
-
-            <div className="confirmation-section">
-              <h3>Guest Information</h3>
-              <div className="confirmation-details">
-                <div className="detail-row">
-                  <span className="label">Name:</span>
-                  <span className="value">{formData.guestName}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Email:</span>
-                  <span className="value">{formData.email}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Phone:</span>
-                  <span className="value">{formData.phone}</span>
-                </div>
+          <div className="bp-card">
+            <div className="bp-card-header">
+              <div className="bp-card-eyebrow">
+                <span className="bp-eyebrow-line"/>
+                Step 3 of 3
               </div>
-
-              <h3 style={{ marginTop: '2rem' }}>Room Details</h3>
-              <div className="confirmation-details">
-                <div className="detail-row">
-                  <span className="label">Check-in:</span>
-                  <span className="value">{formData.checkInDate}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Check-out:</span>
-                  <span className="value">{formData.checkOutDate}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Stay Type:</span>
-                  <span className="value">{isSameDayStay() ? '☀️ Day-time Stay' : '🌙 Overnight Stay'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Room Type:</span>
-                  <span className="value">{selectedRoom?.name}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Number of Rooms:</span>
-                  <span className="value">{formData.numberOfRooms}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Selected Rooms:</span>
-                  <span className="value">{formData.selectedRooms.map(id => {
-                    const room = availableRooms.find(r => r._id === id);
-                    return room ? `${room.roomNumber}` : '';
-                  }).join(', ')}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Number of Guests:</span>
-                  <span className="value">{formData.numberOfGuests}</span>
-                </div>
-              </div>
-
-              {/* Free Amenities */}
-              {formData.freeAmenities.length > 0 && (
-                <>
-                  <h3 style={{ marginTop: '2rem' }}>✨ Free Amenities Included</h3>
-                  <div className="confirmation-amenities">
-                    {formData.freeAmenities.map((amenity, idx) => (
-                      <div key={idx} className="amenity-tag" style={{ backgroundColor: '#d4edda', color: '#155724' }}>
-                        ✓ {amenity}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Paid Amenities */}
-              {Object.keys(amenitiesBreakdown).length > 0 && (
-                <>
-                  <h3 style={{ marginTop: '2rem' }}>💳 Selected Paid Amenities</h3>
-                  <div className="confirmation-amenities">
-                    {Object.entries(amenitiesBreakdown).map(([key, item]) => (
-                      <div key={key} className="amenity-tag">
-                        {item.name} ({item.quantity} {item.unit}) - ${item.subtotal}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              <h3 style={{ marginTop: '2rem' }}>💰 Price Summary</h3>
-              <div className="confirmation-price">
-                {isSameDayStay() ? (
-                  <>
-                    <div className="price-row">
-                      <span>Room Rate (Day-time):</span>
-                      <span>${selectedRoom?.priceDay}/day</span>
-                    </div>
-                    <div className="price-row">
-                      <span>Number of Rooms:</span>
-                      <span>{formData.numberOfRooms}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="price-row">
-                      <span>Room Rate (Night-time):</span>
-                      <span>${selectedRoom?.priceNight}/night</span>
-                    </div>
-                    <div className="price-row">
-                      <span>Number of Rooms:</span>
-                      <span>{formData.numberOfRooms}</span>
-                    </div>
-                    <div className="price-row">
-                      <span>Number of Nights:</span>
-                      <span>{getNumberOfNights()}</span>
-                    </div>
-                  </>
-                )}
-                
-                <div className="price-row" style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
-                  <span>Room Subtotal:</span>
-                  <span>${isSameDayStay() ? selectedRoom?.priceDay * formData.numberOfRooms : selectedRoom?.priceNight * formData.numberOfRooms * getNumberOfNights()}</span>
-                </div>
-
-                {/* Amenities breakdown */}
-                {Object.keys(amenitiesBreakdown).length > 0 && (
-                  <>
-                    <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
-                      <p style={{ fontWeight: '600', marginBottom: '8px' }}>Amenities:</p>
-                      {Object.entries(amenitiesBreakdown).map(([key, item]) => (
-                        <div key={key} className="price-row" style={{ fontSize: '14px', color: '#666' }}>
-                          <span>{item.name} ({item.quantity} {item.unit} × ${item.price}):</span>
-                          <span>${item.subtotal}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <div className="price-row total" style={{ marginTop: '15px', borderTop: '2px solid #333', fontSize: '18px' }}>
-                  <span>Total Amount:</span>
-                  <span>${totalPrice}</span>
-                </div>
-              </div>
-
-              {formData.specialRequests && (
-                <div className="special-requests">
-                  <h3>📝 Special Requests</h3>
-                  <p>{formData.specialRequests}</p>
-                </div>
-              )}
+              <h2 className="bp-card-title">Confirm Your Booking</h2>
             </div>
+
+            {/* Guest Info */}
+            <div className="bp-section">
+              <h3 className="bp-section-title">Guest Information</h3>
+              <div className="bp-confirm-table">
+                {[['Name', formData.guestName], ['Email', formData.email], ['Phone', formData.phone]].map(([label, val]) => (
+                  <div key={label} className="bp-confirm-row">
+                    <span className="bp-confirm-label">{label}</span>
+                    <span className="bp-confirm-val">{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stay Details */}
+            <div className="bp-section">
+              <h3 className="bp-section-title">Stay Details</h3>
+              <div className="bp-confirm-table">
+                {[
+                  ['Check-in',    formData.checkInDate],
+                  ['Check-out',   formData.checkOutDate],
+                  ['Stay Type',   isSameDayStay() ? 'Day-time Stay' : `Overnight Stay (${nights} night${nights !== 1 ? 's' : ''})`],
+                  ['Room Type',   selectedRoom?.name],
+                  ['Rooms',       selectedRoomObjects.map(r => `#${r.roomNumber} (Floor ${r.floor})`).join(', ')],
+                  ['Guests',      formData.numberOfGuests],
+                  ['Rate',        `$${ROOM_PRICES[formData.roomType]}/night`],
+                ].map(([label, val]) => (
+                  <div key={label} className="bp-confirm-row">
+                    <span className="bp-confirm-label">{label}</span>
+                    <span className="bp-confirm-val">{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Free Amenities */}
+            {formData.freeAmenities.length > 0 && (
+              <div className="bp-section">
+                <h3 className="bp-section-title">Complimentary Amenities</h3>
+                <div className="bp-tags">
+                  {formData.freeAmenities.map((a, i) => (
+                    <div key={i} className="bp-tag bp-tag--green"><Check size={12}/>{a}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Paid Amenities */}
+            {Object.keys(amenitiesBreakdown).length > 0 && (
+              <div className="bp-section">
+                <h3 className="bp-section-title">Selected Amenities</h3>
+                <div className="bp-tags">
+                  {Object.entries(amenitiesBreakdown).map(([key, item]) => (
+                    <div key={key} className="bp-tag bp-tag--gold">
+                      {item.name} · {item.quantity} {item.unit} · ${item.subtotal}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Price Breakdown */}
+            <div className="bp-section">
+              <h3 className="bp-section-title">Price Breakdown</h3>
+              <div className="bp-price-summary">
+                <div className="bp-price-row">
+                  <span>
+                    {selectedRoom?.name} × {selectedRoomIds.length} room{selectedRoomIds.length > 1 ? 's' : ''}
+                    {!isSameDayStay() && ` × ${nights} night${nights !== 1 ? 's' : ''}`}
+                  </span>
+                  <span>
+                    ${isSameDayStay()
+                      ? (selectedRoom?.priceDay || 0) * selectedRoomIds.length
+                      : ROOM_PRICES[formData.roomType] * selectedRoomIds.length * nights}
+                  </span>
+                </div>
+                {Object.entries(amenitiesBreakdown).map(([key, item]) => (
+                  <div key={key} className="bp-price-row bp-price-row--muted">
+                    <span>{item.name} ({item.quantity} {item.unit} × ${item.price})</span>
+                    <span>${item.subtotal}</span>
+                  </div>
+                ))}
+                <div className="bp-price-row bp-price-row--total">
+                  <span>Total Amount</span>
+                  <span>${totalPrice.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {formData.specialRequests && (
+              <div className="bp-section">
+                <h3 className="bp-section-title">Special Requests</h3>
+                <div className="bp-special-requests">{formData.specialRequests}</div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="booking-navigation">
-          <button
-            className="btn btn-secondary"
-            onClick={handlePreviousStep}
-            disabled={bookingStep === 1}
-          >
-            Previous
+        {/* ── Navigation ───────────────────────────────────────── */}
+        <div className="bp-nav">
+          <button className="bp-btn bp-btn--secondary" onClick={handlePreviousStep} disabled={bookingStep === 1}>
+            ← Previous
           </button>
 
           {bookingStep < 3 ? (
-            <button
-              className="btn btn-primary"
-              onClick={handleNextStep}
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : 'Next'}
+            <button className="bp-btn bp-btn--primary" onClick={handleNextStep} disabled={loading}>
+              {loading ? <><Loader size={16} className="bp-spinner"/> Loading…</> : <>Next <ChevronRight size={16}/></>}
             </button>
           ) : (
-            <button
-              className="btn btn-primary"
-              onClick={handleSubmitBooking}
-              disabled={loading}
-            >
-              {loading ? 'Submitting...' : 'Complete Booking'}
+            <button className="bp-btn bp-btn--gold" onClick={handleSubmitBooking} disabled={loading}>
+              {loading ? <><Loader size={16} className="bp-spinner"/> Submitting…</> : 'Complete Booking'}
             </button>
           )}
         </div>
+
       </div>
     </div>
   );

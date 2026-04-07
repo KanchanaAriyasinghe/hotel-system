@@ -1,146 +1,177 @@
-/* frontend/src/pages/admin/modals/AddUserModal.css */
+/* frontend/src/pages/admin/modals/AddUserModal.css — restyled to match LandingPage luxury aesthetic */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+/* ── Design tokens ────────────────────────────────────────────── */
+:root {
+  --lp-cream:      #faf8f4;
+  --lp-warm-white: #f5f2ec;
+  --lp-parchment:  #ede9e0;
+  --lp-charcoal:   #1c1a17;
+  --lp-gold:       #c9a96e;
+  --lp-gold-light: #e8d5b0;
+  --lp-gold-dark:  #9a7a45;
+  --lp-gold-pale:  rgba(201, 169, 110, 0.12);
+  --lp-text:       #1c1a17;
+  --lp-text-muted: #7a7068;
+  --lp-border:     #e3ddd5;
+  --lp-ease:       cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .aum-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 15, 20, 0.5);
+  background: rgba(14, 13, 11, 0.62);
   z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  backdrop-filter: blur(3px);
-  animation: aum-fade 0.18s ease;
+  backdrop-filter: blur(5px);
+  animation: aum-fade 0.2s var(--lp-ease);
 }
 @keyframes aum-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .aum-modal {
-  background: #fff;
-  border-radius: 18px;
+  background: var(--lp-cream);
+  border-radius: 4px;
   width: 100%;
   max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  animation: aum-rise 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid var(--lp-border);
+  box-shadow: 0 2px 8px rgba(28, 26, 23, 0.06), 0 32px 80px rgba(14, 13, 11, 0.28);
+  animation: aum-rise 0.26s var(--lp-ease);
 }
-@keyframes aum-rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes aum-rise { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* ── Header ─────────────────────────────────────────────────── */
+/* ── Header ─────────────────────────────────────────────────────── */
 .aum-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid #e8e6f0;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--lp-border);
 }
 .aum-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 .aum-header-icon {
   width: 42px; height: 42px;
-  border-radius: 12px;
-  background: #eef2ff;
-  color: #6366f1;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  background: var(--lp-gold-pale);
+  color: var(--lp-gold);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .aum-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 17px;
-  font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
   margin: 0 0 2px;
-  color: #1a1625;
+  color: var(--lp-charcoal);
+  letter-spacing: 0.01em;
 }
 .aum-subtitle {
-  font-size: 12.5px;
-  color: #6b6880;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.73rem;
+  color: var(--lp-text-muted);
   margin: 0;
+  letter-spacing: 0.04em;
 }
 .aum-close {
   width: 32px; height: 32px;
-  border-radius: 8px;
-  border: 1px solid #e8e6f0;
-  background: #fff;
-  color: #6b6880;
+  border: 1px solid var(--lp-border);
+  background: transparent;
+  color: var(--lp-text-muted);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s var(--lp-ease);
   flex-shrink: 0;
 }
-.aum-close:hover { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+.aum-close:hover {
+  background: var(--lp-gold-pale);
+  color: var(--lp-gold-dark);
+  border-color: rgba(201, 169, 110, 0.4);
+}
 
-/* ── Banners ─────────────────────────────────────────────────── */
+/* ── Banners ─────────────────────────────────────────────────────── */
 .aum-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 14px 24px 0;
-  padding: 11px 14px;
-  border-radius: 10px;
-  font-size: 13.5px;
+  margin: 14px 26px 0;
+  padding: 11px 16px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
-.aum-banner--success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.aum-banner--error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.aum-banner--success { background: #f6fdf8; color: #2d7a4f; border: 1px solid #b8e8ca; }
+.aum-banner--error   { background: #fdf6f5; color: #9a3020; border: 1px solid #e8c4bc; }
 
-/* ── Form ────────────────────────────────────────────────────── */
+/* ── Form ────────────────────────────────────────────────────────── */
 .aum-form {
-  padding: 20px 24px 24px;
+  padding: 22px 26px 26px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 .aum-section-label {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b6880;
+  letter-spacing: 0.18em;
+  color: var(--lp-gold-dark);
 }
 .aum-optional {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 11px;
-  color: #a0a0b0;
+  font-size: 0.7rem;
+  color: var(--lp-text-muted);
 }
 
 .aum-hint {
-  font-size: 12.5px;
-  color: #6b6880;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.73rem;
+  color: var(--lp-text-muted);
   margin: -8px 0 0;
+  letter-spacing: 0.02em;
 }
 
-/* ── Search ──────────────────────────────────────────────────── */
-.aum-search-wrap {
-  position: relative;
-}
+/* ── Search ──────────────────────────────────────────────────────── */
+.aum-search-wrap { position: relative; }
 .aum-search-icon {
   position: absolute;
   left: 11px; top: 50%;
   transform: translateY(-50%);
-  color: #6b6880;
+  color: var(--lp-gold);
   pointer-events: none;
 }
 .aum-search {
   width: 100%;
-  padding: 10px 36px 10px 34px;
-  border: 1px solid #e8e6f0;
-  border-radius: 10px;
-  background: #fafafe;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  color: #1a1625;
+  padding: 10px 36px 10px 36px;
+  border: 1px solid var(--lp-border);
+  background: var(--lp-warm-white);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.85rem;
+  color: var(--lp-charcoal);
   outline: none;
   box-sizing: border-box;
   transition: border 0.18s, box-shadow 0.18s;
+  border-radius: 2px;
 }
-.aum-search:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); background: #fff; }
-.aum-search::placeholder { color: #a0a0b0; }
+.aum-search:focus {
+  border-color: var(--lp-gold);
+  box-shadow: 0 0 0 3px var(--lp-gold-pale);
+  background: #fff;
+}
+.aum-search::placeholder { color: #b8b0a4; }
 .aum-search:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .aum-search-clear {
@@ -148,21 +179,20 @@
   right: 10px; top: 50%;
   transform: translateY(-50%);
   background: none; border: none;
-  color: #6b6880; cursor: pointer;
+  color: var(--lp-text-muted); cursor: pointer;
   display: flex; align-items: center;
   padding: 2px;
 }
-.aum-search-clear:hover { color: #ef4444; }
+.aum-search-clear:hover { color: var(--lp-gold-dark); }
 
-/* ── Suggestions ─────────────────────────────────────────────── */
+/* ── Suggestions ─────────────────────────────────────────────────── */
 .aum-suggestions {
   list-style: none;
   margin: -8px 0 0;
   padding: 6px;
-  background: #fff;
-  border: 1px solid #e8e6f0;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  background: var(--lp-cream);
+  border: 1px solid var(--lp-border);
+  box-shadow: 0 8px 32px rgba(28, 26, 23, 0.12);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -173,93 +203,90 @@
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
 }
-.aum-suggestion-item:hover { background: #f0efff; }
+.aum-suggestion-item:hover { background: var(--lp-gold-pale); }
 
 .aum-sug-avatar {
   width: 34px; height: 34px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
-  font-family: 'Syne', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
+  background: var(--lp-charcoal);
+  color: var(--lp-gold-light);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 600;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 
 .aum-sug-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .aum-sug-name {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #1a1625;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--lp-charcoal);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .aum-sug-meta {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
-  color: #6b6880;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  color: var(--lp-text-muted);
   flex-wrap: wrap;
 }
 
-/* ── Picked badge ────────────────────────────────────────────── */
+/* ── Picked badge ────────────────────────────────────────────────── */
 .aum-picked-badge {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 10px;
+  padding: 12px 16px;
+  background: #f6fdf8;
+  border: 1px solid #b8e8ca;
   gap: 10px;
 }
-.aum-picked-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.aum-picked-left { display: flex; align-items: center; gap: 10px; }
 .aum-picked-avatar {
   width: 34px; height: 34px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #fff;
-  font-family: 'Syne', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
+  background: var(--lp-charcoal);
+  color: var(--lp-gold-light);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 600;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .aum-picked-name {
-  font-size: 13.5px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #1a1625;
+  color: var(--lp-charcoal);
   margin: 0 0 2px;
 }
 .aum-picked-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #16a34a;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.73rem;
+  color: #2d7a4f;
   margin: 0;
 }
 .aum-picked-tag {
-  font-size: 11.5px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
   font-weight: 700;
-  background: #dcfce7;
-  color: #16a34a;
-  padding: 3px 10px;
-  border-radius: 20px;
+  background: #dcf7e9;
+  color: #2d7a4f;
+  padding: 3px 11px;
+  letter-spacing: 0.06em;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* ── Fields ──────────────────────────────────────────────────── */
+/* ── Fields ──────────────────────────────────────────────────────── */
 .aum-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -269,72 +296,65 @@
 .aum-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .aum-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #374151;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--lp-charcoal);
 }
-.aum-req { color: #ef4444; margin-left: 2px; }
+.aum-req { color: #9a3020; margin-left: 2px; }
 
-.aum-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+.aum-input-wrap { position: relative; display: flex; align-items: center; }
 .aum-icon {
-  position: absolute;
-  left: 11px;
-  color: #6b6880;
-  pointer-events: none;
-  flex-shrink: 0;
+  position: absolute; left: 11px;
+  color: var(--lp-gold);
+  pointer-events: none; flex-shrink: 0;
 }
 .aum-input-wrap input,
 .aum-input-wrap select {
   width: 100%;
-  padding: 10px 12px 10px 34px;
-  border: 1px solid #e8e6f0;
-  border-radius: 10px;
-  background: #fafafe;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  color: #1a1625;
+  padding: 10px 13px 10px 36px;
+  border: 1px solid var(--lp-border);
+  background: var(--lp-warm-white);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.85rem;
+  color: var(--lp-charcoal);
   outline: none;
   box-sizing: border-box;
   transition: border 0.18s, box-shadow 0.18s;
   appearance: none;
+  border-radius: 2px;
 }
 .aum-input-wrap input:focus,
 .aum-input-wrap select:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+  border-color: var(--lp-gold);
+  box-shadow: 0 0 0 3px var(--lp-gold-pale);
   background: #fff;
 }
 .aum-input-wrap input:disabled,
 .aum-input-wrap select:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* password field — no left icon, has right toggle */
-.aum-input-wrap input[name="password"] { padding-left: 12px; }
+.aum-input-wrap input[name="password"] { padding-left: 13px; }
 
 .aum-pw-toggle {
-  position: absolute;
-  right: 10px;
+  position: absolute; right: 10px;
   background: none; border: none;
-  color: #6b6880; cursor: pointer;
-  display: flex; align-items: center;
-  padding: 4px;
+  color: var(--lp-text-muted); cursor: pointer;
+  display: flex; align-items: center; padding: 4px;
 }
-.aum-pw-toggle:hover { color: #6366f1; }
+.aum-pw-toggle:hover { color: var(--lp-gold-dark); }
 
-/* ── Footer ──────────────────────────────────────────────────── */
+/* ── Footer ──────────────────────────────────────────────────────── */
 .aum-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 6px;
-  border-top: 1px solid #e8e6f0;
+  padding-top: 8px;
+  border-top: 1px solid var(--lp-border);
   margin-top: 4px;
 }
 
@@ -342,34 +362,42 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  font-weight: 600;
+  padding: 10px 22px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
   border: none;
-  transition: all 0.18s;
+  transition: all 0.2s var(--lp-ease);
 }
 .aum-btn--cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e8e6f0;
+  background: transparent;
+  color: var(--lp-text-muted);
+  border: 1px solid var(--lp-border);
 }
-.aum-btn--cancel:hover { background: #e8e6f0; }
+.aum-btn--cancel:hover {
+  background: var(--lp-parchment);
+  color: var(--lp-charcoal);
+}
 .aum-btn--submit {
-  background: #6366f1;
+  background: var(--lp-gold);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+  box-shadow: 0 2px 10px rgba(201, 169, 110, 0.3);
 }
-.aum-btn--submit:hover:not(:disabled) { background: #4f46e5; }
+.aum-btn--submit:hover:not(:disabled) {
+  background: var(--lp-gold-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(201, 169, 110, 0.38);
+}
 .aum-btn--submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .spin { animation: aum-spin 0.8s linear infinite; }
 @keyframes aum-spin { to { transform: rotate(360deg); } }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 540px) {
   .aum-row { grid-template-columns: 1fr; }
-  .aum-modal { border-radius: 14px; }
+  .aum-modal { border-radius: 3px; }
 }

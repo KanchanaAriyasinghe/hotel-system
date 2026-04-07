@@ -1,24 +1,29 @@
 /* ================================================================
-   ReceptionistLayout.css
+   ReceptionistLayout.css  — Luxury Hotel Theme
+   Matches LandingPage.css aesthetic: Cormorant Garamond + Jost,
+   warm parchment palette, gold accents, dark charcoal sidebar
    ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap');
 
 /* ── Root variables ─────────────────────────────────────────────── */
 :root {
-  --rc-sidebar-bg:        #1a1f3a;
-  --rc-sidebar-border:    #272d52;
-  --rc-brand-color:       #7c6ef7;
-  --rc-nav-hover-bg:      rgba(124, 110, 247, 0.10);
-  --rc-nav-active-bg:     rgba(124, 110, 247, 0.18);
-  --rc-nav-active-color:  #a99eff;
-  --rc-nav-text:          #8892b0;
-  --rc-footer-border:     #272d52;
-  --rc-badge-bg:          rgba(124, 110, 247, 0.15);
-  --rc-badge-color:       #a99eff;
-  --rc-logout-hover:      rgba(255, 99, 99, 0.12);
-  --rc-logout-color:      #ff7a7a;
-  --rc-content-bg:        #f0f2f8;
-  --rc-status-ok:         #4dd9ac;
-  --rc-status-err:        #ff7a7a;
+  --rc-sidebar-bg:        #13110e;
+  --rc-sidebar-border:    #2a2620;
+  --rc-brand-color:       #c9a96e;
+  --rc-brand-dark:        #9a7a45;
+  --rc-nav-hover-bg:      rgba(201, 169, 110, 0.08);
+  --rc-nav-active-bg:     rgba(201, 169, 110, 0.15);
+  --rc-nav-active-color:  #e8d5b0;
+  --rc-nav-text:          rgba(255, 255, 255, 0.45);
+  --rc-footer-border:     #2a2620;
+  --rc-badge-bg:          rgba(201, 169, 110, 0.15);
+  --rc-badge-color:       #c9a96e;
+  --rc-logout-hover:      rgba(201, 80, 60, 0.12);
+  --rc-logout-color:      #e07060;
+  --rc-content-bg:        #f5f2ec;
+  --rc-status-ok:         #7db88a;
+  --rc-status-err:        #c07060;
   --rc-sidebar-width:     240px;
   --rc-transition:        0.2s ease;
 }
@@ -28,7 +33,7 @@
   display: flex;
   min-height: 100vh;
   background: var(--rc-content-bg);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Jost', sans-serif;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────── */
@@ -50,113 +55,220 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 24px 20px 20px;
+  padding: 26px 20px 22px;
   border-bottom: 1px solid var(--rc-sidebar-border);
 }
-.rc-brand-icon { font-size: 22px; line-height: 1; }
+
+.rc-brand-icon { font-size: 20px; line-height: 1; }
+
 .rc-brand-text {
-  font-size: 15px; font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   color: var(--rc-brand-color);
-  letter-spacing: 0.4px; white-space: nowrap;
+  white-space: nowrap;
 }
 
 /* ── Nav ────────────────────────────────────────────────────────── */
 .rc-nav {
-  display: flex; flex-direction: column;
-  gap: 4px; padding: 16px 12px; flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 10px;
+  flex: 1;
 }
+
 .rc-nav-item {
-  display: flex; align-items: center; gap: 11px;
-  width: 100%; padding: 10px 12px;
-  border: none; border-radius: 8px;
-  background: transparent; color: var(--rc-nav-text);
-  font-size: 13.5px; font-weight: 500;
-  cursor: pointer; text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--rc-nav-text);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
   transition: background var(--rc-transition), color var(--rc-transition);
   position: relative;
 }
-.rc-nav-item:hover  { background: var(--rc-nav-hover-bg);  color: #c5cafe; }
-.rc-nav-item.active { background: var(--rc-nav-active-bg); color: var(--rc-nav-active-color); font-weight: 600; }
-.rc-nav-arrow { margin-left: auto; opacity: 0.7; }
+
+.rc-nav-item:hover {
+  background: var(--rc-nav-hover-bg);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.rc-nav-item.active {
+  background: var(--rc-nav-active-bg);
+  color: var(--rc-nav-active-color);
+  font-weight: 600;
+}
+
+.rc-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 2px;
+  background: var(--rc-brand-color);
+  border-radius: 0 2px 2px 0;
+}
+
+.rc-nav-arrow { margin-left: auto; opacity: 0.5; }
 
 /* ── Dark Mode Toggle Row ───────────────────────────────────────── */
 .rc-dark-toggle-row {
-  display: flex; align-items: center;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 10px 16px 10px 14px;
-  margin: 0 12px 8px; border-radius: 9px;
-  background: rgba(124, 110, 247, 0.06);
-  border: 1px solid rgba(124, 110, 247, 0.12);
+  padding: 10px 14px 10px 12px;
+  margin: 0 10px 8px;
+  border-radius: 3px;
+  background: rgba(201, 169, 110, 0.05);
+  border: 1px solid rgba(201, 169, 110, 0.1);
 }
+
 .rc-dark-toggle-info { display: flex; align-items: center; gap: 8px; }
 .rc-dark-icon  { color: var(--rc-brand-color); flex-shrink: 0; }
-.rc-dark-label { font-size: 12.5px; font-weight: 500; color: var(--rc-nav-text); white-space: nowrap; }
+.rc-dark-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rc-nav-text);
+  white-space: nowrap;
+}
 
 /* Toggle switch */
 .rc-toggle {
   width: 36px; height: 20px;
-  border-radius: 10px; background: #2a3060;
-  border: none; cursor: pointer;
-  position: relative; flex-shrink: 0;
-  transition: background 0.2s;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
 }
+
 .rc-toggle::after {
-  content: ''; position: absolute;
+  content: '';
+  position: absolute;
   top: 2px; left: 2px;
-  width: 16px; height: 16px;
-  border-radius: 50%; background: #fff;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  transition: transform 0.2s, background 0.2s;
 }
-.rc-toggle--on { background: var(--rc-brand-color); }
-.rc-toggle--on::after { transform: translateX(16px); }
+
+.rc-toggle--on {
+  background: var(--rc-brand-color);
+  border-color: var(--rc-brand-color);
+}
+
+.rc-toggle--on::after {
+  transform: translateX(16px);
+  background: #fff;
+}
 
 /* ── Server status ──────────────────────────────────────────────── */
 .rc-server-status {
-  display: flex; align-items: center; gap: 7px;
-  padding: 10px 20px; font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
   color: var(--rc-nav-text);
   border-top: 1px solid var(--rc-sidebar-border);
 }
+
 .rc-status-icon.ok  { color: var(--rc-status-ok);  }
 .rc-status-icon.err { color: var(--rc-status-err); }
 
 /* ── Sidebar footer ─────────────────────────────────────────────── */
 .rc-sidebar-footer {
-  padding: 14px 16px; border-top: 1px solid var(--rc-footer-border);
-  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--rc-footer-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+
 .rc-user-info  { display: flex; align-items: center; gap: 10px; }
+
 .rc-avatar-sm  {
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
-  border: 2px solid var(--rc-brand-color); flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(201,169,110,0.4);
+  flex-shrink: 0;
 }
+
 .rc-user-name {
-  font-size: 13px; font-weight: 600;
-  color: #c5cafe; margin: 0 0 3px;
-  white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; max-width: 130px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }
+
 .rc-role-badge {
-  font-size: 10px; font-weight: 600;
-  color: var(--rc-badge-color); background: var(--rc-badge-bg);
-  padding: 2px 8px; border-radius: 20px;
-  letter-spacing: 0.3px; text-transform: uppercase;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rc-badge-color);
+  background: var(--rc-badge-bg);
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(201,169,110,0.2);
 }
+
 .rc-logout-btn {
-  display: flex; align-items: center; gap: 8px;
-  width: 100%; padding: 8px 10px;
-  border: none; border-radius: 7px;
-  background: transparent; color: var(--rc-nav-text);
-  font-size: 13px; font-weight: 500; cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--rc-nav-text);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
   transition: background var(--rc-transition), color var(--rc-transition);
 }
-.rc-logout-btn:hover { background: var(--rc-logout-hover); color: var(--rc-logout-color); }
+
+.rc-logout-btn:hover {
+  background: var(--rc-logout-hover);
+  color: var(--rc-logout-color);
+}
 
 /* ── Content area ───────────────────────────────────────────────── */
 .rc-content {
   margin-left: var(--rc-sidebar-width);
-  flex: 1; min-height: 100vh; padding: 0;
+  flex: 1;
+  min-height: 100vh;
+  padding: 0;
   background: var(--rc-content-bg);
   box-sizing: border-box;
   transition: background 0.25s ease, color 0.25s ease;
@@ -165,311 +277,264 @@
 /* ══════════════════════════════════════════════════════════════════
    DARK MODE — rc-content--dark
    ══════════════════════════════════════════════════════════════════ */
-.rc-content--dark { background: #0d1117; color: #e5e7eb; }
+.rc-content--dark { background: #0e0d0b; color: #e8d5b0; }
 
 .rc-content--dark h1,
 .rc-content--dark h2,
 .rc-content--dark h3,
-.rc-content--dark h4 { color: #f9fafb; }
-.rc-content--dark p  { color: #d1d5db; }
+.rc-content--dark h4 { color: #f5f2ec; }
+
+.rc-content--dark p  { color: #b8aa98; }
 
 /* Inputs, textareas, selects */
 .rc-content--dark input,
 .rc-content--dark textarea,
 .rc-content--dark select {
-  background: #1e2340 !important;
-  color: #f9fafb !important;
-  border-color: #3a4060 !important;
+  background: #1c1a17 !important;
+  color: #f5f2ec !important;
+  border-color: #3a3530 !important;
 }
+
 .rc-content--dark input::placeholder,
-.rc-content--dark textarea::placeholder { color: #6b7280 !important; }
+.rc-content--dark textarea::placeholder { color: #5a5248 !important; }
+
 .rc-content--dark input:focus,
 .rc-content--dark textarea:focus,
 .rc-content--dark select:focus {
-  border-color: #7c6ef7 !important;
-  box-shadow: 0 0 0 3px rgba(124,110,247,0.18) !important;
-  background: #252a48 !important;
+  border-color: #c9a96e !important;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.14) !important;
+  background: #22201c !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════
    DARK MODE — BOOKINGS PAGE (rcb-*)
    ══════════════════════════════════════════════════════════════════ */
-.rc-content--dark .rcb-page         { background: #0d1117; }
+.rc-content--dark .rcb-page         { background: #0e0d0b; }
 
 /* Date strip */
-.rc-content--dark .rcb-date-strip   { background: #13172b; border-bottom-color: #272d52; }
-.rc-content--dark .rcb-date-nav     { color: #a99eff; }
-.rc-content--dark .rcb-date-nav:hover:not(:disabled) { background: rgba(124,110,247,0.15); }
-.rc-content--dark .rcb-date-item    { background: #1a1f3a; border-color: #272d52; }
-.rc-content--dark .rcb-day-name     { color: #6b7280; }
-.rc-content--dark .rcb-day-num      { color: #d1d5db; }
-.rc-content--dark .rcb-date-item.today  { background: #221d50; border-color: #7c6ef7; }
-.rc-content--dark .rcb-date-item.today .rcb-day-name { color: #a99eff; }
-.rc-content--dark .rcb-date-item.today .rcb-day-num  { color: #c5bfff; }
-.rc-content--dark .rcb-date-item.selected { background: #7c6ef7; border-color: #7c6ef7; }
+.rc-content--dark .rcb-date-strip   { background: #13110e; border-bottom-color: #2a2620; }
+.rc-content--dark .rcb-date-nav     { color: #c9a96e; }
+.rc-content--dark .rcb-date-nav:hover:not(:disabled) { background: rgba(201,169,110,0.1); }
+.rc-content--dark .rcb-date-item    { background: #1c1a17; border-color: #2a2620; }
+.rc-content--dark .rcb-day-name     { color: #5a5248; }
+.rc-content--dark .rcb-day-num      { color: #c0b09a; }
+.rc-content--dark .rcb-date-item.today  { background: #201e18; border-color: #c9a96e; }
+.rc-content--dark .rcb-date-item.today .rcb-day-name { color: #c9a96e; }
+.rc-content--dark .rcb-date-item.today .rcb-day-num  { color: #e8d5b0; }
+.rc-content--dark .rcb-date-item.selected { background: #c9a96e; border-color: #c9a96e; }
 .rc-content--dark .rcb-date-item.selected .rcb-day-name,
-.rc-content--dark .rcb-date-item.selected .rcb-day-num { color: #fff; }
-.rc-content--dark .rcb-date-item:hover:not(.selected) { background: #222740; }
+.rc-content--dark .rcb-date-item.selected .rcb-day-num { color: #1c1a17; }
+.rc-content--dark .rcb-date-item:hover:not(.selected) { background: #22201c; }
 
 /* Stats bar */
-.rc-content--dark .rcb-stats-bar    { background: linear-gradient(135deg, #1a1550 0%, #261e70 100%); }
-.rc-content--dark .rcb-stat-divider { background: rgba(255,255,255,0.12); }
-.rc-content--dark .rcb-stat-num     { color: #fff; }
-.rc-content--dark .rcb-stat-lbl     { color: rgba(255,255,255,0.6); }
+.rc-content--dark .rcb-stats-bar    { background: linear-gradient(135deg, #1c1a17 0%, #252220 100%); border-bottom: 1px solid #2a2620; }
+.rc-content--dark .rcb-stat-divider { background: rgba(201,169,110,0.2); }
+.rc-content--dark .rcb-stat-num     { color: #e8d5b0; }
+.rc-content--dark .rcb-stat-lbl     { color: rgba(232,213,176,0.5); }
 
 /* Toolbar */
-.rc-content--dark .rcb-toolbar      { background: #13172b; border-bottom-color: #272d52; }
-.rc-content--dark .rcb-search-icon  { color: #4b5563; }
-.rc-content--dark .rcb-search       { background: #1a1f3a !important; border-color: #3a4060 !important; color: #f9fafb !important; }
-.rc-content--dark .rcb-search:focus { border-color: #7c6ef7 !important; background: #20254a !important; }
-.rc-content--dark .rcb-filter-btn   { background: #1a1f3a; border-color: #3a4060; color: #8892b0; }
-.rc-content--dark .rcb-filter-btn:hover { background: #222740; border-color: #6655d9; color: #c5bfff; }
-.rc-content--dark .rcb-filter-btn.active { background: #2d2478; border-color: #7c6ef7; color: #c5bfff; }
-.rc-content--dark .rcb-refresh-btn  { background: #1a1f3a; border-color: #3a4060; color: #8892b0; }
-.rc-content--dark .rcb-refresh-btn:hover { background: #222740; color: #a99eff; }
-.rc-content--dark .rcb-new-btn      { background: #7c6ef7; color: #fff; }
-.rc-content--dark .rcb-new-btn:hover { background: #6655d9; }
+.rc-content--dark .rcb-toolbar      { background: #13110e; border-bottom-color: #2a2620; }
+.rc-content--dark .rcb-search-icon  { color: #4a4540; }
+.rc-content--dark .rcb-search       { background: #1c1a17 !important; border-color: #3a3530 !important; color: #f5f2ec !important; }
+.rc-content--dark .rcb-search:focus { border-color: #c9a96e !important; background: #22201c !important; }
+.rc-content--dark .rcb-filter-btn   { background: #1c1a17; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcb-filter-btn:hover { background: #22201c; border-color: #c9a96e; color: #e8d5b0; }
+.rc-content--dark .rcb-filter-btn.active { background: #2a2218; border-color: #c9a96e; color: #e8d5b0; }
+.rc-content--dark .rcb-refresh-btn  { background: #1c1a17; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcb-refresh-btn:hover { background: #22201c; color: #c9a96e; }
+.rc-content--dark .rcb-new-btn      { background: #c9a96e; color: #1c1a17; }
+.rc-content--dark .rcb-new-btn:hover { background: #9a7a45; }
 
-/* Content area + groups */
-.rc-content--dark .rcb-content-area { background: #0d1117; }
-.rc-content--dark .rcb-section-title { color: #c5cafe; }
-.rc-content--dark .rcb-section-count { background: #1a1f3a; color: #6b7280; }
+/* Content area */
+.rc-content--dark .rcb-content-area { background: #0e0d0b; }
+.rc-content--dark .rcb-section-title { color: #c0b09a; }
+.rc-content--dark .rcb-section-count { background: #1c1a17; color: #5a5248; }
 
 /* Booking cards */
-.rc-content--dark .rcb-booking-card { background: #13172b; border-color: #272d52; }
-.rc-content--dark .rcb-booking-card:hover { background: #1a1f3a; border-color: #4a3f8f; box-shadow: 0 4px 20px rgba(124,110,247,0.18); }
-.rc-content--dark .rcb-room-nums    { color: #f9fafb; }
-.rc-content--dark .rcb-guest-name   { color: #f9fafb; }
-.rc-content--dark .rcb-guest-sub    { color: #4b5563; }
-.rc-content--dark .rcb-dates        { color: #6b7280; }
-.rc-content--dark .rcb-date-range   { color: #8892b0; }
-.rc-content--dark .rcb-date-arrow   { color: #374151; }
-.rc-content--dark .rcb-card-footer  { border-top-color: #1f2640; }
-.rc-content--dark .rcb-price        { color: #c5bfff; }
+.rc-content--dark .rcb-booking-card { background: #13110e; border-color: #2a2620; }
+.rc-content--dark .rcb-booking-card:hover { background: #1c1a17; border-color: #c9a96e; box-shadow: 0 4px 20px rgba(201,169,110,0.1); }
+.rc-content--dark .rcb-room-nums    { color: #f5f2ec; }
+.rc-content--dark .rcb-guest-name   { color: #f5f2ec; }
+.rc-content--dark .rcb-guest-sub    { color: #4a4540; }
+.rc-content--dark .rcb-dates        { color: #5a5248; }
+.rc-content--dark .rcb-date-range   { color: #7a7068; }
+.rc-content--dark .rcb-date-arrow   { color: #3a3530; }
+.rc-content--dark .rcb-card-footer  { border-top-color: #22201c; }
+.rc-content--dark .rcb-price        { color: #c9a96e; }
 .rc-content--dark .rcb-guests-count,
-.rc-content--dark .rcb-rooms-count  { color: #6b7280; }
-.rc-content--dark .rcb-empty        { background: #13172b; border-color: #272d52; color: #4b5563; }
+.rc-content--dark .rcb-rooms-count  { color: #5a5248; }
+.rc-content--dark .rcb-empty        { background: #13110e; border-color: #2a2620; color: #4a4540; }
 
-/* Bookings Modal */
-.rc-content--dark .rcb-modal            { background: #13172b; }
-.rc-content--dark .rcb-modal-title      { color: #f9fafb; }
-.rc-content--dark .rcb-modal-conf       { color: #6b7280; }
-.rc-content--dark .rcb-modal-close      { background: #1e2340; color: #9ca3af; border-color: #374151; }
-.rc-content--dark .rcb-modal-close:hover { background: #3d1a1a; color: #f87171; }
-.rc-content--dark .rcb-modal-section-title { color: #6b7280; }
-.rc-content--dark .rcb-field label      { color: #6b7280; }
-.rc-content--dark .rcb-modal-footer     { border-top-color: #1e2340; }
-.rc-content--dark .rcb-modal-btn--secondary { background: #1e2340; color: #9ca3af; }
-.rc-content--dark .rcb-modal-btn--secondary:hover { background: #272d52; color: #d1d5db; }
-.rc-content--dark .rcb-room-chip        { background: #1e2340; border-color: #3a4060; }
-.rc-content--dark .rcb-room-chip-num    { color: #d1d5db; }
-.rc-content--dark .rcb-room-chip-floor  { color: #6b7280; }
-.rc-content--dark .rcb-room-chip:hover  { background: #2a2060; border-color: #7c6ef7; }
-.rc-content--dark .rcb-room-chip.selected { background: #2d2478; border-color: #7c6ef7; }
-.rc-content--dark .rcb-room-chip.selected .rcb-room-chip-num { color: #c5bfff; }
-.rc-content--dark .rcb-price-preview    { background: #1e1a40; color: #a99eff; }
-.rc-content--dark .rcb-modal-empty      { color: #4b5563; }
-.rc-content--dark .rcb-detail-grid      { background: #1a1f3a; }
-.rc-content--dark .rcb-dl               { color: #6b7280; }
-.rc-content--dark .rcb-dv               { color: #d1d5db; }
-.rc-content--dark .rcb-dv--price        { color: #a99eff; }
+/* Bookings Modal dark */
+.rc-content--dark .rcb-modal            { background: #13110e; }
+.rc-content--dark .rcb-modal-title      { color: #f5f2ec; }
+.rc-content--dark .rcb-modal-conf       { color: #5a5248; }
+.rc-content--dark .rcb-modal-close      { background: #1c1a17; color: #7a7068; border-color: #3a3530; }
+.rc-content--dark .rcb-modal-close:hover { background: #2d1810; color: #e07060; }
+.rc-content--dark .rcb-modal-section-title { color: #5a5248; }
+.rc-content--dark .rcb-field label      { color: #5a5248; }
+.rc-content--dark .rcb-modal-footer     { border-top-color: #22201c; }
+.rc-content--dark .rcb-modal-btn--secondary { background: #1c1a17; color: #7a7068; }
+.rc-content--dark .rcb-modal-btn--secondary:hover { background: #252220; color: #c0b09a; }
+.rc-content--dark .rcb-room-chip        { background: #1c1a17; border-color: #3a3530; }
+.rc-content--dark .rcb-room-chip-num    { color: #c0b09a; }
+.rc-content--dark .rcb-room-chip-floor  { color: #5a5248; }
+.rc-content--dark .rcb-room-chip:hover  { background: #221e14; border-color: #c9a96e; }
+.rc-content--dark .rcb-room-chip.selected { background: #2a2218; border-color: #c9a96e; }
+.rc-content--dark .rcb-room-chip.selected .rcb-room-chip-num { color: #e8d5b0; }
+.rc-content--dark .rcb-price-preview    { background: #221e14; color: #c9a96e; }
+.rc-content--dark .rcb-modal-empty      { color: #4a4540; }
+.rc-content--dark .rcb-detail-grid      { background: #1c1a17; }
+.rc-content--dark .rcb-dl               { color: #5a5248; }
+.rc-content--dark .rcb-dv               { color: #c0b09a; }
+.rc-content--dark .rcb-dv--price        { color: #c9a96e; }
 
 /* ══════════════════════════════════════════════════════════════════
    DARK MODE — ROOMS PAGE (rcr-*)
-   Both the card grid AND the modal need full coverage.
    ══════════════════════════════════════════════════════════════════ */
-.rc-content--dark .rcr-page             { background: #0d1117; }
-.rc-content--dark .rcr-title            { color: #f9fafb; }
-.rc-content--dark .rcr-subtitle         { color: #4b5563; }
+.rc-content--dark .rcr-page             { background: #0e0d0b; }
+.rc-content--dark .rcr-title            { color: #f5f2ec; }
+.rc-content--dark .rcr-subtitle         { color: #4a4540; }
 
 /* Summary cards */
-.rc-content--dark .rcr-sum-card         { border-color: #272d52 !important; }
-.rc-content--dark .rcr-sum--total       { background: #1a1a40 !important; }
-.rc-content--dark .rcr-sum--avail       { background: #0d2218 !important; }
-.rc-content--dark .rcr-sum--occ         { background: #0c1e3a !important; }
+.rc-content--dark .rcr-sum-card         { border-color: #2a2620 !important; }
+.rc-content--dark .rcr-sum--total       { background: #1c1a17 !important; }
+.rc-content--dark .rcr-sum--avail       { background: #111a12 !important; }
+.rc-content--dark .rcr-sum--occ         { background: #101420 !important; }
 .rc-content--dark .rcr-sum--maint       { background: #1c1508 !important; }
-.rc-content--dark .rcr-sum-val          { color: #f9fafb; }
-.rc-content--dark .rcr-sum-lbl          { color: #6b7280; }
+.rc-content--dark .rcr-sum-val          { color: #f5f2ec; }
+.rc-content--dark .rcr-sum-lbl          { color: #5a5248; }
 
 /* Toolbar */
-.rc-content--dark .rcr-search     { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
-.rc-content--dark .rcr-search-icon { color: #4b5563; }
-.rc-content--dark .rcr-filter     { background: #13172b !important; border-color: #3a4060 !important; color: #f9fafb !important; }
+.rc-content--dark .rcr-search     { background: #13110e !important; border-color: #3a3530 !important; color: #f5f2ec !important; }
+.rc-content--dark .rcr-search-icon { color: #4a4540; }
+.rc-content--dark .rcr-filter     { background: #13110e !important; border-color: #3a3530 !important; color: #f5f2ec !important; }
 
-/* Toggle buttons on rooms page */
-.rc-content--dark .rcr-toggle-btn { background: #1a1d27; border-color: #374151; color: #9ca3af; }
-.rc-content--dark .rcr-toggle-btn:not(.rcr-toggle-btn--unavail):hover { background: #1e2433; border-color: #7c6ef7; color: #a78bfa; }
-.rc-content--dark .rcr-toggle-btn--active { background: #7c6ef7; border-color: #7c6ef7; color: #fff; }
-.rc-content--dark .rcr-toggle-btn--unavail { background: #1c1408; border-color: #78350f; color: #fbbf24; }
-.rc-content--dark .rcr-toggle-btn--active-unavail { background: #d97706; border-color: #d97706; color: #fff; }
+/* Toggle buttons */
+.rc-content--dark .rcr-toggle-btn { background: #1c1a17; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcr-toggle-btn:not(.rcr-toggle-btn--unavail):hover { background: #22201c; border-color: #c9a96e; color: #e8d5b0; }
+.rc-content--dark .rcr-toggle-btn--active { background: #c9a96e; border-color: #c9a96e; color: #1c1a17; }
+.rc-content--dark .rcr-toggle-btn--unavail { background: #1c1508; border-color: #5a3f10; color: #c9a96e; }
+.rc-content--dark .rcr-toggle-btn--active-unavail { background: #9a7a45; border-color: #9a7a45; color: #fff; }
 .rc-content--dark .rcr-toggle-btn:not(.rcr-toggle-btn--active):not(.rcr-toggle-btn--active-unavail) .rcr-toggle-count {
-  background: #1f2937; border-color: #374151; color: #9ca3af;
+  background: #1c1a17; border-color: #3a3530; color: #7a7068;
 }
 
-/* ── Booking cards (rooms page card grid) ── */
-.rc-content--dark .rcr-booking-card         { background: #1a1d27; border-color: #2d3748; }
-.rc-content--dark .rcr-booking-card:hover   { box-shadow: 0 6px 20px rgba(124,110,247,0.2); }
-.rc-content--dark .rcr-card-header          { background: #111827; border-bottom-color: #2d3748; }
-.rc-content--dark .rcr-card-room-single     { color: #f9fafb; }
-.rc-content--dark .rcr-card-room-num        { background: #2d1f6e; color: #a78bfa; }
-.rc-content--dark .rcr-card-body            { background: #1a1d27; }
-.rc-content--dark .rcr-card-guest-name      { color: #f9fafb; }
-.rc-content--dark .rcr-card-guest-email     { color: #6b7280; }
-.rc-content--dark .rcr-card-dates           { background: #111827; border-color: #2d3748; }
-.rc-content--dark .rcr-card-date-label      { color: #6b7280; }
-.rc-content--dark .rcr-card-date-val        { color: #f9fafb; }
-.rc-content--dark .rcr-card-nights          { background: #2d1f6e; color: #a78bfa; }
-.rc-content--dark .rcr-card-date-line       { background: linear-gradient(90deg, transparent, #4c3f9a, transparent); }
-.rc-content--dark .rcr-card-meta-item       { background: #1f2937; color: #9ca3af; }
-.rc-content--dark .rcr-card-meta-price      { background: #2d1f6e; color: #c4b5fd; }
-.rc-content--dark .rcr-card-meta-total      { background: #052e16; }
-.rc-content--dark .rcr-card-meta-total strong { color: #4ade80; }
-.rc-content--dark .rcr-card-footer          { background: #111827; border-top-color: #2d3748; }
-.rc-content--dark .rcr-card-conf            { background: #1e1240; border-color: #3730a3; color: #a78bfa; }
-.rc-content--dark .rcr-cards-footer         { color: #4b5563; }
-.rc-content--dark .rcr-cards-footer strong  { color: #9ca3af; }
-.rc-content--dark .rcr-empty-state          { background: #1a1d27; border-color: #2d3748; color: #6b7280; }
+/* Booking cards on rooms page */
+.rc-content--dark .rcr-booking-card         { background: #1c1a17; border-color: #2a2620; }
+.rc-content--dark .rcr-booking-card:hover   { box-shadow: 0 6px 20px rgba(201,169,110,0.12); }
+.rc-content--dark .rcr-card-header          { background: #13110e; border-bottom-color: #2a2620; }
+.rc-content--dark .rcr-card-room-single     { color: #f5f2ec; }
+.rc-content--dark .rcr-card-room-num        { background: #2a2218; color: #e8d5b0; }
+.rc-content--dark .rcr-card-body            { background: #1c1a17; }
+.rc-content--dark .rcr-card-guest-name      { color: #f5f2ec; }
+.rc-content--dark .rcr-card-guest-email     { color: #5a5248; }
+.rc-content--dark .rcr-card-dates           { background: #13110e; border-color: #2a2620; }
+.rc-content--dark .rcr-card-date-label      { color: #5a5248; }
+.rc-content--dark .rcr-card-date-val        { color: #f5f2ec; }
+.rc-content--dark .rcr-card-nights          { background: #2a2218; color: #c9a96e; }
+.rc-content--dark .rcr-card-date-line       { background: linear-gradient(90deg, transparent, #9a7a45, transparent); }
+.rc-content--dark .rcr-card-meta-item       { background: #22201c; color: #7a7068; }
+.rc-content--dark .rcr-card-meta-price      { background: #2a2218; color: #e8d5b0; }
+.rc-content--dark .rcr-card-meta-total      { background: #111a12; }
+.rc-content--dark .rcr-card-meta-total strong { color: #7db88a; }
+.rc-content--dark .rcr-card-footer          { background: #13110e; border-top-color: #2a2620; }
+.rc-content--dark .rcr-card-conf            { background: #201e18; border-color: #3a3530; color: #c9a96e; }
+.rc-content--dark .rcr-cards-footer         { color: #4a4540; }
+.rc-content--dark .rcr-cards-footer strong  { color: #7a7068; }
+.rc-content--dark .rcr-empty-state          { background: #1c1a17; border-color: #2a2620; color: #5a5248; }
 
-/* ── Table view on rooms page ── */
-.rc-content--dark .rcr-table-wrap           { background: #13172b; border-color: #272d52; }
-.rc-content--dark .rcr-table thead th       { background: #1a1f3a !important; color: #6b7280 !important; border-bottom-color: #272d52 !important; }
-.rc-content--dark .rcr-table tbody tr       { border-bottom-color: #1e2340; }
-.rc-content--dark .rcr-table tbody tr:hover { background: #1a1f3a !important; }
-.rc-content--dark .rcr-td-room              { color: #f9fafb; }
-.rc-content--dark .rcr-td-secondary,
-.rc-content--dark .rcr-td-floor,
-.rc-content--dark .rcr-td-cap,
-.rc-content--dark .rcr-td-price,
-.rc-content--dark .rcr-td-amenity           { color: #8892b0; }
-.rc-content--dark .rcr-per-night            { color: #6b7280; }
-.rc-content--dark .rcr-td-none              { color: #374151; }
-.rc-content--dark .rcr-td-empty             { color: #6b7280; }
-.rc-content--dark .rcr-table-footer         { background: #1a1f3a; border-top-color: #272d52; color: #6b7280; }
-.rc-content--dark .rcr-table-footer strong  { color: #9ca3af; }
+/* Table */
+.rc-content--dark .rcr-table-wrap           { background: #13110e; border-color: #2a2620; }
+.rc-content--dark .rcr-table thead th       { background: #1c1a17 !important; color: #5a5248 !important; border-bottom-color: #2a2620 !important; }
+.rc-content--dark .rcr-table tbody tr       { border-bottom-color: #22201c; }
+.rc-content--dark .rcr-table tbody tr:hover { background: #1c1a17 !important; }
+.rc-content--dark .rcr-td-room              { color: #f5f2ec; }
+.rc-content--dark .rcr-td-secondary         { color: #7a7068; }
+.rc-content--dark .rcr-per-night            { color: #5a5248; }
+.rc-content--dark .rcr-td-none              { color: #3a3530; }
+.rc-content--dark .rcr-td-empty             { color: #5a5248; }
+.rc-content--dark .rcr-table-footer         { background: #1c1a17; border-top-color: #2a2620; color: #5a5248; }
+.rc-content--dark .rcr-table-footer strong  { color: #7a7068; }
 
-/* ── Shared rcr chips/badges (both views) ── */
-.rc-content--dark .rcr-amenity-chip    { background: #1e2340; border-color: #3a4060; color: #8892b0; }
-.rc-content--dark .rcr-type--single   { background: #0c1e3a; color: #60a5fa; }
-.rc-content--dark .rcr-type--double   { background: #052e16; color: #4ade80; }
-.rc-content--dark .rcr-type--deluxe   { background: #1a0f2e; color: #c084fc; }
-.rc-content--dark .rcr-type--suite    { background: #1c1408; color: #fbbf24; }
-.rc-content--dark .rcr-type--family   { background: #2d0a0a; color: #f87171; }
-.rc-content--dark .rcr-type--mixed    { background: #1f2937; color: #9ca3af; }
-.rc-content--dark .rcr-pill--green    { background: #052e16; color: #4ade80; }
-.rc-content--dark .rcr-pill--blue     { background: #0c1e3a; color: #60a5fa; }
-.rc-content--dark .rcr-pill--amber    { background: #1c1408; color: #fbbf24; }
-.rc-content--dark .rcr-pill--purple   { background: #1a0f2e; color: #c084fc; }
-.rc-content--dark .rcr-bpill--yellow  { background: #1c1000; color: #fbbf24; }
-.rc-content--dark .rcr-bpill--green   { background: #052e16; color: #4ade80; }
-.rc-content--dark .rcr-bpill--blue    { background: #0c1e3a; color: #60a5fa; }
-.rc-content--dark .rcr-bpill--gray    { background: #1f2937; color: #9ca3af; }
-.rc-content--dark .rcr-bpill--red     { background: #2d0a0a; color: #f87171; }
-.rc-content--dark .rcr-maint-indicator { background: #1c1408; border-color: #78350f; color: #fbbf24; }
-.rc-content--dark .rcr-view-btn        { background: #1f2937; border-color: #374151; color: #d1d5db; }
-.rc-content--dark .rcr-view-btn:hover  { background: #2d1f6e; border-color: #7c6ef7; color: #a78bfa; }
-.rc-content--dark .rcr-refresh-btn     { background: #1a1d27; border-color: #374151; color: #9ca3af; }
-.rc-content--dark .rcr-refresh-btn:hover { background: #1e2433; color: #7c6ef7; border-color: #7c6ef7; }
+/* Chips/badges */
+.rc-content--dark .rcr-amenity-chip    { background: #22201c; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcr-type--single   { background: #101420; color: #6b9fd4; }
+.rc-content--dark .rcr-type--double   { background: #111a12; color: #7db88a; }
+.rc-content--dark .rcr-type--deluxe   { background: #201c14; color: #e8d5b0; }
+.rc-content--dark .rcr-type--suite    { background: #1c1508; color: #c9a96e; }
+.rc-content--dark .rcr-type--family   { background: #2d1410; color: #e07060; }
+.rc-content--dark .rcr-type--mixed    { background: #22201c; color: #7a7068; }
+.rc-content--dark .rcr-pill--green    { background: #111a12; color: #7db88a; }
+.rc-content--dark .rcr-pill--blue     { background: #101420; color: #6b9fd4; }
+.rc-content--dark .rcr-pill--amber    { background: #1c1508; color: #c9a96e; }
+.rc-content--dark .rcr-pill--purple   { background: #201c14; color: #e8d5b0; }
+.rc-content--dark .rcr-bpill--yellow  { background: #1c1000; color: #c9a96e; }
+.rc-content--dark .rcr-bpill--green   { background: #111a12; color: #7db88a; }
+.rc-content--dark .rcr-bpill--blue    { background: #101420; color: #6b9fd4; }
+.rc-content--dark .rcr-bpill--gray    { background: #22201c; color: #7a7068; }
+.rc-content--dark .rcr-bpill--red     { background: #2d1410; color: #e07060; }
+.rc-content--dark .rcr-maint-indicator { background: #1c1508; border-color: #5a3f10; color: #c9a96e; }
+.rc-content--dark .rcr-view-btn        { background: #22201c; border-color: #3a3530; color: #c0b09a; }
+.rc-content--dark .rcr-view-btn:hover  { background: #2a2218; border-color: #c9a96e; color: #e8d5b0; }
+.rc-content--dark .rcr-refresh-btn     { background: #1c1a17; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcr-refresh-btn:hover { background: #22201c; color: #c9a96e; border-color: #c9a96e; }
 
-/* ── Rooms page MODAL — full dark coverage ──
-   This is the "View Details" popup showing room info cards inside.
-   Every white/light surface must be overridden here. ── */
-
-/* Overlay */
-.rc-content--dark .rcr-modal-overlay  { background: rgba(0,0,0,0.78); }
-
-/* Modal shell */
-.rc-content--dark .rcr-modal {
-  background: #13172b;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
-}
-
-/* Sticky header */
-.rc-content--dark .rcr-modal-header {
-  background: #0d1117;
-  border-bottom-color: #2d3748;
-  border-radius: 16px 16px 0 0;
-}
-.rc-content--dark .rcr-modal-room-num { color: #f9fafb; }
-
-/* Close button */
-.rc-content--dark .rcr-modal-close { background: #1f2937; border-color: #374151; color: #9ca3af; }
-.rc-content--dark .rcr-modal-close:hover { background: #2d0a0a; border-color: #991b1b; color: #f87171; }
-
-/* Loading / error */
-.rc-content--dark .rcr-modal-loading     { color: #6b7280; }
-.rc-content--dark .rcr-modal-spinner     { color: #7c6ef7; }
-.rc-content--dark .rcr-modal-fetch-error { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
-
-/* Modal body — was #fff */
-.rc-content--dark .rcr-modal-body { background: #13172b; }
-
-/* Section wrappers — were #fff with light border */
-.rc-content--dark .rcr-modal-section       { background: #13172b; border-color: #2d3748; }
-
-/* Section title bars — were #f8f9fd */
-.rc-content--dark .rcr-modal-section-title { background: #0d1117; border-bottom-color: #2d3748; color: #9ca3af; }
-
-/* Data field cells — were #fff */
-.rc-content--dark .rcr-modal-field         { background: #13172b; border-bottom-color: #2d3748; border-right-color: #2d3748; }
-.rc-content--dark .rcr-modal-label         { color: #6b7280; }
-.rc-content--dark .rcr-modal-value         { color: #e5e7eb; }
-.rc-content--dark .rcr-modal-price         { color: #f9fafb; }
-.rc-content--dark .rcr-modal-conf          { background: #1e1240; border-color: #3730a3; color: #a78bfa; }
-.rc-content--dark .rcr-modal-warn-block    { background: #1c1408; border-color: #78350f; border-left-color: #d97706; color: #fbbf24; }
-
-/* Amenity chips inside modal */
-.rc-content--dark .rcr-modal-body .rcr-amenity-chip { background: #1f2937; border-color: #374151; color: #9ca3af; }
+/* Rooms modal dark */
+.rc-content--dark .rcr-modal-overlay  { background: rgba(0,0,0,0.82); }
+.rc-content--dark .rcr-modal { background: #13110e; box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,110,0.08); }
+.rc-content--dark .rcr-modal-header { background: #0e0d0b; border-bottom-color: #2a2620; border-radius: 16px 16px 0 0; }
+.rc-content--dark .rcr-modal-room-num { color: #f5f2ec; }
+.rc-content--dark .rcr-modal-close { background: #1c1a17; border-color: #3a3530; color: #7a7068; }
+.rc-content--dark .rcr-modal-close:hover { background: #2d1410; border-color: #7f2010; color: #e07060; }
+.rc-content--dark .rcr-modal-loading     { color: #5a5248; }
+.rc-content--dark .rcr-modal-fetch-error { background: #2d1410; border-color: #7f2010; color: #e07060; }
+.rc-content--dark .rcr-modal-body { background: #13110e; }
+.rc-content--dark .rcr-modal-section       { background: #13110e; border-color: #2a2620; }
+.rc-content--dark .rcr-modal-section-title { background: #0e0d0b; border-bottom-color: #2a2620; color: #7a7068; }
+.rc-content--dark .rcr-modal-field         { background: #13110e; border-bottom-color: #2a2620; border-right-color: #2a2620; }
+.rc-content--dark .rcr-modal-label         { color: #5a5248; }
+.rc-content--dark .rcr-modal-value         { color: #e3ddd5; }
+.rc-content--dark .rcr-modal-price         { color: #f5f2ec; }
+.rc-content--dark .rcr-modal-conf          { background: #201e18; border-color: #3a3530; color: #c9a96e; }
+.rc-content--dark .rcr-modal-warn-block    { background: #1c1508; border-color: #5a3f10; border-left-color: #c9a96e; color: #e8d5b0; }
+.rc-content--dark .rcr-modal-body .rcr-amenity-chip { background: #22201c; border-color: #3a3530; color: #7a7068; }
 
 /* ══════════════════════════════════════════════════════════════════
    DARK MODE — SETTINGS PAGE (rcs-*)
    ══════════════════════════════════════════════════════════════════ */
-.rc-content--dark .rcs-page             { background: #0d1117; }
-.rc-content--dark .rcs-greeting         { color: #f9fafb; }
-.rc-content--dark .rcs-date             { color: #4b5563; }
-.rc-content--dark .rcs-role-pill        { background: #1a1a40; border-color: #3a3570; color: #a99eff; }
-
-/* Cards */
-.rc-content--dark .rcs-card             { background: #13172b; border-color: #272d52; box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
-.rc-content--dark .rcs-card-header      { background: #1a1f3a; border-bottom-color: #272d52; }
-.rc-content--dark .rcs-card-icon        { color: #7c6ef7; }
-.rc-content--dark .rcs-section-title    { color: #c5cafe; }
-.rc-content--dark .rcs-readonly-badge   { background: #1e2340; color: #4b5563; }
-
-/* Profile */
-.rc-content--dark .rcs-profile-name     { color: #f9fafb; }
-.rc-content--dark .rcs-profile-role     { color: #4b5563; }
-.rc-content--dark .rcs-divider          { background: #1e2340; }
-
-/* Field rows */
-.rc-content--dark .rcs-field-row        { background: #1a1f3a; border-color: #272d52; }
-.rc-content--dark .rcs-label            { color: #4b5563; }
-.rc-content--dark .rcs-value            { color: #c5cafe; }
-
-/* Edit note */
-.rc-content--dark .rcs-edit-note        { background: #0c1a2e; border-color: #1e3a5f; color: #60a5fa; }
-
-/* Password fields */
-.rc-content--dark .rcs-pw-field label   { color: #4b5563; }
-.rc-content--dark .rcs-pw-wrap input    { background: #1a1f3a !important; border-color: #3a4060 !important; color: #f9fafb !important; }
-.rc-content--dark .rcs-pw-wrap input:focus { background: #20254a !important; }
-.rc-content--dark .rcs-pw-eye           { color: #4b5563; }
-.rc-content--dark .rcs-pw-eye:hover     { color: #7c6ef7; }
-.rc-content--dark .rcs-strength-bar[style*="e5e7eb"] { background: #1e2340 !important; }
-
-/* Preferences */
-.rc-content--dark .rcs-pref-row         { border-bottom-color: #1e2340; }
-.rc-content--dark .rcs-pref-label       { color: #d1d5db; }
-.rc-content--dark .rcs-pref-desc        { color: #4b5563; }
-.rc-content--dark .rcs-toggle           { background: #2a3060; }
-.rc-content--dark .rcs-toggle--on       { background: #7c6ef7; }
-
-/* Alert */
-.rc-content--dark .rcs-alert--success   { background: #052e16; border-color: #166534; color: #4ade80; }
-.rc-content--dark .rcs-alert--error     { background: #2d0a0a; border-color: #7f1d1d; color: #f87171; }
+.rc-content--dark .rcs-page             { background: #0e0d0b; }
+.rc-content--dark .rcs-greeting         { color: #f5f2ec; }
+.rc-content--dark .rcs-date             { color: #4a4540; }
+.rc-content--dark .rcs-role-pill        { background: #201e18; border-color: #3a3530; color: #c9a96e; }
+.rc-content--dark .rcs-card             { background: #13110e; border-color: #2a2620; box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+.rc-content--dark .rcs-card-header      { background: #1c1a17; border-bottom-color: #2a2620; }
+.rc-content--dark .rcs-card-icon        { color: #c9a96e; }
+.rc-content--dark .rcs-section-title    { color: #c0b09a; }
+.rc-content--dark .rcs-readonly-badge   { background: #1c1a17; color: #4a4540; }
+.rc-content--dark .rcs-profile-name     { color: #f5f2ec; }
+.rc-content--dark .rcs-profile-role     { color: #4a4540; }
+.rc-content--dark .rcs-divider          { background: #22201c; }
+.rc-content--dark .rcs-field-row        { background: #1c1a17; border-color: #2a2620; }
+.rc-content--dark .rcs-label            { color: #4a4540; }
+.rc-content--dark .rcs-value            { color: #c0b09a; }
+.rc-content--dark .rcs-edit-note        { background: #0e1420; border-color: #1e3050; color: #6b9fd4; }
+.rc-content--dark .rcs-pw-field label   { color: #4a4540; }
+.rc-content--dark .rcs-pw-wrap input    { background: #1c1a17 !important; border-color: #3a3530 !important; color: #f5f2ec !important; }
+.rc-content--dark .rcs-pw-wrap input:focus { background: #22201c !important; }
+.rc-content--dark .rcs-pw-eye           { color: #4a4540; }
+.rc-content--dark .rcs-pw-eye:hover     { color: #c9a96e; }
+.rc-content--dark .rcs-pref-row         { border-bottom-color: #22201c; }
+.rc-content--dark .rcs-pref-label       { color: #c0b09a; }
+.rc-content--dark .rcs-pref-desc        { color: #4a4540; }
+.rc-content--dark .rcs-toggle           { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.12); }
+.rc-content--dark .rcs-toggle--on       { background: #c9a96e; border-color: #c9a96e; }
+.rc-content--dark .rcs-alert--success   { background: #111a12; border-color: #2a4a2e; color: #7db88a; }
+.rc-content--dark .rcs-alert--error     { background: #2d1410; border-color: #7f2010; color: #e07060; }
 
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .rc-sidebar { width: 64px; }
+  .rc-sidebar { width: 60px; }
   .rc-brand-text, .rc-nav-item span, .rc-nav-arrow,
   .rc-server-status span, .rc-user-name, .rc-role-badge,
   .rc-logout-btn span, .rc-dark-label { display: none; }
@@ -477,5 +542,5 @@
   .rc-nav-item         { justify-content: center; padding: 10px 0; }
   .rc-user-info        { justify-content: center; }
   .rc-logout-btn       { justify-content: center; }
-  .rc-content          { margin-left: 64px; }
+  .rc-content          { margin-left: 60px; }
 }

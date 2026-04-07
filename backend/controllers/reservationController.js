@@ -8,6 +8,7 @@ const {
   sendCheckOutEmail,
   sendCancellationEmail,
   sendReservationConfirmationToGuest,
+  sendBookingConfirmedToGuest,        // ← NEW
   sendBookingUpdateToGuest,
   sendCheckInConfirmationToGuest,
   sendCheckOutFarewellToGuest,
@@ -325,7 +326,7 @@ exports.createReservation = async (req, res) => {
       }).catch(err => console.error('[createReservation] admin email failed:', err.message));
     }
 
-    // ── Email guest — booking confirmation ─────────────────────────────────
+    // ── Email guest — booking received (pending) ───────────────────────────
     sendReservationConfirmationToGuest({
       guestName,
       guestEmail:         email,
@@ -469,10 +470,31 @@ exports.updateReservation = async (req, res) => {
     const newRoomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
     const actorName      = req.user?.fullName || req.user?.email || 'Staff';
 
-    // ── Check-in: sync room status → 'occupied' ────────────────────────────
-    if (status === 'checked-in' && oldStatus !== 'checked-in') {
+    // ── STATUS: confirmed → send "booking confirmed" email to guest ────────
+    if (status === 'confirmed' && oldStatus !== 'confirmed') {
+      sendBookingConfirmedToGuest({
+        guestName:          reservation.guestName,
+        guestEmail:         reservation.email,
+        confirmationNumber: reservation.confirmationNumber,
+        roomType:           reservation.roomType,
+        roomNumbers:        newRoomNumbers,
+        checkInDate:        reservation.checkInDate,
+        checkOutDate:       reservation.checkOutDate,
+        numberOfGuests:     reservation.numberOfGuests,
+        numberOfRooms:      reservation.numberOfRooms,
+        stayType:           reservation.stayType || 'overnight',
+        totalPrice:         reservation.totalPrice,
+      }).catch(err => console.error('[confirm] guest confirmed email failed:', err.message));
 
-      // ✅ Automatically set all rooms in this reservation to 'occupied'
+      return res.status(200).json({
+        success: true,
+        message: 'Reservation confirmed successfully',
+        data:    reservation,
+      });
+    }
+
+    // ── STATUS: checked-in → sync rooms to 'occupied' ──────────────────────
+    if (status === 'checked-in' && oldStatus !== 'checked-in') {
       await Room.updateMany(
         { _id: { $in: reservation.roomIds.map(r => r._id) } },
         { $set: { status: 'occupied' } }
@@ -508,10 +530,8 @@ exports.updateReservation = async (req, res) => {
       });
     }
 
-    // ── Check-out: sync room status → 'available' ──────────────────────────
+    // ── STATUS: checked-out → sync rooms to 'available' ───────────────────
     if (status === 'checked-out' && oldStatus !== 'checked-out') {
-
-      // ✅ Automatically set all rooms in this reservation back to 'available'
       await Room.updateMany(
         { _id: { $in: reservation.roomIds.map(r => r._id) } },
         { $set: { status: 'available' } }

@@ -1,17 +1,39 @@
-/* AddStaffModal.css */
+/* AddStaffModal.css — restyled to match LandingPage luxury aesthetic */
 
-/* ── Overlay ──────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+/* ── Design tokens ────────────────────────────────────────────── */
+:root {
+  --lp-cream:        #faf8f4;
+  --lp-warm-white:   #f5f2ec;
+  --lp-parchment:    #ede9e0;
+  --lp-charcoal:     #1c1a17;
+  --lp-charcoal-2:   #252220;
+  --lp-dark-bg:      #0e0d0b;
+  --lp-gold:         #c9a96e;
+  --lp-gold-light:   #e8d5b0;
+  --lp-gold-dark:    #9a7a45;
+  --lp-gold-pale:    rgba(201, 169, 110, 0.12);
+  --lp-text:         #1c1a17;
+  --lp-text-muted:   #7a7068;
+  --lp-border:       #e3ddd5;
+  --lp-radius:       3px;
+  --lp-radius-md:    8px;
+  --lp-ease:         cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Overlay ──────────────────────────────────────────────────── */
 .astaff-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(14, 13, 11, 0.62);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 16px;
-  animation: astaff-fade-in 0.18s ease;
+  padding: 20px;
+  animation: astaff-fade-in 0.2s var(--lp-ease);
 }
 
 @keyframes astaff-fade-in {
@@ -19,114 +41,124 @@
   to   { opacity: 1; }
 }
 
-/* ── Modal shell ──────────────────────────────────────────── */
+/* ── Modal shell ──────────────────────────────────────────────── */
 .astaff-modal {
-  background: #fff;
-  border-radius: 16px;
+  background: var(--lp-cream);
+  border-radius: 4px;
   width: 100%;
   max-width: 620px;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid var(--lp-border);
   box-shadow:
-    0 4px 6px -1px rgba(0,0,0,0.07),
-    0 24px 60px -8px rgba(15,23,42,0.22);
-  animation: astaff-slide-up 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    0 2px 8px rgba(28, 26, 23, 0.06),
+    0 32px 80px rgba(14, 13, 11, 0.28);
+  animation: astaff-slide-up 0.26s var(--lp-ease);
 }
 
 @keyframes astaff-slide-up {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Header ───────────────────────────────────────────────── */
+/* ── Header ───────────────────────────────────────────────────── */
 .astaff-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--lp-border);
 }
 
 .astaff-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .astaff-header-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  color: var(--lp-gold);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: var(--lp-gold-pale);
 }
 
 .astaff-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--lp-charcoal);
   margin: 0;
+  letter-spacing: 0.01em;
 }
 
 .astaff-subtitle {
-  font-size: 0.78rem;
-  color: #94a3b8;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.73rem;
+  color: var(--lp-text-muted);
   margin: 2px 0 0;
+  letter-spacing: 0.04em;
 }
 
 .astaff-close {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--lp-border);
   background: transparent;
-  color: #64748b;
+  color: var(--lp-text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.18s var(--lp-ease);
 }
-.astaff-close:hover { background: #f1f5f9; color: #0f172a; }
+.astaff-close:hover {
+  background: var(--lp-gold-pale);
+  color: var(--lp-gold-dark);
+  border-color: rgba(201, 169, 110, 0.4);
+}
 
-/* ── Banners ──────────────────────────────────────────────── */
+/* ── Banners ──────────────────────────────────────────────────── */
 .astaff-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 12px 24px 0;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.83rem;
+  margin: 14px 26px 0;
+  padding: 11px 16px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .astaff-banner--success {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
+  background: #f6fdf8;
+  color: #2d7a4f;
+  border: 1px solid #b8e8ca;
 }
 .astaff-banner--error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: #fdf6f5;
+  color: #9a3020;
+  border: 1px solid #e8c4bc;
 }
 
-/* ── Form ─────────────────────────────────────────────────── */
+/* ── Form ─────────────────────────────────────────────────────── */
 .astaff-form {
-  padding: 20px 24px 24px;
+  padding: 22px 26px 26px;
 }
 
 .astaff-section-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #94a3b8;
-  margin-bottom: 10px;
+  color: var(--lp-gold-dark);
+  margin-bottom: 12px;
 }
 
 .astaff-row {
@@ -136,7 +168,6 @@
   margin-bottom: 14px;
 }
 
-/* Full-width single field row */
 .astaff-row > .astaff-field:only-child {
   grid-column: 1 / -1;
   max-width: calc(50% - 7px);
@@ -145,16 +176,18 @@
 .astaff-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .astaff-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #374151;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--lp-charcoal);
 }
 
-/* ── Input wrapper (icon + input/select) ──────────────────── */
+/* ── Input wrapper ────────────────────────────────────────────── */
 .astaff-input-wrap {
   position: relative;
   display: flex;
@@ -164,7 +197,7 @@
 .astaff-icon {
   position: absolute;
   left: 11px;
-  color: #94a3b8;
+  color: var(--lp-gold);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -172,44 +205,45 @@
 .astaff-input-wrap input,
 .astaff-input-wrap select {
   width: 100%;
-  padding: 9px 12px 9px 34px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 9px;
+  padding: 10px 13px 10px 35px;
+  border: 1px solid var(--lp-border);
+  font-family: 'Jost', sans-serif;
   font-size: 0.85rem;
-  color: #0f172a;
-  background: #f8fafc;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  color: var(--lp-charcoal);
+  background: var(--lp-warm-white);
+  transition: border-color 0.18s var(--lp-ease), box-shadow 0.18s var(--lp-ease), background 0.18s;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
+  border-radius: 2px;
 }
 
-.astaff-input-wrap input::placeholder { color: #cbd5e1; }
+.astaff-input-wrap input::placeholder { color: #b8b0a4; }
 
 .astaff-input-wrap input:focus,
 .astaff-input-wrap select:focus {
-  border-color: #6366f1;
+  border-color: var(--lp-gold);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 3px var(--lp-gold-pale);
 }
 
 .astaff-input-wrap input.err,
 .astaff-input-wrap select.err {
-  border-color: #ef4444;
+  border-color: #c9634e;
   background: #fff;
 }
 .astaff-input-wrap input.err:focus,
 .astaff-input-wrap select.err:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 0 3px rgba(201, 99, 78, 0.1);
 }
 
 /* Select chevron */
 .astaff-input-wrap select {
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c9a96e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 32px;
+  background-position: right 11px center;
+  padding-right: 34px;
 }
 
 .astaff-input-wrap select:disabled {
@@ -217,79 +251,79 @@
   cursor: not-allowed;
 }
 
-/* Date input */
-.astaff-input-wrap input[type="date"] {
-  color: #475569;
-}
-
-/* Number input arrows */
+.astaff-input-wrap input[type="date"] { color: var(--lp-text-muted); }
 .astaff-input-wrap input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 
 .astaff-error {
-  font-size: 0.74rem;
-  color: #ef4444;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  color: #9a3020;
   margin-top: 1px;
+  letter-spacing: 0.02em;
 }
 
-/* ── Footer ───────────────────────────────────────────────── */
+/* ── Footer ───────────────────────────────────────────────────── */
 .astaff-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--lp-border);
 }
 
 .astaff-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 20px;
-  border-radius: 9px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  gap: 7px;
+  padding: 10px 22px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
   border: none;
-  transition: all 0.15s;
+  transition: all 0.2s var(--lp-ease);
 }
 
 .astaff-btn--cancel {
-  background: #f1f5f9;
-  color: #475569;
+  background: transparent;
+  color: var(--lp-text-muted);
+  border: 1px solid var(--lp-border);
 }
 .astaff-btn--cancel:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--lp-parchment);
+  color: var(--lp-charcoal);
+  border-color: #c8c0b4;
 }
 
 .astaff-btn--submit {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: var(--lp-gold);
   color: #fff;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 10px rgba(201, 169, 110, 0.3);
 }
 .astaff-btn--submit:hover:not(:disabled) {
+  background: var(--lp-gold-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 18px rgba(201, 169, 110, 0.38);
 }
 .astaff-btn--submit:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
 /* Spinner */
-.spin {
-  animation: spin 0.8s linear infinite;
-}
+.spin { animation: spin 0.8s linear infinite; }
 @keyframes spin {
-  from { transform: rotate(0deg);   }
+  from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* ── Responsive ───────────────────────────────────────────── */
+/* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 520px) {
-  .astaff-modal { border-radius: 12px; }
+  .astaff-modal { border-radius: 3px; }
   .astaff-row { grid-template-columns: 1fr; }
   .astaff-row > .astaff-field:only-child { max-width: 100%; }
 }

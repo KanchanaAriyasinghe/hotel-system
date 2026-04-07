@@ -2,8 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
-* {
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL DESIGN TOKENS — shared with LandingPage
+═══════════════════════════════════════════════════════════ */
+:root {
+  /* Core palette */
+  --lp-cream:        #faf8f4;
+  --lp-warm-white:   #f5f2ec;
+  --lp-parchment:    #ede9e0;
+  --lp-charcoal:     #1c1a17;
+  --lp-charcoal-2:   #252220;
+  --lp-charcoal-3:   #2e2b27;
+  --lp-dark-bg:      #0e0d0b;
+  --lp-brown:        #3d2b1f;
+
+  /* Gold tones */
+  --lp-gold:         #c9a96e;
+  --lp-gold-light:   #e8d5b0;
+  --lp-gold-dark:    #9a7a45;
+  --lp-gold-pale:    rgba(201, 169, 110, 0.12);
+
+  /* Text */
+  --lp-text:         #1c1a17;
+  --lp-text-muted:   #7a7068;
+  --lp-text-light:   rgba(255, 255, 255, 0.72);
+  --lp-text-faint:   rgba(255, 255, 255, 0.35);
+
+  /* Borders */
+  --lp-border:       #e3ddd5;
+  --lp-border-dark:  rgba(255, 255, 255, 0.07);
+
+  /* Radius */
+  --lp-radius:       3px;
+  --lp-radius-md:    6px;
+
+  /* Shadows */
+  --lp-shadow:       0 2px 16px rgba(28, 26, 23, 0.08);
+  --lp-shadow-hover: 0 12px 40px rgba(28, 26, 23, 0.16);
+
+  /* Transitions */
+  --lp-ease:         cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Dashboard specific */
+  --dash-sidebar-bg:     #13110e;
+  --dash-sidebar-border: #2a2620;
+  --dash-sidebar-width:  240px;
+  --dash-content-bg:     #f5f2ec;
+  --dash-card-bg:        #ffffff;
+  --dash-card-border:    #e3ddd5;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -15,27 +67,25 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Jost', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
+  background-color: var(--lp-warm-white);
+  color: var(--lp-text);
 }
 
-/* Scrollbar Styles */
+/* ── Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--lp-parchment);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #667eea;
-  border-radius: 5px;
+  background: var(--lp-gold);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #764ba2;
+  background: var(--lp-gold-dark);
 }

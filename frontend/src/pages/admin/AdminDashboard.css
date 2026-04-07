@@ -1,134 +1,114 @@
-/* frontend/src/pages/admin/AdminDashboard.css
-   Sidebar has moved to AdminLayout — this file is content-area only. */
+/* frontend/src/pages/admin/AdminDashboard.css */
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap');
 
-:root {
-  --sidebar-w:      240px;
-  --sidebar-bg:     #0f0f14;
-  --sidebar-text:   #9ca3af;
-  --sidebar-accent: #6366f1;
-
-  --bg:             #f8f7ff;
-  --surface:        #ffffff;
-  --border:         #e8e6f0;
-  --text-primary:   #1a1625;
-  --text-secondary: #6b6880;
-
-  --radius:    14px;
-  --radius-sm: 8px;
-  --shadow:    0 2px 12px rgba(0,0,0,0.06);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
-}
-
-/* ── Content wrapper ──────────────────────────────────────────── */
-/* .adash no longer holds the sidebar — it's just the page content */
+/* ── Content wrapper ─────────────────────────────────────────── */
 .adash {
   flex: 1;
-  padding: 28px 32px;
+  padding: 2.5rem 2.75rem;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  background: var(--bg);
-  font-family: 'DM Sans', sans-serif;
-  color: var(--text-primary);
+  gap: 1.75rem;
+  background: var(--bg, #faf8f4);
+  font-family: 'Jost', sans-serif;
+  color: var(--text-primary, #1c1a17);
   min-height: 100vh;
 }
 
-/* ── Header ───────────────────────────────────────────────────── */
+/* ── Header ──────────────────────────────────────────────────── */
 .adash-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border, #e3ddd5);
 }
 
 .adash-greeting {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.65rem;
+  font-weight: 400;
+  color: var(--text-primary, #1c1a17);
   margin: 0 0 4px;
+  line-height: 1.1;
 }
 
-.adash-greeting strong { color: #6366f1; }
+.adash-greeting strong { color: var(--gold-dark, #9a7a45); font-weight: 600; }
 
 .adash-date {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 0.76rem;
+  color: var(--text-secondary, #7a7068);
   margin: 0;
+  letter-spacing: 0.05em;
 }
 
-.adash-header-right { display: flex; align-items: center; gap: 12px; }
+.adash-header-right { display: flex; align-items: center; gap: 10px; }
 
 .adash-refresh-btn {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
+  width: 36px; height: 36px;
+  border: 1px solid var(--border, #e3ddd5);
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #7a7068);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.18s;
 }
 
-.adash-refresh-btn:hover { background: #f0efff; color: #6366f1; border-color: #c7d2fe; }
-.adash-refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+.adash-refresh-btn:hover { background: var(--gold-pale, rgba(201,169,110,0.10)); color: var(--gold-dark, #9a7a45); border-color: rgba(201,169,110,0.3); }
+.adash-refresh-btn.spinning svg { animation: adash-spin 0.8s linear infinite; }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes adash-spin { to { transform: rotate(360deg); } }
 
 .adash-user-chip {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 14px 6px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 40px;
-  box-shadow: var(--shadow);
+  padding: 5px 12px 5px 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e3ddd5);
 }
 
 .adash-role-badge {
-  font-size: 12px;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #6366f1;
-  background: #eef2ff;
+  color: var(--gold-dark, #9a7a45);
+  background: var(--gold-pale, rgba(201,169,110,0.10));
   padding: 2px 8px;
-  border-radius: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .adash-avatar {
-  width: 32px; height: 32px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-/* ── Stats ────────────────────────────────────────────────────── */
+/* ── Stats ───────────────────────────────────────────────────── */
 .adash-stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+  gap: 1rem;
 }
 
 .adash-stat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e3ddd5);
+  border-top: 2px solid var(--stat-color, var(--gold, #c9a96e));
+  padding: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow);
+  gap: 12px;
   transition: transform 0.18s, box-shadow 0.18s;
 }
 
 .adash-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(28,26,23,0.13));
 }
 
 .adash-stat-icon {
-  width: 44px; height: 44px;
-  border-radius: 12px;
+  width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -142,25 +122,27 @@
 }
 
 .adash-stat-label {
-  font-size: 11.5px;
-  color: var(--text-secondary);
+  font-size: 0.68rem;
+  color: var(--text-secondary, #7a7068);
   font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .adash-stat-value {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #1c1a17);
   line-height: 1.1;
 }
 
 .adash-stat-note {
-  font-size: 10.5px;
-  color: var(--text-secondary);
+  font-size: 0.68rem;
+  color: var(--text-secondary, #7a7068);
   opacity: 0.7;
   white-space: nowrap;
   overflow: hidden;
@@ -169,60 +151,64 @@
 
 .adash-stat-trend { opacity: 0.3; flex-shrink: 0; }
 
-/* ── Bottom grid ──────────────────────────────────────────────── */
+/* ── Bottom grid ─────────────────────────────────────────────── */
 .adash-grid {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  gap: 20px;
+  gap: 1.5rem;
   align-items: start;
 }
 
 .adash-right-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.5rem;
 }
 
-/* ── Card ─────────────────────────────────────────────────────── */
+/* ── Card ────────────────────────────────────────────────────── */
 .adash-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e3ddd5);
+  padding: 1.5rem;
+  box-shadow: var(--shadow, 0 2px 12px rgba(28,26,23,0.07));
 }
 
 .adash-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 1.25rem;
 }
 
 .adash-card-header h3 {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-family: 'Syne', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 7px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-secondary, #7a7068);
 }
 
 .adash-badge {
-  font-size: 11.5px;
+  font-size: 0.68rem;
   font-weight: 600;
-  color: #6366f1;
-  background: #eef2ff;
-  padding: 3px 9px;
-  border-radius: 20px;
+  color: var(--gold-dark, #9a7a45);
+  background: var(--gold-pale, rgba(201,169,110,0.10));
+  padding: 2px 8px;
+  letter-spacing: 0.06em;
 }
 
 .adash-view-all-btn {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6366f1;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-dark, #9a7a45);
   background: none;
   border: none;
   cursor: pointer;
@@ -231,208 +217,195 @@
 }
 .adash-view-all-btn:hover { opacity: 0.7; }
 
-/* ── Table ────────────────────────────────────────────────────── */
+/* ── Table ───────────────────────────────────────────────────── */
 .adash-table-wrap { overflow-x: auto; }
 
 .adash-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 0.85rem;
 }
 
 .adash-table th {
   text-align: left;
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: 0.04em;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary, #7a7068);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-  background: #fafafe;
+  border-bottom: 1px solid var(--border, #e3ddd5);
+  background: var(--bg, #faf8f4);
 }
 
 .adash-table td {
-  padding: 10px 10px;
-  border-bottom: 1px solid #f5f4fc;
-  color: var(--text-primary);
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border, #e3ddd5);
+  color: var(--text-primary, #1c1a17);
 }
 
 .adash-table tr:last-child td { border-bottom: none; }
-.adash-table tr:hover td      { background: #fafafe; }
+.adash-table tr:hover td      { background: var(--gold-pale, rgba(201,169,110,0.05)); }
 
 .room-num {
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  color: #6366f1;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--gold-dark, #9a7a45);
 }
 
 .capitalize { text-transform: capitalize; }
 
 .adash-status-pill {
   display: inline-block;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 11.5px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: capitalize;
+  letter-spacing: 0.04em;
 }
 
-.pill--green { background: #dcfce7; color: #16a34a; }
-.pill--amber { background: #fef3c7; color: #d97706; }
-.pill--blue  { background: #eef2ff; color: #6366f1; }
-.pill--red   { background: #fef2f2; color: #ef4444; }
+.pill--green  { background: rgba(58,122,80,0.08);   color: #3a7a50; border: 1px solid rgba(58,122,80,0.18); }
+.pill--amber  { background: rgba(201,169,110,0.12); color: #9a7a45; border: 1px solid rgba(201,169,110,0.25); }
+.pill--blue   { background: rgba(30,80,160,0.07);   color: #1e50a0; border: 1px solid rgba(30,80,160,0.16); }
+.pill--red    { background: rgba(180,60,60,0.08);   color: #a04040; border: 1px solid rgba(180,60,60,0.18); }
+.pill--purple { background: rgba(120,60,200,0.07);  color: #7840c0; border: 1px solid rgba(120,60,200,0.16); }
 
 .adash-table-more {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: var(--text-secondary, #7a7068);
   text-align: center;
-  padding: 10px 0 0;
+  padding: 0.75rem 0 0;
   margin: 0;
 }
 
-/* ── Reservations breakdown ───────────────────────────────────── */
+/* ── Reservations breakdown ──────────────────────────────────── */
 .adash-res-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
 }
 
 .adash-res-item {
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  padding: 1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  background: var(--bg, #faf8f4);
+  border: 1px solid var(--border, #e3ddd5);
 }
 
 .adash-res-value {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  font-weight: 600;
 }
 
 .adash-res-label {
-  font-size: 11.5px;
-  color: var(--text-secondary);
+  font-size: 0.68rem;
+  color: var(--text-secondary, #7a7068);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-/* ── Recent reservations ──────────────────────────────────────── */
+/* ── Recent reservations ─────────────────────────────────────── */
 .adash-recent-title {
-  font-size: 11.5px;
+  font-size: 0.65rem;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #7a7068);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 10px;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.75rem;
 }
 
 .adash-recent-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f4fc;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border, #e3ddd5);
 }
 
 .adash-recent-row:last-child { border-bottom: none; }
 
-.adash-recent-name {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 2px;
-  color: var(--text-primary);
-}
+.adash-recent-name  { font-size: 0.85rem; font-weight: 500; margin: 0 0 1px; color: var(--text-primary, #1c1a17); }
+.adash-recent-dates { font-size: 0.72rem; color: var(--text-secondary, #7a7068); margin: 0; }
 
-.adash-recent-dates {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* ── Quick actions ────────────────────────────────────────────── */
+/* ── Quick actions ───────────────────────────────────────────── */
 .adash-action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
 .adash-action-btn {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 14px;
-  background: #fafafe;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  gap: 5px;
+  padding: 1rem;
+  background: var(--bg, #faf8f4);
+  border: 1px solid var(--border, #e3ddd5);
+  border-left: 2px solid var(--accent, var(--gold, #c9a96e));
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Jost', sans-serif;
   text-align: left;
   transition: all 0.18s;
-  border-left: 3px solid var(--accent, #6366f1);
 }
 
 .adash-action-btn:hover {
-  background: color-mix(in srgb, var(--accent, #6366f1) 8%, white);
-  border-color: var(--accent, #6366f1);
+  background: var(--gold-pale, rgba(201,169,110,0.08));
+  border-color: var(--gold, #c9a96e);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent, #6366f1) 20%, transparent);
 }
 
 .adash-action-icon {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent, #6366f1) 12%, white);
-  color: var(--accent, #6366f1);
+  width: 32px; height: 32px;
+  background: var(--gold-pale, rgba(201,169,110,0.10));
+  color: var(--gold-dark, #9a7a45);
   display: flex; align-items: center; justify-content: center;
 }
 
-.adash-action-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.adash-action-desc  { font-size: 11px; color: var(--text-secondary); }
+.adash-action-label { font-size: 0.82rem; font-weight: 500; color: var(--text-primary, #1c1a17); }
+.adash-action-desc  { font-size: 0.72rem; color: var(--text-secondary, #7a7068); }
 
-/* ── Loading ──────────────────────────────────────────────────── */
+/* ── Loading ─────────────────────────────────────────────────── */
 .adash-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  gap: 16px;
-  background: var(--bg);
-  color: var(--text-secondary);
-  font-family: 'DM Sans', sans-serif;
+  gap: 1.25rem;
+  background: var(--bg, #faf8f4);
+  color: var(--text-secondary, #7a7068);
+  font-family: 'Jost', sans-serif;
 }
 
 .adash-spinner {
-  width: 36px; height: 36px;
-  border: 3px solid #e8e6f0;
-  border-top-color: #6366f1;
+  width: 32px; height: 32px;
+  border: 2px solid var(--border, #e3ddd5);
+  border-top-color: var(--gold, #c9a96e);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: adash-spin 0.8s linear infinite;
 }
 
-/* ── Empty ────────────────────────────────────────────────────── */
+/* ── Empty ───────────────────────────────────────────────────── */
 .adash-empty {
-  font-size: 13px;
-  color: var(--text-secondary);
-  padding: 12px 0 4px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #7a7068);
+  padding: 1rem 0 4px;
   margin: 0;
+  font-style: italic;
 }
 
-/* ── Responsive ───────────────────────────────────────────────── */
-@media (max-width: 1280px) {
-  .adash-stats { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 1024px) {
-  .adash-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-  .adash { padding: 20px 16px; }
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1280px) { .adash-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1024px) { .adash-grid  { grid-template-columns: 1fr; } }
+@media (max-width: 768px)  {
+  .adash { padding: 1.5rem 1.25rem; }
   .adash-stats { grid-template-columns: 1fr 1fr; }
 }
