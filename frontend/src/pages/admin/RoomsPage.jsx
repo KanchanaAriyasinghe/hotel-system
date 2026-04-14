@@ -44,6 +44,22 @@ const TYPE_COLORS = {
   family: '#10b981',
 };
 
+// Safe string helper — never pass raw object to JSX
+const str = (v) => (v == null ? '' : String(v));
+
+// ── Normalise an amenity entry that may be a populated object OR a plain id ──
+const getAmenityDisplay = (a) => {
+  if (a !== null && typeof a === 'object') {
+    return {
+      id:    str(a._id),
+      label: str(a.label || a.name),
+      icon:  str(a.icon),
+    };
+  }
+  // fallback: raw ObjectId string
+  return { id: str(a), label: str(a), icon: '' };
+};
+
 const RoomsPage = () => {
   const navigate = useNavigate();
   const [rooms,         setRooms]         = useState([]);
@@ -84,7 +100,7 @@ const RoomsPage = () => {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/rooms`, getAuthHeaders());
+      const res     = await axios.get(`${API}/rooms`, getAuthHeaders());
       const fetched = res.data?.data ?? [];
       setRooms(fetched);
       fetchBookingStatuses(fetched);
@@ -108,7 +124,6 @@ const RoomsPage = () => {
     try {
       await axios.delete(`${API}/rooms/${id}`, getAuthHeaders());
       setRooms(prev => prev.filter(r => r._id !== id));
-      // Remove from booking status map too
       setBookingStatusMap(prev => {
         const next = { ...prev };
         delete next[id];
@@ -125,12 +140,12 @@ const RoomsPage = () => {
   // ── Filtered list ──────────────────────────────────────────
   const filtered = rooms.filter(r => {
     const matchSearch = search === '' ||
-      r.roomNumber.toLowerCase().includes(search.toLowerCase()) ||
-      r.roomType.toLowerCase().includes(search.toLowerCase());
+      str(r.roomNumber).toLowerCase().includes(search.toLowerCase()) ||
+      str(r.roomType).toLowerCase().includes(search.toLowerCase());
     const matchType   = filterType   === 'all' || r.roomType === filterType;
     const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
 
-    const bStatus = bookingStatusMap[r._id]?.bookingStatus ?? null;
+    const bStatus     = bookingStatusMap[r._id]?.bookingStatus ?? null;
     const matchBooking = filterBooking === 'all' ||
       (filterBooking === 'not-booked' ? bStatus === null : bStatus === filterBooking);
 
@@ -147,7 +162,6 @@ const RoomsPage = () => {
   const goPrev = () => goTo(safePage - 1);
   const goNext = () => goTo(safePage + 1);
 
-  // Build visible page numbers (max 5 shown, with ellipsis logic)
   const pageNumbers = () => {
     if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     if (safePage <= 3)   return [1, 2, 3, 4, '…', totalPages];
@@ -293,46 +307,55 @@ const RoomsPage = () => {
                   const bMeta = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
                   const BIcon = bMeta.Icon;
 
+                  // ── Normalise amenities — handle both populated objects and raw IDs ──
+                  const amenityList = (room.amenities || []).map(getAmenityDisplay);
+
                   return (
                     <tr
                       key={room._id || i}
                       className="rp-row"
                       onClick={() => navigate(`/admin/rooms/${room._id}`)}
                     >
-                      <td><span className="rp-room-num">#{room.roomNumber}</span></td>
+                      <td><span className="rp-room-num">#{str(room.roomNumber)}</span></td>
                       <td>
                         <span
                           className="rp-type-badge"
                           style={{ '--type-color': TYPE_COLORS[room.roomType] || '#6366f1' }}
                         >
-                          {room.roomType}
+                          {str(room.roomType)}
                         </span>
                       </td>
-                      <td className="rp-floor">Floor {room.floor}</td>
-                      <td className="rp-capacity">{room.capacity} guest{room.capacity !== 1 ? 's' : ''}</td>
-                      <td className="rp-price"><strong>${room.pricePerNight}</strong></td>
+                      <td className="rp-floor">Floor {str(room.floor)}</td>
+                      <td className="rp-capacity">{str(room.capacity)} guest{room.capacity !== 1 ? 's' : ''}</td>
+                      <td className="rp-price"><strong>${str(room.pricePerNight)}</strong></td>
+
+                      {/* ── Amenities — rendered from normalised objects ── */}
                       <td>
                         <div className="rp-amenity-chips">
-                          {(room.amenities || []).slice(0, 3).map(a => (
-                            <span key={a} className="rp-amenity-chip">{a}</span>
-                          ))}
-                          {(room.amenities || []).length > 3 && (
-                            <span className="rp-amenity-chip rp-amenity-more">
-                              +{room.amenities.length - 3}
-                            </span>
-                          )}
-                          {(room.amenities || []).length === 0 && (
+                          {amenityList.length === 0 && (
                             <span className="rp-amenity-none">—</span>
+                          )}
+                          {amenityList.slice(0, 3).map(a => (
+                            <span key={a.id} className="rp-amenity-chip" title={a.label}>
+                              {a.icon && <span style={{ marginRight: 3 }}>{a.icon}</span>}
+                              {a.label}
+                            </span>
+                          ))}
+                          {amenityList.length > 3 && (
+                            <span className="rp-amenity-chip rp-amenity-more">
+                              +{amenityList.length - 3}
+                            </span>
                           )}
                         </div>
                       </td>
+
                       <td>
                         <span className={`rp-status-pill ${sm.cls}`}>
                           <sm.Icon size={11} /> {sm.label}
                         </span>
                       </td>
 
-                      {/* Booking Status */}
+                      {/* ── Booking Status ── */}
                       <td onClick={e => e.stopPropagation()}>
                         {bookingStatusLoading && !bookingStatusMap[room._id] ? (
                           <span className="rp-bstatus-skeleton" />
@@ -342,7 +365,7 @@ const RoomsPage = () => {
                               <BIcon size={11} /> {bMeta.label}
                             </span>
                             {bInfo?.guestName && bKey !== 'cancelled' && bKey !== null && (
-                              <span className="rp-bstatus-guest">{bInfo.guestName}</span>
+                              <span className="rp-bstatus-guest">{str(bInfo.guestName)}</span>
                             )}
                           </div>
                         )}

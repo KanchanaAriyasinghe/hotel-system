@@ -1,12 +1,16 @@
 // frontend/src/pages/LandingPage.jsx
+//
+// Amenities section:
+//   1. hotel.amenities from GET /api/hotel/public → array of amenity NAME strings
+//   2. GET /api/amenities?active=true → full Amenity objects (for icon + label)
+//   We join them: show full Amenity data for each name found in hotel.amenities.
+//   If a name has no matching Amenity object, fall back to displaying the name directly.
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MapPin, Phone, MessageCircle, Mail, ChevronDown,
-  Wifi, Waves, Droplets, UtensilsCrossed, Wine, Dumbbell,
-  Users, Home, Heart, Star, Zap, Tv, Car, Coffee,
-  AlertCircle, Loader, Play,
+  AlertCircle, Loader, Play, Star,
 } from 'lucide-react';
 import axios from 'axios';
 import AuthModal from '../components/AuthModal';
@@ -19,31 +23,6 @@ import spa       from '../assets/gallery/spa.jpeg';
 import background from '../assets/background.jpg';
 
 const API = process.env.REACT_APP_API_URL;
-
-// ── Amenity icon map ──────────────────────────────────────────────
-const AMENITY_ICONS = {
-  wifi:        <Wifi size={28} />,
-  pool:        <Waves size={28} />,
-  spa:         <Droplets size={28} />,
-  restaurant:  <UtensilsCrossed size={28} />,
-  bar:         <Wine size={28} />,
-  gym:         <Dumbbell size={28} />,
-  parking:     <Car size={28} />,
-  breakfast:   <Coffee size={28} />,
-  concierge:   <Heart size={28} />,
-  laundry:     <Home size={28} />,
-  rooftop:     <Star size={28} />,
-  lounge:      <Users size={28} />,
-  family:      <Users size={28} />,
-  premium:     <Star size={28} />,
-  ac:          <Zap size={28} />,
-  tv:          <Tv size={28} />,
-};
-
-const getAmenityIcon = (amenity) =>
-  AMENITY_ICONS[amenity?.toLowerCase()] || <Star size={28} />;
-
-const formatAmenity = (a) => a.charAt(0).toUpperCase() + a.slice(1);
 
 // ── Star rating component ─────────────────────────────────────────
 const StarRating = ({ count = 5 }) => (
@@ -60,22 +39,25 @@ const LandingPage = () => {
   const [hotelInfo,     setHotelInfo]     = useState(null);
   const [loadingHotel,  setLoadingHotel]  = useState(true);
   const [hotelError,    setHotelError]    = useState('');
+
+  // Full Amenity objects fetched from /api/amenities (public-accessible or fallback)
+  const [amenityObjects, setAmenityObjects] = useState([]);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authType,      setAuthType]      = useState('login');
   const [scrolled,      setScrolled]      = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
+  const [showVideo,     setShowVideo]     = useState(false);
 
-  // ── Navbar scroll effect ────────────────────────────────────────
+  // Navbar scroll effect
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ── Fetch public hotel data ─────────────────────────────────────
+  // Fetch public hotel data
   useEffect(() => {
     let cancelled = false;
-
     const fetchHotel = async () => {
       setLoadingHotel(true);
       setHotelError('');
@@ -95,9 +77,26 @@ const LandingPage = () => {
         if (!cancelled) setLoadingHotel(false);
       }
     };
-
     fetchHotel();
     return () => { cancelled = true; };
+  }, []);
+
+  // Fetch full amenity objects for icon + label lookup
+  // Uses the public hotel endpoint then fetches amenities (no auth needed on landing page,
+  // so we try the public endpoint first — if 401 we gracefully fall back to name display only)
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      try {
+        // Try without auth (for public landing page)
+        const res = await axios.get(`${API}/amenities?active=true`);
+        setAmenityObjects(res.data?.data ?? []);
+      } catch {
+        // If auth is required (401/403), silently leave amenityObjects empty
+        // — the landing page will fall back to name + default icon rendering
+        setAmenityObjects([]);
+      }
+    };
+    fetchAmenities();
   }, []);
 
   const handleAuthClick = (type) => {
@@ -105,7 +104,26 @@ const LandingPage = () => {
     setShowAuthModal(true);
   };
 
-  // ── Loading screen ──────────────────────────────────────────────
+  // ── Build displayable amenities list ─────────────────────────────
+  // hotel.amenities = ['wifi', 'pool', 'spa', ...] (name strings)
+  // We enrich each with the matching Amenity object if available
+  const buildAmenityDisplay = () => {
+    if (!hotelInfo?.amenities?.length) return [];
+
+    return hotelInfo.amenities.map(amenityName => {
+      const obj = amenityObjects.find(a => a.name === amenityName);
+      return {
+        name:  amenityName,
+        label: obj?.label || (amenityName.charAt(0).toUpperCase() + amenityName.slice(1)),
+        icon:  obj?.icon  || '✦',
+        // obj may have description, price, etc. — not needed on landing page
+      };
+    });
+  };
+
+  const amenityDisplay = buildAmenityDisplay();
+
+  // Loading screen
   if (loadingHotel) {
     return (
       <div className="lp-loading">
@@ -120,7 +138,7 @@ const LandingPage = () => {
     );
   }
 
-  // ── Error screen ────────────────────────────────────────────────
+  // Error screen
   if (hotelError && !hotelInfo) {
     return (
       <div className="lp-error">
@@ -130,7 +148,6 @@ const LandingPage = () => {
     );
   }
 
-  // ── Derived values ──────────────────────────────────────────────
   const hasLocation = hotelInfo?.location?.latitude && hotelInfo?.location?.longitude;
   const lat = hotelInfo?.location?.latitude;
   const lng = hotelInfo?.location?.longitude;
@@ -145,14 +162,12 @@ const LandingPage = () => {
             <span className="nav-logo-icon">🏨</span>
             <span className="nav-logo-name">{hotelInfo?.name}</span>
           </div>
-
           <ul className="nav-links">
             <li><a href="#gallery">Gallery</a></li>
             <li><a href="#amenities">Amenities</a></li>
             <li><a href="#location">Location</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
-
           <button className="auth-nav-btn" onClick={() => handleAuthClick('login')}>
             Staff Portal
           </button>
@@ -162,32 +177,23 @@ const LandingPage = () => {
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section
         className="hero-section"
-        style={{
-          backgroundImage: `url(${background})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
+        style={{ backgroundImage: `url(${background})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
         <div className="hero-overlay" />
         <div className="hero-grain" />
-
         <div className="hero-content">
           <div className="hero-eyebrow">
             <span className="hero-eyebrow-line" />
             Modern Luxury and Timeless Living
           </div>
-
           <StarRating count={5} />
-
           <h1 className="hero-title">
             <em>Welcome to Our Luxurious</em>
             <strong>{hotelInfo?.name || 'Hotel & Resort'}</strong>
           </h1>
-
           {hotelInfo?.description && (
             <p className="hero-subtitle">{hotelInfo.description}</p>
           )}
-
           <div className="hero-buttons">
             <Link to="/booking" className="btn btn-gold">
               Book Apartments
@@ -200,8 +206,6 @@ const LandingPage = () => {
             </button>
           </div>
         </div>
-
-        {/* Decorative scroll indicator */}
         <div className="hero-scroll-hint">
           <span>Scroll</span>
           <div className="hero-scroll-line" />
@@ -275,19 +279,14 @@ const LandingPage = () => {
           </div>
           <h2 className="section-title">Our Exquisite Rooms Collections</h2>
         </div>
-
         <div className="gallery-grid">
           {[
-            { src: hotel,     label: 'Luxury Room',   price: '$300', tag: 'Royal Sapphire Suite' },
-            { src: pool,      label: 'Swimming Pool',  price: null,   tag: 'Pool & Wellness' },
-            { src: resturent, label: 'Restaurant',     price: null,   tag: 'Fine Dining' },
-            { src: spa,       label: 'Spa Center',     price: '$150', tag: 'Pearl Orchid Suite' },
+            { src: hotel,     label: 'Luxury Room',  price: '$300', tag: 'Royal Sapphire Suite' },
+            { src: pool,      label: 'Swimming Pool', price: null,   tag: 'Pool & Wellness' },
+            { src: resturent, label: 'Restaurant',    price: null,   tag: 'Fine Dining' },
+            { src: spa,       label: 'Spa Center',    price: '$150', tag: 'Pearl Orchid Suite' },
           ].map(({ src, label, price, tag }, idx) => (
-            <div
-              key={idx}
-              className="gallery-card"
-              onClick={() => window.location.href = '/gallery'}
-            >
+            <div key={idx} className="gallery-card" onClick={() => window.location.href = '/gallery'}>
               <div className="gallery-card-img-wrap">
                 <img src={src} alt={label} className="gallery-card-img" />
                 <div className="gallery-card-overlay" />
@@ -306,46 +305,40 @@ const LandingPage = () => {
             </div>
           ))}
         </div>
-
         <div className="gallery-action">
-          <Link to="/gallery" className="view-gallery-btn">
-            View Full Gallery
-          </Link>
+          <Link to="/gallery" className="view-gallery-btn">View Full Gallery</Link>
         </div>
       </section>
 
       {/* ── Feature / Video Strip ───────────────────────────────── */}
       <div className="feature-strip">
-  <div className="feature-bg" style={{ backgroundImage: `url(${pool})` }} />
-  <div className="feature-overlay" />
-  <div className="feature-content">
-    {!showVideo ? (
-      <button
-        className="play-btn"
-        aria-label="Play video"
-        onClick={() => setShowVideo(true)}
-      >
-        <Play size={22} fill="white" />
-      </button>
-    ) : (
-      <div className="feature-video-wrapper">
-        <iframe
-          width="100%"
-          height="100%"
-          src="https://www.youtube.com/embed/1Dt2sXECBXE?autoplay=1"
-          title="Hotel Experience Video"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
+        <div className="feature-bg" style={{ backgroundImage: `url(${pool})` }} />
+        <div className="feature-overlay" />
+        <div className="feature-content">
+          {!showVideo ? (
+            <button className="play-btn" aria-label="Play video" onClick={() => setShowVideo(true)}>
+              <Play size={22} fill="white" />
+            </button>
+          ) : (
+            <div className="feature-video-wrapper">
+              <iframe
+                width="100%"
+                height="100%"
+                src="https://www.youtube.com/embed/1Dt2sXECBXE?autoplay=1"
+                title="Hotel Experience Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+          <div className="feature-label">Experience the Difference</div>
+        </div>
       </div>
-    )}
-    <div className="feature-label">Experience the Difference</div>
-  </div>
-</div>
 
       {/* ── Amenities ──────────────────────────────────────────── */}
-      {hotelInfo?.amenities?.length > 0 && (
+      {/* Renders if hotel has amenities (strings) OR if we built display items */}
+      {amenityDisplay.length > 0 && (
         <section id="amenities" className="amenities-section">
           <div className="section-header">
             <div className="section-eyebrow section-eyebrow--centered">
@@ -357,12 +350,19 @@ const LandingPage = () => {
           </div>
 
           <div className="amenities-grid">
-            {hotelInfo.amenities.map((amenity, idx) => (
+            {amenityDisplay.map((amenity, idx) => (
               <div key={idx} className="amenity-card">
                 <div className="amenity-icon-wrap">
-                  {getAmenityIcon(amenity)}
+                  {/* Render the icon string from Amenity schema (emoji/unicode/text) */}
+                  {amenity.icon && amenity.icon !== '✦' ? (
+                    <span className="amenity-icon-char" aria-hidden="true">
+                      {amenity.icon}
+                    </span>
+                  ) : (
+                    <Star size={28} />
+                  )}
                 </div>
-                <h3 className="amenity-name">{formatAmenity(amenity)}</h3>
+                <h3 className="amenity-name">{amenity.label}</h3>
               </div>
             ))}
           </div>
@@ -372,7 +372,6 @@ const LandingPage = () => {
       {/* ── Location + Contact ──────────────────────────────────── */}
       <section id="location" className="location-section">
         <div className="location-container">
-
           {hasLocation && (
             <div className="map-wrapper">
               <div className="section-eyebrow">
@@ -380,12 +379,7 @@ const LandingPage = () => {
                 Find Us
               </div>
               <h2 className="map-title">Our Location</h2>
-              <MapComponent
-                latitude={lat}
-                longitude={lng}
-                hotelName={hotelInfo?.name}
-                address={hotelInfo?.address}
-              />
+              <MapComponent latitude={lat} longitude={lng} hotelName={hotelInfo?.name} address={hotelInfo?.address}/>
               {(hotelInfo?.address || hotelInfo?.city) && (
                 <p className="location-text">
                   <MapPin size={16} />
@@ -395,20 +389,16 @@ const LandingPage = () => {
             </div>
           )}
 
-          {/* Contact */}
           <div id="contact" className="contact-section">
             <div className="section-eyebrow">
               <span className="eyebrow-line" />
               Get In Touch
             </div>
-            <h2 className="contact-title">We'd love to<br /><em>host your next stay</em></h2>
-
+            <h2 className="contact-title">We'd love to<br/><em>host your next stay</em></h2>
             <div className="contact-grid">
               {hotelInfo?.phone && (
                 <a href={`tel:${hotelInfo.phone}`} className="contact-card">
-                  <div className="contact-icon-wrap">
-                    <Phone size={20} />
-                  </div>
+                  <div className="contact-icon-wrap"><Phone size={20} /></div>
                   <div className="contact-card-body">
                     <div className="contact-card-label">Call Us</div>
                     <div className="contact-card-value">{hotelInfo.phone}</div>
@@ -416,7 +406,6 @@ const LandingPage = () => {
                   </div>
                 </a>
               )}
-
               {hotelInfo?.whatsapp && (
                 <a
                   href={`https://wa.me/${hotelInfo.whatsapp.replace(/\D/g, '')}`}
@@ -424,9 +413,7 @@ const LandingPage = () => {
                   rel="noopener noreferrer"
                   className="contact-card contact-card--whatsapp"
                 >
-                  <div className="contact-icon-wrap contact-icon-wrap--whatsapp">
-                    <MessageCircle size={20} />
-                  </div>
+                  <div className="contact-icon-wrap contact-icon-wrap--whatsapp"><MessageCircle size={20} /></div>
                   <div className="contact-card-body">
                     <div className="contact-card-label">WhatsApp</div>
                     <div className="contact-card-value">Chat with us</div>
@@ -434,12 +421,9 @@ const LandingPage = () => {
                   </div>
                 </a>
               )}
-
               {hotelInfo?.email && (
                 <a href={`mailto:${hotelInfo.email}`} className="contact-card">
-                  <div className="contact-icon-wrap">
-                    <Mail size={20} />
-                  </div>
+                  <div className="contact-icon-wrap"><Mail size={20} /></div>
                   <div className="contact-card-body">
                     <div className="contact-card-label">Email Us</div>
                     <div className="contact-card-value">{hotelInfo.email}</div>
@@ -477,16 +461,14 @@ const LandingPage = () => {
         <div className="footer-content">
           <div className="footer-brand">
             <span className="footer-brand-name">{hotelInfo?.name}</span>
-            <span className="footer-brand-tagline">Luxury & Timeless Living</span>
+            <span className="footer-brand-tagline">Luxury &amp; Timeless Living</span>
           </div>
-
           <div className="footer-links">
             <a href="#gallery">Gallery</a>
             <a href="#amenities">Amenities</a>
             <a href="#location">Location</a>
             <a href="#" onClick={() => handleAuthClick('login')}>Login</a>
           </div>
-
           <p className="footer-copy">
             &copy; {new Date().getFullYear()} {hotelInfo?.name}. All rights reserved.
           </p>

@@ -36,12 +36,15 @@ const roomSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+
+    // ── Amenities — references the Amenity collection ──────────────────────────
     amenities: [
       {
-        type: String,
-        enum: ['wifi', 'pool', 'spa', 'restaurant', 'bar', 'gym', 'tv', 'ac'],
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Amenity',
       },
     ],
+
     status: {
       type: String,
       enum: ['available', 'occupied', 'maintenance', 'cleaning'],
@@ -49,8 +52,6 @@ const roomSchema = new mongoose.Schema(
     },
 
     // ── Assigned Housekeeper ───────────────────────────────────────────────────
-    // References a User whose role === 'housekeeper'.
-    // Optional — a room may not always have an assigned housekeeper.
     assignedHousekeeper: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -58,31 +59,27 @@ const roomSchema = new mongoose.Schema(
     },
 
     // ── Maintenance Reason ─────────────────────────────────────────────────────
-    // Only meaningful when status === 'maintenance'.
-    // Housekeeper can enter the reason; admin can read it.
-    // Automatically cleared when the room leaves maintenance status.
     maintenanceReason: {
       type: String,
       default: null,
       trim: true,
     },
 
-    images: [
-      {
-        type: String,
-        default: null,
-      },
-    ],
+    // ── Images ─────────────────────────────────────────────────────────────────
+    images: {
+      type: [String],
+      default: [],
+    },
+
     isActive: {
       type: Boolean,
       default: true,
     },
   },
-  { timestamps: true } // handles createdAt + updatedAt automatically
+  { timestamps: true }
 );
 
 // ── Middleware: clear maintenanceReason when status leaves 'maintenance' ───────
-// Runs on save() calls (e.g. from roomController.updateRoom)
 roomSchema.pre('save', function (next) {
   if (this.isModified('status') && this.status !== 'maintenance') {
     this.maintenanceReason = null;
@@ -90,7 +87,6 @@ roomSchema.pre('save', function (next) {
   next();
 });
 
-// Runs on findOneAndUpdate() calls
 roomSchema.pre('findOneAndUpdate', function (next) {
   const update = this.getUpdate();
   if (update.status && update.status !== 'maintenance') {
@@ -102,6 +98,6 @@ roomSchema.pre('findOneAndUpdate', function (next) {
 // ── Indexes ────────────────────────────────────────────────────────────────────
 roomSchema.index({ roomType: 1, status: 1 });
 roomSchema.index({ roomNumber: 1 });
-roomSchema.index({ assignedHousekeeper: 1 }); // quickly find rooms by housekeeper
+roomSchema.index({ assignedHousekeeper: 1 });
 
 module.exports = mongoose.model('Room', roomSchema);

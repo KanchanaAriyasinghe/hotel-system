@@ -673,3 +673,212 @@
 .rcb-room-search-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .rcb-room-hint { font-size: 0.72rem; color: #c9a96e; margin: 0; display: flex; align-items: center; gap: 4px; }
 .rcb-room-search-meta { font-size: 0.72rem; color: #7a7068; font-weight: 500; margin-bottom: 12px; }
+
+/* ════════════════════════════════════════════════════════
+   ReceptionistBookings.css — CHECK-IN TIME additions
+   Append to bottom of existing file
+   ════════════════════════════════════════════════════════ */
+
+/* ── Arrival time on booking card ───────────────────────────────── */
+.rcb-card-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9a7a45;
+  background: #f5ead5;
+  border: 1px solid rgba(201, 169, 110, 0.25);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.03em;
+}
+
+/* ── Saved booking time chip in multi-booking wizard ─────────────── */
+.rcb-saved-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #9a7a45;
+  background: #f5ead5;
+  padding: 2px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* ── CheckInTimeField sub-hint text ─────────────────────────────── */
+.rcb-field > span {
+  font-size: 0.63rem;
+  color: #9a9088;
+  font-style: italic;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ── Add-on subtitle label ──────────────────────────────────────── */
+.rcb-addon-subtitle {
+  font-weight: 400;
+  font-style: italic;
+  color: #9a9088;
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  margin-left: 4px;
+}
+
+/* ── Amenity count badge on booking card ────────────────────────── */
+.rcb-amenity-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #9a7a45;
+  background: #f5ead5;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* ── Built-in amenities display ─────────────────────────────────── */
+.rcb-builtin-amenities {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #edf5ee;
+  border: 1px solid #b8d8bc;
+  border-radius: 3px;
+}
+
+.rcb-builtin-amenities-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a5a35;
+  margin-bottom: 8px;
+}
+
+.rcb-builtin-amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rcb-builtin-amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #2a5a35;
+  background: #d5ead8;
+  padding: 3px 9px;
+  border-radius: 2px;
+}
+
+/* ── Amenity picker ─────────────────────────────────────────────── */
+.rcb-amenity-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rcb-amenity-chip-wrap {
+  border: 1px solid #e3ddd5;
+  border-radius: 3px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.rcb-amenity-chip-wrap.selected {
+  border-color: #c9a96e;
+}
+
+.rcb-amenity-chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: #faf8f4;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.rcb-amenity-chip-btn:hover   { background: #f5f0e6; }
+.rcb-amenity-chip-btn.selected { background: #f5ead5; }
+
+.rcb-amenity-icon  { font-size: 15px; flex-shrink: 0; }
+.rcb-amenity-label { font-size: 0.82rem; font-weight: 500; color: #1c1a17; flex: 1; }
+.rcb-amenity-price {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9a7a45;
+  background: #f5ead5;
+  padding: 2px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.rcb-amenity-price--free {
+  color: #2a5a35;
+  background: #d5ead8;
+}
+
+.rcb-amenity-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f5f0e6;
+  border-top: 1px solid #e3ddd5;
+  font-size: 0.78rem;
+  color: #7a7068;
+}
+.rcb-amenity-hours-row input {
+  width: 60px;
+  padding: 5px 8px;
+  border: 1px solid #e3ddd5;
+  border-radius: 3px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem;
+  color: #1c1a17;
+  background: #fff;
+  outline: none;
+}
+.rcb-amenity-hours-row input:focus {
+  border-color: #c9a96e;
+  box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.12);
+}
+.rcb-amenity-hours-row span { font-weight: 700; color: #9a7a45; }
+
+.rcb-amenity-daily-note {
+  padding: 7px 12px;
+  background: #f5f0e6;
+  border-top: 1px solid #e3ddd5;
+  font-size: 0.78rem;
+  color: #7a7068;
+}
+.rcb-amenity-daily-note strong { color: #9a7a45; font-weight: 700; }
+
+.rcb-amenity-placeholder {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #faf8f4;
+  border: 1px dashed #d5cfc5;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  color: #9a9088;
+  font-style: italic;
+}
+
+/* ── Summary room chip variant for included amenities ───────────── */
+.rcb-summary-room-chip--included {
+  background: #edf5ee;
+  color: #2a5a35;
+}

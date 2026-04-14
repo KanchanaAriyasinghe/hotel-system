@@ -6,20 +6,21 @@ import axios from 'axios';
 import {
   LogOut, Users, BarChart3, Settings,
   BedDouble, Calendar, ChevronRight,
-  Wifi, WifiOff, Moon, Sun,
+  Wifi, WifiOff, Moon, Sun, Sparkles,
 } from 'lucide-react';
 import admin from '../../assets/admin.png';
 import './AdminLayout.css';
-import './AdminDarkMode.css'; // ← separate file for all dark-mode overrides
+import './AdminDarkMode.css';
 
 const API = process.env.REACT_APP_API_URL;
 
 const NAV_ITEMS = [
-  { id: 'overview',     label: 'Overview',     Icon: BarChart3, path: '/admin/dashboard'    },
-  { id: 'rooms',        label: 'Rooms',         Icon: BedDouble, path: '/admin/rooms'        },
-  { id: 'reservations', label: 'Reservations',  Icon: Calendar,  path: '/admin/reservations' },
-  { id: 'users',        label: 'Users',         Icon: Users,     path: '/admin/users'        },
-  { id: 'settings',     label: 'Settings',      Icon: Settings,  path: '/admin/settings'     },
+  { id: 'overview',     label: 'Overview',     Icon: BarChart3,  path: '/admin/dashboard'    },
+  { id: 'rooms',        label: 'Rooms',         Icon: BedDouble,  path: '/admin/rooms'        },
+  { id: 'reservations', label: 'Reservations',  Icon: Calendar,   path: '/admin/reservations' },
+  { id: 'amenities',    label: 'Amenities',     Icon: Sparkles,   path: '/admin/amenities'    },
+  { id: 'users',        label: 'Users',         Icon: Users,      path: '/admin/users'        },
+  { id: 'settings',     label: 'Settings',      Icon: Settings,   path: '/admin/settings'     },
 ];
 
 const AdminLayout = () => {
@@ -36,12 +37,9 @@ const AdminLayout = () => {
     } catch { return false; }
   });
 
-  // Apply dark class to content area + body data-attribute (for portal modals)
   useEffect(() => {
     const content = document.getElementById('admin-content-area');
     if (content) content.classList.toggle('admin-content--dark', darkMode);
-
-    // body attribute lets portal-rendered modals know dark mode is active
     document.body.setAttribute('data-admin-dark', darkMode ? 'true' : 'false');
 
     try {
@@ -148,7 +146,7 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* ── Page content — dark class toggled here ───────────── */}
+      {/* ── Page content ─────────────────────────────────────── */}
       <div
         id="admin-content-area"
         className={`admin-content${darkMode ? ' admin-content--dark' : ''}`}

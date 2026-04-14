@@ -126,12 +126,61 @@ const guestHtmlWrap = (title, subtitle, bodyHtml) => `
     }
     .highlight-row .lbl { font-weight:700; color:#4f46e5; font-size:.9rem; }
     .highlight-row .val { font-size:1.15rem; font-weight:800; color:#4f46e5; }
+
+    /* ── Amenity tag pills ── */
     .amenity-list { padding: 10px 18px 14px; }
     .amenity-tag {
       display:inline-block; margin: 3px 4px 3px 0;
-      padding:3px 10px; background:#eef2ff; color:#6366f1;
-      border-radius:20px; font-size:.78rem; font-weight:600;
+      padding:4px 11px; border-radius:20px; font-size:.78rem; font-weight:600;
     }
+    .amenity-tag--free   { background:#f0fdf4; color:#16a34a; }
+    .amenity-tag--paid   { background:#eff6ff; color:#2563eb; }
+    .amenity-tag--addon  { background:#f5f3ff; color:#7c3aed; }
+
+    /* ── Amenity breakdown rows ── */
+    .amenity-breakdown-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 9px 18px; border-bottom:1px solid #f3f4f6;
+      font-size:.85rem;
+    }
+    .amenity-breakdown-row:last-child { border-bottom:none; }
+    .amenity-breakdown-row .ab-name  { color:#374151; font-weight:500; }
+    .amenity-breakdown-row .ab-qty   { color:#6b7280; font-size:.78rem; margin-top:1px; }
+    .amenity-breakdown-row .ab-price { font-weight:700; color:#111827; }
+    .amenity-breakdown-row .ab-price--free { color:#16a34a; font-weight:700; }
+
+    .amenity-subtotal-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 10px 18px;
+      background: #f0fdf4;
+      border-top: 1px solid #bbf7d0;
+      font-size:.85rem;
+    }
+    .amenity-subtotal-row .lbl { font-weight:600; color:#15803d; }
+    .amenity-subtotal-row .val { font-weight:700; color:#15803d; }
+
+    /* ── Bill breakdown ── */
+    .bill-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 9px 18px; border-bottom:1px solid #f3f4f6; font-size:.85rem;
+    }
+    .bill-row:last-child { border-bottom:none; }
+    .bill-row .lbl { color:#6b7280; }
+    .bill-row .val { font-weight:600; color:#111827; }
+    .bill-row--free .lbl { color:#6b7280; font-style:italic; }
+    .bill-row--free .val { color:#16a34a; font-weight:600; }
+    .bill-row--included-paid .lbl { color:#6b7280; font-style:italic; }
+    .bill-row--included-paid .val { color:#2563eb; font-weight:600; font-size:.8rem; }
+    .bill-total-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+      border-top: 2px solid #c7d2fe;
+    }
+    .bill-total-row .lbl { font-size:1rem; font-weight:700; color:#4f46e5; }
+    .bill-total-row .val { font-size:1.2rem; font-weight:800; color:#4f46e5; }
+
+    /* ── Notice boxes ── */
     .notice-box {
       border-radius: 10px;
       padding: 14px 18px;
@@ -145,6 +194,7 @@ const guestHtmlWrap = (title, subtitle, bodyHtml) => `
     .notice-box.warn    { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
     .notice-box.error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
     .notice-box.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+
     .footer  { background: #f9fafb; padding: 20px 36px; font-size:.78rem; color:#9ca3af; text-align:center; border-top:1px solid #f3f4f6; }
     .footer a { color: #6366f1; text-decoration: none; }
   </style>
@@ -190,6 +240,167 @@ const fmtDate = (d) =>
 
 const fmtDateTime = () =>
   new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+// ═══════════════════════════════════════════════════════════════════
+// CORE AMENITY + BILL HTML BUILDER
+// ═══════════════════════════════════════════════════════════════════
+/**
+ * Builds the full amenities + bill section for every guest-facing email.
+ *
+ * @param {Object[]} freeRoomAmenities    - Complimentary amenities on the room (price=0)
+ *                                          Each: { label, icon? }
+ * @param {Object[]} paidRoomAmenities    - Paid amenities already on the room (price>0)
+ *                                          Each: { label, price, icon? }
+ *                                          These are INCLUDED in the room rate (roomsTotal)
+ * @param {Object}   optionalBreakdown    - Guest-selected optional add-ons
+ *                                          { [id]: { name, price, quantity, unit, subtotal } }
+ * @param {number}   roomsTotal           - Room subtotal (covers room rate + paid room amenities)
+ * @param {number}   totalPrice           - Grand total
+ * @param {number}   nights               - Number of nights
+ * @param {string}   roomNumbers          - e.g. "#110"
+ * @param {string}   roomType             - e.g. "deluxe"
+ * @param {number}   pricePerNight        - Per-night room rate (before room amenities)
+ */
+const buildAmenitiesAndBillHtml = ({
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  optionalBreakdown  = {},
+  roomsTotal         = 0,
+  totalPrice         = 0,
+  nights             = 0,
+  roomNumbers        = '',
+  roomType           = '',
+  pricePerNight      = null,
+}) => {
+  const optionalEntries = Object.values(optionalBreakdown || {});
+  const paidOptionals   = optionalEntries.filter(i => i.subtotal > 0);
+  const freeOptionals   = optionalEntries.filter(i => i.subtotal === 0);
+  const optionalTotal   = paidOptionals.reduce((s, i) => s + i.subtotal, 0);
+
+  let html = '';
+
+  // ── Section 1: Complimentary room amenities (price = 0) ─────────────────
+  if (freeRoomAmenities.length > 0) {
+    const tags = freeRoomAmenities.map(a =>
+      `<span class="amenity-tag amenity-tag--free">✓ ${a.label}</span>`
+    ).join('');
+    html += `
+      <div class="detail-card">
+        <div class="detail-card-title">🎁 Complimentary Room Amenities (Included — Free)</div>
+        <div class="amenity-list">${tags}</div>
+      </div>`;
+  }
+
+  // ── Section 2: Paid room amenities (included in room rate) ──────────────
+  if (paidRoomAmenities.length > 0) {
+    const rows = paidRoomAmenities.map(a => `
+      <div class="amenity-breakdown-row">
+        <div>
+          <div class="ab-name">${a.icon ? a.icon + ' ' : ''}${a.label}</div>
+          <div class="ab-qty">Included in room rate</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="ab-price" style="color:#2563eb;">$${a.price}/night</div>
+        </div>
+      </div>`
+    ).join('');
+    html += `
+      <div class="detail-card">
+        <div class="detail-card-title">⭐ Paid Room Amenities (Included in Room Rate)</div>
+        ${rows}
+      </div>`;
+  }
+
+  // ── Section 3: Optional add-on amenities selected by guest ──────────────
+  if (paidOptionals.length > 0 || freeOptionals.length > 0) {
+    const rows = [
+      ...freeOptionals.map(item => `
+        <div class="amenity-breakdown-row">
+          <div>
+            <div class="ab-name">${item.name}</div>
+            <div class="ab-qty">${item.unit === 'flat' ? 'Flat rate' : `${item.quantity} ${item.unit}`}</div>
+          </div>
+          <div class="ab-price--free">FREE</div>
+        </div>`),
+      ...paidOptionals.map(item => `
+        <div class="amenity-breakdown-row">
+          <div>
+            <div class="ab-name">${item.name}</div>
+            <div class="ab-qty">
+              ${item.unit === 'flat'
+                ? 'Flat rate'
+                : `${item.quantity} ${item.unit} × $${item.price}/${item.unit === 'hours' ? 'hr' : 'day'}`}
+            </div>
+          </div>
+          <div class="ab-price">$${item.subtotal}</div>
+        </div>`),
+    ].join('');
+
+    html += `
+      <div class="detail-card">
+        <div class="detail-card-title">✨ Optional Add-on Amenities (Guest Selected)</div>
+        ${rows}
+        ${paidOptionals.length > 0 ? `
+        <div class="amenity-subtotal-row">
+          <span class="lbl">Add-ons Subtotal</span>
+          <span class="val">$${optionalTotal}</span>
+        </div>` : ''}
+      </div>`;
+  }
+
+  // ── Section 4: Full bill breakdown ──────────────────────────────────────
+  const perNight = pricePerNight !== null
+    ? pricePerNight
+    : (nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal);
+
+  const nightsLabel    = nights > 0 ? ` × ${nights} night${nights !== 1 ? 's' : ''}` : '';
+  const perNightLabel  = perNight > 0 && nights > 0
+    ? ` × <strong>$${perNight}/night</strong>`
+    : '';
+
+  const roomBillLabel = `Room${roomNumbers ? ` (${roomNumbers})` : ''}${nightsLabel}${perNightLabel}`;
+
+  html += `
+    <div class="detail-card">
+      <div class="detail-card-title">🧾 Total Bill Breakdown</div>
+
+      <div class="bill-row">
+        <span class="lbl">${roomBillLabel}</span>
+        <span class="val">$${roomsTotal}</span>
+      </div>
+
+      ${freeRoomAmenities.map(a => `
+      <div class="bill-row bill-row--free">
+        <span class="lbl">${a.label} (complimentary)</span>
+        <span class="val">FREE</span>
+      </div>`).join('')}
+
+      ${paidRoomAmenities.map(a => `
+      <div class="bill-row bill-row--included-paid">
+        <span class="lbl">${a.label} (included in room rate)</span>
+        <span class="val">incl.</span>
+      </div>`).join('')}
+
+      ${freeOptionals.map(item => `
+      <div class="bill-row bill-row--free">
+        <span class="lbl">${item.name} (add-on)</span>
+        <span class="val">FREE</span>
+      </div>`).join('')}
+
+      ${paidOptionals.map(item => `
+      <div class="bill-row">
+        <span class="lbl">${item.name} (add-on)</span>
+        <span class="val">$${item.subtotal}</span>
+      </div>`).join('')}
+
+      <div class="bill-total-row">
+        <span class="lbl">Grand Total</span>
+        <span class="val">$${totalPrice}</span>
+      </div>
+    </div>`;
+
+  return html;
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. ROLE ASSIGNED
@@ -303,7 +514,7 @@ const sendHousekeeperAssignedEmail = async ({ toEmail, toName, roomNumber, roomT
 const sendNewReservationEmail = async ({
   adminEmails, guestName, email, phone,
   roomType, roomNumbers, checkInDate, checkOutDate,
-  stayType, totalPrice, amenitiesBreakdown,
+  checkInTime, stayType, totalPrice, amenitiesBreakdown,
 }) => {
   if (!adminEmails || adminEmails.length === 0) return;
 
@@ -359,25 +570,24 @@ const sendNewReservationEmail = async ({
 const sendReservationConfirmationToGuest = async ({
   guestName, guestEmail, confirmationNumber,
   roomType, roomNumbers, checkInDate, checkOutDate,
+  checkInTime,
   numberOfGuests, numberOfRooms, stayType,
-  totalPrice, amenitiesBreakdown, specialRequests,
+  totalPrice, roomsTotal,
+  // Room-included amenities (split)
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  // Guest-selected optional add-ons
+  optionalBreakdown  = {},
+  specialRequests,
 }) => {
   const nights = Math.ceil(
     (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
   );
 
-  let amenitiesHtml = '';
-  const amenityEntries = amenitiesBreakdown ? Object.values(amenitiesBreakdown) : [];
-  if (amenityEntries.length > 0) {
-    const tags = amenityEntries.map(item =>
-      `<span class="amenity-tag">${item.name}</span>`
-    ).join('');
-    amenitiesHtml = `
-      <div class="detail-card" style="margin-top:0;">
-        <div class="detail-card-title">✨ Requested Amenities</div>
-        <div class="amenity-list">${tags}</div>
-      </div>`;
-  }
+  const checkInTimeHtml = checkInTime
+    ? `<div class="info-row"><span class="lbl">Preferred Arrival</span><span class="val">${checkInTime}</span></div>`
+    : '';
 
   const specialReqHtml = specialRequests
     ? `<div class="notice-box info">
@@ -385,6 +595,20 @@ const sendReservationConfirmationToGuest = async ({
         <div><strong>Special Requests:</strong><br/>${specialRequests}</div>
       </div>`
     : '';
+
+  const perNight = nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal;
+
+  const amenitiesAndBillHtml = buildAmenitiesAndBillHtml({
+    freeRoomAmenities,
+    paidRoomAmenities,
+    optionalBreakdown,
+    roomsTotal:   roomsTotal  || 0,
+    totalPrice:   totalPrice  || 0,
+    nights,
+    roomNumbers,
+    roomType,
+    pricePerNight: perNight,
+  });
 
   const body = `
     <p class="greeting">Dear ${guestName},</p>
@@ -403,11 +627,12 @@ const sendReservationConfirmationToGuest = async ({
       <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
       <div class="info-row"><span class="lbl">Stay Type</span><span class="val">${stayType === 'daytime' ? '☀️ Day-time Stay' : `🌙 Overnight (${nights} night${nights !== 1 ? 's' : ''})`}</span></div>
       <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      ${checkInTimeHtml}
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
-      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
     </div>
 
-    ${amenitiesHtml}
+    ${amenitiesAndBillHtml}
+
     ${specialReqHtml}
 
     <div class="notice-box warn">
@@ -432,11 +657,34 @@ const sendReservationConfirmationToGuest = async ({
 const sendBookingConfirmedToGuest = async ({
   guestName, guestEmail, confirmationNumber,
   roomType, roomNumbers, checkInDate, checkOutDate,
-  numberOfGuests, numberOfRooms, stayType, totalPrice,
+  checkInTime,
+  numberOfGuests, numberOfRooms, stayType, totalPrice, roomsTotal,
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  optionalBreakdown  = {},
 }) => {
   const nights = Math.ceil(
     (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
   );
+
+  const checkInTimeHtml = checkInTime
+    ? `<div class="info-row"><span class="lbl">Preferred Arrival</span><span class="val">${checkInTime}</span></div>`
+    : '';
+
+  const perNight = nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal;
+
+  const amenitiesAndBillHtml = buildAmenitiesAndBillHtml({
+    freeRoomAmenities,
+    paidRoomAmenities,
+    optionalBreakdown,
+    roomsTotal:    roomsTotal   || 0,
+    totalPrice:    totalPrice   || 0,
+    nights,
+    roomNumbers,
+    roomType,
+    pricePerNight: perNight,
+  });
 
   const body = `
     <p class="greeting">Great news, ${guestName}! 🎉</p>
@@ -455,9 +703,11 @@ const sendBookingConfirmedToGuest = async ({
       <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
       <div class="info-row"><span class="lbl">Stay Type</span><span class="val">${stayType === 'daytime' ? '☀️ Day-time Stay' : `🌙 Overnight (${nights} night${nights !== 1 ? 's' : ''})`}</span></div>
       <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
+      ${checkInTimeHtml}
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
-      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
     </div>
+
+    ${amenitiesAndBillHtml}
 
     <div class="notice-box success">
       <span>✅</span>
@@ -477,8 +727,6 @@ const sendBookingConfirmedToGuest = async ({
 
 // ═══════════════════════════════════════════════════════════════════
 // 5d. BOOKING UPDATED — notify admins (internal)
-//
-// changes = [{ label, oldVal, newVal }]  — only fields that changed
 // ═══════════════════════════════════════════════════════════════════
 const sendBookingUpdatedEmail = async ({
   adminEmails, guestName, confirmationNumber,
@@ -523,14 +771,20 @@ const sendBookingUpdatedEmail = async ({
 
 // ═══════════════════════════════════════════════════════════════════
 // 5e. BOOKING UPDATED — notify GUEST
-//
-// changes = [{ label, oldVal, newVal }]  — only fields that changed
 // ═══════════════════════════════════════════════════════════════════
 const sendBookingUpdateToGuest = async ({
   guestName, guestEmail, confirmationNumber,
   roomNumbers, checkInDate, checkOutDate,
-  numberOfGuests, totalPrice, changes,
+  numberOfGuests, totalPrice, changes, roomsTotal,
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  optionalBreakdown  = {},
 }) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
   const changeRowsHtml = changes.map(({ label, oldVal, newVal }) => `
     <div class="change-row">
       <span class="lbl">${label}</span>
@@ -540,6 +794,19 @@ const sendBookingUpdateToGuest = async ({
       </div>
     </div>`
   ).join('');
+
+  const perNight = nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal;
+
+  const amenitiesAndBillHtml = buildAmenitiesAndBillHtml({
+    freeRoomAmenities,
+    paidRoomAmenities,
+    optionalBreakdown,
+    roomsTotal:    roomsTotal   || 0,
+    totalPrice:    totalPrice   || 0,
+    nights,
+    roomNumbers,
+    pricePerNight: perNight,
+  });
 
   const body = `
     <p class="greeting">Dear ${guestName},</p>
@@ -561,8 +828,9 @@ const sendBookingUpdateToGuest = async ({
       <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
       <div class="info-row"><span class="lbl">Guests</span><span class="val">${numberOfGuests} guest${numberOfGuests !== 1 ? 's' : ''}</span></div>
-      <div class="highlight-row"><span class="lbl">Total Amount</span><span class="val">$${totalPrice}</span></div>
     </div>
+
+    ${amenitiesAndBillHtml}
 
     <div class="notice-box warn">
       <span>⚠️</span>
@@ -610,11 +878,29 @@ const sendCheckInEmail = async ({ adminEmails, guestName, roomNumbers, checkInDa
 const sendCheckInConfirmationToGuest = async ({
   guestName, guestEmail, confirmationNumber,
   roomNumbers, roomType, checkInDate, checkOutDate,
-  numberOfGuests,
+  numberOfGuests, totalPrice, roomsTotal,
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  optionalBreakdown  = {},
 }) => {
   const nights = Math.ceil(
     (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
   );
+
+  const perNight = nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal;
+
+  const amenitiesAndBillHtml = buildAmenitiesAndBillHtml({
+    freeRoomAmenities,
+    paidRoomAmenities,
+    optionalBreakdown,
+    roomsTotal:    roomsTotal   || 0,
+    totalPrice:    totalPrice   || 0,
+    nights,
+    roomNumbers,
+    roomType,
+    pricePerNight: perNight,
+  });
 
   const body = `
     <p class="greeting">Welcome, ${guestName}! 🎉</p>
@@ -634,6 +920,8 @@ const sendCheckInConfirmationToGuest = async ({
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
       <div class="info-row"><span class="lbl">Duration</span><span class="val">${nights} night${nights !== 1 ? 's' : ''}</span></div>
     </div>
+
+    ${amenitiesAndBillHtml}
 
     <div class="notice-box success">
       <span>✅</span>
@@ -679,11 +967,29 @@ const sendCheckOutEmail = async ({ adminEmails, guestName, roomNumbers, checkOut
 // ═══════════════════════════════════════════════════════════════════
 const sendCheckOutFarewellToGuest = async ({
   guestName, guestEmail, confirmationNumber,
-  roomNumbers, checkInDate, checkOutDate, totalPrice,
+  roomNumbers, roomType, checkInDate, checkOutDate, totalPrice, roomsTotal,
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  optionalBreakdown  = {},
 }) => {
   const nights = Math.ceil(
     (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
   );
+
+  const perNight = nights > 0 ? Math.round(roomsTotal / nights) : roomsTotal;
+
+  const amenitiesAndBillHtml = buildAmenitiesAndBillHtml({
+    freeRoomAmenities,
+    paidRoomAmenities,
+    optionalBreakdown,
+    roomsTotal:    roomsTotal   || 0,
+    totalPrice:    totalPrice   || 0,
+    nights,
+    roomNumbers,
+    roomType,
+    pricePerNight: perNight,
+  });
 
   const body = `
     <p class="greeting">Thank you, ${guestName}! 👋</p>
@@ -700,8 +1006,9 @@ const sendCheckOutFarewellToGuest = async ({
       <div class="info-row"><span class="lbl">Check-in</span><span class="val">${fmtDate(checkInDate)}</span></div>
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
       <div class="info-row"><span class="lbl">Duration</span><span class="val">${nights} night${nights !== 1 ? 's' : ''}</span></div>
-      <div class="highlight-row"><span class="lbl">Total Charged</span><span class="val">$${totalPrice}</span></div>
     </div>
+
+    ${amenitiesAndBillHtml}
 
     <div class="notice-box info">
       <span>💙</span>
@@ -750,12 +1057,36 @@ const sendCancellationEmail = async ({ adminEmails, guestName, roomNumbers, chec
 const sendCancellationNotificationToGuest = async ({
   guestName, guestEmail, confirmationNumber,
   roomNumbers, checkInDate, checkOutDate, reason,
+  totalPrice, roomsTotal,
+  freeRoomAmenities  = [],
+  paidRoomAmenities  = [],
+  allRoomAmenityNames = [],
+  optionalBreakdown  = {},
 }) => {
+  const nights = Math.ceil(
+    (new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24)
+  );
+
   const reasonHtml = reason
     ? `<div class="notice-box warn">
         <span>💬</span>
         <div><strong>Reason:</strong> ${reason}</div>
       </div>`
+    : '';
+
+  const perNight = nights > 0 ? Math.round((roomsTotal || 0) / nights) : (roomsTotal || 0);
+
+  const amenitiesAndBillHtml = (totalPrice > 0)
+    ? buildAmenitiesAndBillHtml({
+        freeRoomAmenities,
+        paidRoomAmenities,
+        optionalBreakdown,
+        roomsTotal:    roomsTotal   || 0,
+        totalPrice:    totalPrice   || 0,
+        nights,
+        roomNumbers,
+        pricePerNight: perNight,
+      })
     : '';
 
   const body = `
@@ -774,6 +1105,8 @@ const sendCancellationNotificationToGuest = async ({
       <div class="info-row"><span class="lbl">Check-out</span><span class="val">${fmtDate(checkOutDate)}</span></div>
       <div class="info-row"><span class="lbl">Cancelled on</span><span class="val">${fmtDateTime()}</span></div>
     </div>
+
+    ${amenitiesAndBillHtml}
 
     ${reasonHtml}
 
@@ -838,7 +1171,7 @@ module.exports = {
   sendCancellationEmail,
   // Guest notifications
   sendReservationConfirmationToGuest,
-  sendBookingConfirmedToGuest,        // ← NEW: fires when status → confirmed
+  sendBookingConfirmedToGuest,
   sendBookingUpdateToGuest,
   sendCheckInConfirmationToGuest,
   sendCheckOutFarewellToGuest,

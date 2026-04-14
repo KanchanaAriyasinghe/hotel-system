@@ -14,6 +14,7 @@ import RoomDetailPage   from './pages/admin/RoomDetailPage';
 import ReservationsPage from './pages/admin/ReservationsPage';
 import UsersPage        from './pages/admin/UsersPage';
 import SettingsPage     from './pages/admin/Settingspage';
+import AmenitiesPage    from './pages/admin/AmenitiesPage';   // ← NEW
 import HousekeeperLayout    from './pages/housekeeper/HousekeeperLayout';
 import RoomManagement       from './pages/housekeeper/RoomManagement';
 import HousekeeperSettings  from './pages/housekeeper/HousekeeperSettings';
@@ -24,7 +25,7 @@ import ReceptionistLayout   from './pages/receptionist/ReceptionistLayout';
 import ReceptionistBookings from './pages/receptionist/ReceptionistBookings';
 import ReceptionistRooms    from './pages/receptionist/ReceptionistRooms';
 import ReceptionistSettings from './pages/receptionist/ReceptionistSettings';
-import ResetPasswordPage from './pages/ResetPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import './App.css';
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="reservations" element={<ReservationsPage />} />
           <Route path="users"        element={<UsersPage />} />
           <Route path="settings"     element={<SettingsPage />} />
+          <Route path="amenities"    element={<AmenitiesPage />} />  {/* ← NEW */}
         </Route>
 
         {/* ── Housekeeper ────────────────────────────────────── */}

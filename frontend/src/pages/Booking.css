@@ -578,12 +578,20 @@
   font-weight: 400;
 }
 
+/* ── Standard rooms grid (narrow cards, no amenities inside) ── */
 .bp-rooms-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 0.85rem;
 }
 
+/* ── WIDE rooms grid: bigger cards for amenity display ─────── */
+.bp-rooms-grid--wide {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Room card (default, narrow) ─────────────────────────────── */
 .bp-room-card {
   position: relative;
   border: 1px solid var(--bp-border);
@@ -603,6 +611,50 @@
 .bp-room-card--selected {
   border-color: var(--bp-gold);
   background: var(--bp-gold-pale);
+}
+
+/* ── Wide room card overrides ───────────────────────────────── */
+.bp-room-card--wide {
+  text-align: left;
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.bp-room-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.bp-room-price-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.bp-room-price-amount {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--bp-gold-dark);
+  line-height: 1;
+}
+
+.bp-room-price-unit {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
+  color: var(--bp-text-muted);
+}
+
+/* Amenities inside the wide card */
+.bp-room-card-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .bp-room-check {
@@ -630,10 +682,55 @@
 .bp-room-floor {
   font-size: 0.72rem;
   color: var(--bp-text-muted);
-  margin-bottom: 0.5rem;
   letter-spacing: 0.06em;
 }
 
+/* ── Amenity tags inside room cards ─────────────────────────── */
+.bp-room-amenity-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.22rem 0.6rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  border-radius: 2px;
+}
+
+.bp-room-amenity-tag--free {
+  background: var(--bp-green-pale);
+  color: var(--bp-green);
+  border: 1px solid rgba(58, 122, 80, 0.18);
+}
+
+.bp-room-amenity-tag--paid {
+  background: var(--bp-gold-pale);
+  color: var(--bp-gold-dark);
+  border: 1px solid rgba(201, 169, 110, 0.2);
+}
+
+.bp-room-amenity-badge-free {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(58, 122, 80, 0.15);
+  color: var(--bp-green);
+  padding: 0.1rem 0.35rem;
+  border-radius: 2px;
+}
+
+.bp-room-amenity-badge-paid {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--bp-gold-dark);
+  background: rgba(201, 169, 110, 0.15);
+  padding: 0.1rem 0.35rem;
+  border-radius: 2px;
+}
+
+/* Kept for backward compat */
 .bp-room-amenity-pill {
   display: inline-block;
   font-size: 0.68rem;
@@ -669,10 +766,24 @@
   background: var(--bp-green-pale);
   color: var(--bp-green);
   border: 1px solid rgba(58, 122, 80, 0.18);
-  padding: 0.4rem 0.85rem;
+  padding: 0.45rem 0.9rem;
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.04em;
+  transition: background 0.2s;
+}
+
+.bp-free-amenity-item:hover {
+  background: rgba(58, 122, 80, 0.15);
+}
+
+.bp-free-amenity-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.bp-free-amenity-check {
+  opacity: 0.7;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -725,6 +836,15 @@
   font-size: 0.72rem;
   color: var(--bp-text-muted);
   letter-spacing: 0.04em;
+}
+
+.bp-amenity-desc {
+  font-size: 0.7rem;
+  color: var(--bp-text-muted);
+  font-weight: 300;
+  margin-top: 0.2rem;
+  line-height: 1.4;
+  font-style: italic;
 }
 
 .bp-amenity-check {
@@ -824,6 +944,10 @@
   color: var(--bp-text-muted);
 }
 
+.bp-price-row--free {
+  background: rgba(58, 122, 80, 0.04);
+}
+
 .bp-price-row--total {
   background: var(--bp-charcoal);
   color: #fff;
@@ -837,6 +961,17 @@
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--bp-gold);
+}
+
+.bp-price-free-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bp-green);
+  border: 1px solid rgba(58, 122, 80, 0.25);
+  padding: 0.2rem 0.6rem;
+  background: rgba(58, 122, 80, 0.07);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1025,49 +1160,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════════════════════ */
-@media (max-width: 1023px) {
-  .bp-recap-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 767px) {
-  .bp-header-inner  { padding: 0 1.25rem; }
-  .bp-header-price  { display: none; }
-
-  .bp-hero-band     { padding: 2.5rem 1.25rem 2rem; }
-  .bp-hero-title    { font-size: 2rem; }
-
-  .bp-steps-bar     { padding: 0 1.25rem; }
-  .bp-step-label    { display: none; }
-
-  .bp-content       { padding: 2rem 1.25rem 4rem; }
-
-  .bp-card-header   { padding: 2rem 1.5rem 0; }
-  .bp-section       { padding: 1.5rem 1.5rem; }
-
-  .bp-form-row-2    { grid-template-columns: 1fr; }
-
-  .bp-room-type-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .bp-amenities-grid { grid-template-columns: 1fr; }
-
-  .bp-recap         { padding: 1.5rem; }
-  .bp-recap-grid    { grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-  .bp-nav           { flex-direction: column-reverse; }
-  .bp-btn           { width: 100%; }
-}
-
-@media (max-width: 480px) {
-  .bp-room-type-grid { grid-template-columns: 1fr; }
-  .bp-rooms-grid     { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ROOM SEARCH — append these rules to your existing Booking.css
+   ROOM SEARCH
 ═══════════════════════════════════════════════════════════════ */
 .bp-room-search-area {
   display: flex;
@@ -1158,4 +1251,223 @@
 .bp-price-preview strong {
   color: var(--bp-gold-dark);
   font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AMENITY SECTION REVEAL
+═══════════════════════════════════════════════════════════════ */
+.bp-section--amenity-reveal {
+  animation: bpSlideDown 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes bpSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bp-amenity-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.bp-amenity-section-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.bp-amenity-section-icon--green { color: var(--bp-green); }
+.bp-amenity-section-icon--gold  { color: var(--bp-gold); }
+
+.bp-amenity-section-sub {
+  font-size: 0.78rem;
+  color: var(--bp-text-muted);
+  margin-top: 0.2rem;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Preview tags in rooms grid (legacy, kept for compat) */
+.bp-room-amenities-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .bp-recap-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .bp-header-inner  { padding: 0 1.25rem; }
+  .bp-header-price  { display: none; }
+
+  .bp-hero-band     { padding: 2.5rem 1.25rem 2rem; }
+  .bp-hero-title    { font-size: 2rem; }
+
+  .bp-steps-bar     { padding: 0 1.25rem; }
+  .bp-step-label    { display: none; }
+
+  .bp-content       { padding: 2rem 1.25rem 4rem; }
+
+  .bp-card-header   { padding: 2rem 1.5rem 0; }
+  .bp-section       { padding: 1.5rem 1.5rem; }
+
+  .bp-form-row-2    { grid-template-columns: 1fr; }
+
+  .bp-room-type-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bp-rooms-grid--wide {
+    grid-template-columns: 1fr;
+  }
+
+  .bp-amenities-grid { grid-template-columns: 1fr; }
+
+  .bp-recap         { padding: 1.5rem; }
+  .bp-recap-grid    { grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .bp-nav           { flex-direction: column-reverse; }
+  .bp-btn           { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .bp-room-type-grid { grid-template-columns: 1fr; }
+  .bp-rooms-grid     { grid-template-columns: repeat(2, 1fr); }
+  .bp-rooms-grid--wide { grid-template-columns: 1fr; }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Booking.css — ADDITIONS (append to bottom of existing file)
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Free optional amenity card (green tint instead of gold) ── */
+.bp-amenity-card--free-opt {
+  border-color: rgba(58, 122, 80, 0.3);
+  background: rgba(58, 122, 80, 0.03);
+}
+.bp-amenity-card--free-opt.bp-amenity-card--active {
+  border-color: var(--bp-green);
+  background: var(--bp-green-pale);
+}
+.bp-amenity-card--free-opt .bp-amenity-toggle:hover {
+  background: rgba(58, 122, 80, 0.06);
+}
+.bp-amenity-card--free-opt .bp-amenity-check--on {
+  background: var(--bp-green);
+  border-color: var(--bp-green);
+}
+
+/* ── "Free" badge inside amenity card name ────────────────────── */
+.bp-amenity-free-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bp-green);
+  background: var(--bp-green-pale);
+  border: 1px solid rgba(58, 122, 80, 0.25);
+  padding: 0.1rem 0.45rem;
+  vertical-align: middle;
+}
+
+/* ── "Free" tag badge in confirm step ────────────────────────── */
+.bp-tag-free {
+  margin-left: 0.4rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bp-green);
+  background: var(--bp-green-pale);
+  border: 1px solid rgba(58, 122, 80, 0.2);
+  padding: 0.1rem 0.4rem;
+}
+
+/* ── "No amenities listed" fallback text in wide room card ─────  */
+.bp-room-no-amenities {
+  font-size: 0.72rem;
+  color: var(--bp-text-muted);
+  font-style: italic;
+  font-weight: 300;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Booking.css — CHECK-IN TIME additions (append to bottom)
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Check-in time group ─────────────────────────────────────── */
+.bp-checkin-time-group {
+  margin-top: 1rem;
+}
+
+.bp-label-optional {
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--bp-text-muted);
+  font-style: italic;
+  margin-left: 0.35rem;
+}
+
+.bp-checkin-time-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bp-input--time {
+  max-width: 200px;
+  cursor: pointer;
+}
+
+.bp-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: var(--bp-gold-pale);
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  color: var(--bp-gold-dark);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  animation: bpFadeUp 0.25s var(--bp-ease) both;
+}
+
+.bp-time-hint {
+  margin-top: 0.45rem;
+  font-size: 0.74rem;
+  color: var(--bp-text-muted);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+/* ── Recap grid — allow 5 columns for the extra arrival time item ── */
+@media (min-width: 768px) {
+  .bp-recap-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .bp-input--time {
+    max-width: 100%;
+  }
+  .bp-checkin-time-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
 }

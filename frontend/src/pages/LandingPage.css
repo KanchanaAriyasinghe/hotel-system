@@ -1213,3 +1213,101 @@
   box-shadow: var(--lp-shadow);
   margin: 0 auto;
 }
+
+/* ================================================================
+   APPEND these blocks to: frontend/src/pages/admin/SettingsPage.css
+   ================================================================ */
+
+/* ── Amenity icon character (emoji/unicode from Amenity schema) ── */
+.sp-amenity-icon-char {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Inactive amenity button style (shown in hotel settings for info) */
+.sp-amenity-btn--inactive {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.sp-amenity-inactive-tag {
+  font-size: 0.62rem;
+  background: rgba(154, 48, 32, 0.10);
+  color: #9a3020;
+  border: 1px solid rgba(154, 48, 32, 0.18);
+  padding: 1px 5px;
+  margin-left: 4px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Amenity count note */
+.sp-amenity-count {
+  font-size: 0.72rem;
+  color: var(--sp-text-muted, #7a7068);
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+/* Informational note below amenity grid */
+.sp-amenity-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--sp-text-muted, #7a7068);
+  background: rgba(201, 169, 110, 0.06);
+  border: 1px solid rgba(201, 169, 110, 0.18);
+  border-left: 2px solid #c9a96e;
+  padding: 8px 12px;
+  margin-top: 10px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.sp-amenity-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #9a7a45;
+}
+
+/* Loading and empty states for amenity section */
+.sp-amenity-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--sp-text-muted, #7a7068);
+  padding: 12px 0;
+  font-style: italic;
+}
+
+.sp-amenity-empty {
+  font-size: 0.8rem;
+  color: var(--sp-text-muted, #7a7068);
+  padding: 12px 0;
+  font-style: italic;
+  border: 1px dashed var(--sp-border, #e3ddd5);
+  text-align: center;
+  padding: 16px;
+}
+
+/* ================================================================
+   APPEND these blocks to: frontend/src/pages/LandingPage.css
+   ================================================================ */
+
+/* ── Amenity icon from schema (emoji/text character) ─────────── */
+.amenity-icon-char {
+  font-size: 2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Ensure emoji renders consistently */
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}

@@ -1,3 +1,9 @@
+// frontend/src/pages/admin/SettingsPage.jsx
+//
+// Hotel amenities section now fetches from GET /api/amenities?active=true
+// instead of using a hardcoded AMENITY_OPTIONS array.
+// hotel.amenities stores amenity NAME strings (synced automatically by the backend).
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -5,7 +11,6 @@ import {
   Bell, Shield, Key, Globe, Clock, DollarSign,
   Mail, Phone, MapPin, Image, Plus, X, Save,
   CheckCircle, AlertCircle, Eye, EyeOff,
-  Wifi, Coffee, Dumbbell, Car, Utensils, Waves,
   Loader, LogOut, Trash2, Download,
   MessageSquare, Smartphone, Lock,
 } from 'lucide-react';
@@ -17,6 +22,7 @@ const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
 });
 
+// ── Sub-components ────────────────────────────────────────────────
 const Toast = ({ toasts }) => (
   <div className="sp-toast-stack">
     {toasts.map(t => (
@@ -47,14 +53,63 @@ const Input = ({ icon: Icon, ...props }) => (
 
 const Textarea = (props) => <textarea className="sp-textarea" {...props}/>;
 
-const AMENITY_ICONS = {
-  wifi: Wifi, pool: Waves, spa: Coffee, restaurant: Utensils,
-  bar: Coffee, gym: Dumbbell, parking: Car, breakfast: Utensils,
+const Panel = ({ title, subtitle, danger, children }) => (
+  <div className={`sp-panel ${danger ? 'sp-panel--danger' : ''}`}>
+    <div className="sp-panel-header">
+      <h2 className="sp-panel-title">{title}</h2>
+      {subtitle && <p className="sp-panel-subtitle">{subtitle}</p>}
+    </div>
+    <div className="sp-panel-body">{children}</div>
+  </div>
+);
+
+const SaveBar = ({ saving, onSave, label = 'Save Changes' }) => (
+  <div className="sp-save-bar">
+    <button className="sp-btn sp-btn--primary" onClick={onSave} disabled={saving}>
+      {saving
+        ? <><Loader size={14} className="spin"/> Saving…</>
+        : <><Save size={14}/>{label}</>}
+    </button>
+  </div>
+);
+
+const ToggleRow = ({ Icon, label, desc, checked, onChange }) => (
+  <div className="sp-toggle-row">
+    <div className="sp-toggle-row-icon"><Icon size={15}/></div>
+    <div className="sp-toggle-row-text"><p>{label}</p><span>{desc}</span></div>
+    <button className={`sp-switch ${checked ? 'sp-switch--on' : ''}`} onClick={() => onChange(!checked)} type="button">
+      <span className="sp-switch-knob"/>
+    </button>
+  </div>
+);
+
+const DangerRow = ({ Icon, title, desc, btnLabel, onConfirm, destructive }) => {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className={`sp-danger-row ${destructive ? 'sp-danger-row--destructive' : ''}`}>
+      <div className="sp-danger-row-info">
+        <div className="sp-danger-row-icon"><Icon size={16}/></div>
+        <div>
+          <p className="sp-danger-row-title">{title}</p>
+          <p className="sp-danger-row-desc">{desc}</p>
+        </div>
+      </div>
+      {confirming ? (
+        <div className="sp-danger-confirm">
+          <span>Are you sure?</span>
+          <button className="sp-btn sp-btn--danger-sm" onClick={() => { onConfirm(); setConfirming(false); }}>Yes</button>
+          <button className="sp-btn sp-btn--ghost" onClick={() => setConfirming(false)}>No</button>
+        </div>
+      ) : (
+        <button className={`sp-btn ${destructive ? 'sp-btn--danger' : 'sp-btn--danger-outline'}`} onClick={() => setConfirming(true)}>
+          {btnLabel}
+        </button>
+      )}
+    </div>
+  );
 };
-const AMENITY_OPTIONS = [
-  'wifi','pool','spa','restaurant','bar','gym',
-  'parking','breakfast','concierge','laundry','rooftop','lounge',
-];
+
+// ── Constants ─────────────────────────────────────────────────────
 const CURRENCY_OPTIONS = ['USD','EUR','GBP','LKR','AUD','CAD','SGD','JPY','INR','AED'];
 const TIMEZONE_OPTIONS = [
   'UTC','Asia/Colombo','America/New_York','Europe/London',
@@ -85,6 +140,7 @@ const normalizeHotel = (h) => ({
   images:       Array.isArray(h.images)    ? [...h.images]    : [],
 });
 
+// ── Main Component ────────────────────────────────────────────────
 const SettingsPage = () => {
   const [activeSection, setActiveSection] = useState('hotel');
   const [toasts,  setToasts]  = useState([]);
@@ -96,12 +152,36 @@ const SettingsPage = () => {
     localStorage.setItem('sp-theme', theme);
   }, [theme]);
 
+  // ── Hotel state ──────────────────────────────────────────────────
   const [hotel,       setHotel]       = useState(null);
   const [hotelForm,   setHotelForm]   = useState(HOTEL_DEFAULTS);
   const [hotelStatus, setHotelStatus] = useState('loading');
   const [hotelMsg,    setHotelMsg]    = useState('');
   const [newImage,    setNewImage]    = useState('');
 
+  // ── Amenities from API ───────────────────────────────────────────
+  // These are the full Amenity schema objects — we use .name and .label/.icon
+  const [amenitiesList,    setAmenitiesList]    = useState([]);
+  const [amenitiesLoading, setAmenitiesLoading] = useState(false);
+
+  // Fetch all amenities (all active + inactive so admin sees the full list)
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      setAmenitiesLoading(true);
+      try {
+        // Fetch all (not filtered by active) so admin can see everything
+        const res = await axios.get(`${API}/amenities`, getAuthHeaders());
+        setAmenitiesList(res.data?.data ?? []);
+      } catch {
+        setAmenitiesList([]);
+      } finally {
+        setAmenitiesLoading(false);
+      }
+    };
+    fetchAmenities();
+  }, []);
+
+  // Fetch hotel
   useEffect(() => {
     let cancelled = false;
     const fetchHotel = async () => {
@@ -139,6 +219,7 @@ const SettingsPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Profile state ────────────────────────────────────────────────
   const [profile, setProfile] = useState(() => {
     try { return JSON.parse(localStorage.getItem('user')) || {}; } catch { return {}; }
   });
@@ -148,12 +229,11 @@ const SettingsPage = () => {
     phoneNumber: profile.phoneNumber || '',
   });
 
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwForm,    setPwForm]    = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPw,    setShowPw]    = useState({ cur: false, new: false, con: false });
   const [pwError,   setPwError]   = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
 
-  // ── Notifications — seeded from localStorage, then overwritten from DB ──
   const [notifs, setNotifs] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('sp-notifs')) || {
@@ -164,19 +244,15 @@ const SettingsPage = () => {
     } catch { return {}; }
   });
 
-  // ── Load notification prefs from DB on mount ───────────────────────────
   useEffect(() => {
     const userId = profile._id || profile.id;
     if (!userId) return;
-
     axios.get(`${API}/users/${userId}`, getAuthHeaders())
       .then(res => {
         const prefs = res.data?.data?.notificationPrefs;
-        if (prefs) {
-          setNotifs(prev => ({ ...prev, ...prefs }));
-        }
+        if (prefs) setNotifs(prev => ({ ...prev, ...prefs }));
       })
-      .catch(() => {}); // silently fall back to localStorage defaults
+      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -189,12 +265,37 @@ const SettingsPage = () => {
     } catch { return {}; }
   });
 
+  // ── Toast helper ─────────────────────────────────────────────────
   const toast = (msg, type = 'success') => {
     const id = Date.now();
     setToasts(t => [...t, { id, msg, type }]);
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
   };
 
+  // ── Toggle amenity in hotel form ─────────────────────────────────
+  // hotel.amenities stores amenity NAME strings
+  const toggleAmenity = (amenityName) =>
+    setHotelForm(f => ({
+      ...f,
+      amenities: f.amenities.includes(amenityName)
+        ? f.amenities.filter(x => x !== amenityName)
+        : [...f.amenities, amenityName],
+    }));
+
+  // ── Image helpers ────────────────────────────────────────────────
+  const addImage = () => {
+    if (!newImage.trim()) return;
+    setHotelForm(f => ({ ...f, images: [...f.images, newImage.trim()] }));
+    setNewImage('');
+  };
+
+  const removeImage = (idx) =>
+    setHotelForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
+
+  // ── Save hotel ───────────────────────────────────────────────────
+  // Note: hotel.amenities is set manually here but will be OVERWRITTEN
+  // by the backend's syncHotelAmenities() on any Amenity create/update/delete/toggle.
+  // For manual overrides (e.g. selecting a subset), we still send the form value.
   const saveHotel = async () => {
     if (!hotelForm.name.trim()) { toast('Hotel name is required', 'error'); return; }
     setSaving('hotel');
@@ -243,13 +344,10 @@ const SettingsPage = () => {
   };
 
   const changePassword = async () => {
-    setPwError('');
-    setPwSuccess('');
-
+    setPwError(''); setPwSuccess('');
     if (!pwForm.currentPassword) { setPwError('Enter your current password.'); return; }
     if (pwForm.newPassword.length < 6) { setPwError('New password must be at least 6 characters.'); return; }
     if (pwForm.newPassword !== pwForm.confirmPassword) { setPwError('Passwords do not match.'); return; }
-
     const userId = profile._id || profile.id;
     setSaving('password');
     try {
@@ -270,11 +368,9 @@ const SettingsPage = () => {
     setSaving('');
   };
 
-  // ── Save notifications to DB + localStorage ────────────────────────────
   const saveNotifications = async () => {
     const userId = profile._id || profile.id;
     if (!userId) { toast('Session error — please log out and back in', 'error'); return; }
-
     setSaving('notifs');
     try {
       await axios.put(
@@ -302,23 +398,6 @@ const SettingsPage = () => {
     toast('System settings saved');
   };
 
-  const toggleAmenity = (a) =>
-    setHotelForm(f => ({
-      ...f,
-      amenities: f.amenities.includes(a)
-        ? f.amenities.filter(x => x !== a)
-        : [...f.amenities, a],
-    }));
-
-  const addImage = () => {
-    if (!newImage.trim()) return;
-    setHotelForm(f => ({ ...f, images: [...f.images, newImage.trim()] }));
-    setNewImage('');
-  };
-
-  const removeImage = (idx) =>
-    setHotelForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
-
   return (
     <div className="sp-page">
       <Toast toasts={toasts}/>
@@ -326,7 +405,7 @@ const SettingsPage = () => {
       <header className="sp-header">
         <div>
           <h1 className="sp-title">Settings</h1>
-          <p className="sp-subtitle">Manage hotel, account & system preferences</p>
+          <p className="sp-subtitle">Manage hotel, account &amp; system preferences</p>
         </div>
         <div className="sp-theme-switcher">
           {[
@@ -444,18 +523,52 @@ const SettingsPage = () => {
                     </Field>
                   </div>
 
-                  <Field label="Amenities" hint="Click to toggle">
-                    <div className="sp-amenity-grid">
-                      {AMENITY_OPTIONS.map(a => {
-                        const AIcon = AMENITY_ICONS[a] || Coffee;
-                        const on    = hotelForm.amenities.includes(a);
-                        return (
-                          <button key={a} type="button" className={`sp-amenity-btn ${on ? 'sp-amenity-btn--on' : ''}`} onClick={() => toggleAmenity(a)}>
-                            <AIcon size={14}/>{a}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {/* ── Amenities — dynamic from Amenity schema ── */}
+                  <Field
+                    label="Amenities"
+                    hint={amenitiesLoading ? 'Loading…' : `${amenitiesList.length} amenities available · click to toggle`}
+                  >
+                    {amenitiesLoading ? (
+                      <div className="sp-amenity-loading">
+                        <Loader size={14} className="spin"/> Loading amenities…
+                      </div>
+                    ) : amenitiesList.length === 0 ? (
+                      <div className="sp-amenity-empty">
+                        No amenities found. Add amenities in the Amenities management section first.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="sp-amenity-grid">
+                          {amenitiesList.map(amenity => {
+                            const isOn = hotelForm.amenities.includes(amenity.name);
+                            return (
+                              <button
+                                key={amenity._id}
+                                type="button"
+                                className={`sp-amenity-btn ${isOn ? 'sp-amenity-btn--on' : ''} ${!amenity.isActive ? 'sp-amenity-btn--inactive' : ''}`}
+                                onClick={() => toggleAmenity(amenity.name)}
+                                title={amenity.description || amenity.label}
+                              >
+                                {/* Use the icon from Amenity schema, fall back to ✦ */}
+                                <span className="sp-amenity-icon-char">{amenity.icon || '✦'}</span>
+                                <span>{amenity.label}</span>
+                                {!amenity.isActive && (
+                                  <span className="sp-amenity-inactive-tag">inactive</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {hotelForm.amenities.length > 0 && (
+                          <p className="sp-amenity-count">
+                            {hotelForm.amenities.length} amenit{hotelForm.amenities.length === 1 ? 'y' : 'ies'} selected
+                          </p>
+                        )}
+                        <p className="sp-amenity-note">
+                          <AlertCircle size={12}/> Active amenities are automatically synced to the hotel profile when you add, update, or remove them from the Amenities section.
+                        </p>
+                      </>
+                    )}
                   </Field>
 
                   <Field label="Image URLs">
@@ -531,14 +644,10 @@ const SettingsPage = () => {
               <h4 className="sp-sub-heading">Change Password</h4>
 
               {pwSuccess && (
-                <div className="sp-alert sp-alert--success">
-                  <CheckCircle size={13}/> {pwSuccess}
-                </div>
+                <div className="sp-alert sp-alert--success"><CheckCircle size={13}/> {pwSuccess}</div>
               )}
               {pwError && (
-                <div className="sp-alert sp-alert--error">
-                  <AlertCircle size={13}/> {pwError}
-                </div>
+                <div className="sp-alert sp-alert--error"><AlertCircle size={13}/> {pwError}</div>
               )}
 
               <Field label="Current Password">
@@ -590,7 +699,6 @@ const SettingsPage = () => {
 
               <div className="sp-divider"/>
               <h4 className="sp-sub-heading">Security Options</h4>
-
               <div className="sp-toggle-list">
                 <ToggleRow Icon={Smartphone} label="Two-Factor Authentication" desc="Require a code from your authenticator app on login"
                   checked={sysSettings.twoFA} onChange={v => setSysSettings(s => ({ ...s, twoFA: v }))}/>
@@ -627,14 +735,12 @@ const SettingsPage = () => {
                 <ToggleRow Icon={DollarSign}  label="Payment Updates"  desc="Notify on payment events"            checked={notifs.payment}        onChange={v => setNotifs(n => ({ ...n, payment: v }))}/>
                 <ToggleRow Icon={AlertCircle} label="System Alerts"    desc="Critical system notifications"       checked={notifs.systemAlerts}   onChange={v => setNotifs(n => ({ ...n, systemAlerts: v }))}/>
               </div>
-
               <div className="sp-divider"/>
               <h4 className="sp-sub-heading">Delivery Channels</h4>
               <div className="sp-toggle-list">
                 <ToggleRow Icon={Mail}       label="Email Notifications" desc="Send alerts to your email" checked={notifs.emailNotifs} onChange={v => setNotifs(n => ({ ...n, emailNotifs: v }))}/>
                 <ToggleRow Icon={Smartphone} label="SMS Notifications"   desc="Send alerts via SMS"       checked={notifs.smsNotifs}   onChange={v => setNotifs(n => ({ ...n, smsNotifs: v }))}/>
               </div>
-
               <SaveBar saving={saving === 'notifs'} onSave={saveNotifications} label="Save Preferences"/>
             </Panel>
           )}
@@ -656,7 +762,6 @@ const SettingsPage = () => {
                   </select>
                 </Field>
               </div>
-
               <div className="sp-divider"/>
               <h4 className="sp-sub-heading">Appearance</h4>
               <div className="sp-theme-cards">
@@ -671,7 +776,6 @@ const SettingsPage = () => {
                   </button>
                 ))}
               </div>
-
               <div className="sp-divider"/>
               <h4 className="sp-sub-heading">Data Management</h4>
               <div className="sp-action-cards">
@@ -680,9 +784,7 @@ const SettingsPage = () => {
                     <Download size={16}/>
                     <div><p>Export Data</p><span>Download all reservations as CSV</span></div>
                   </div>
-                  <button className="sp-btn sp-btn--outline" onClick={() => toast('Export started — check your downloads')}>
-                    Export CSV
-                  </button>
+                  <button className="sp-btn sp-btn--outline" onClick={() => toast('Export started — check your downloads')}>Export CSV</button>
                 </div>
                 <div className="sp-action-card">
                   <div className="sp-action-card-info">
@@ -695,12 +797,9 @@ const SettingsPage = () => {
                     const a    = document.createElement('a');
                     a.href = url; a.download = 'settings-backup.json'; a.click();
                     toast('Settings backup downloaded');
-                  }}>
-                    Download
-                  </button>
+                  }}>Download</button>
                 </div>
               </div>
-
               <SaveBar saving={false} onSave={saveSystem} label="Save System Settings"/>
             </Panel>
           )}
@@ -736,63 +835,6 @@ const SettingsPage = () => {
 
         </div>
       </div>
-    </div>
-  );
-};
-
-// ── Sub-components ────────────────────────────────────────────────
-const Panel = ({ title, subtitle, danger, children }) => (
-  <div className={`sp-panel ${danger ? 'sp-panel--danger' : ''}`}>
-    <div className="sp-panel-header">
-      <h2 className="sp-panel-title">{title}</h2>
-      {subtitle && <p className="sp-panel-subtitle">{subtitle}</p>}
-    </div>
-    <div className="sp-panel-body">{children}</div>
-  </div>
-);
-
-const SaveBar = ({ saving, onSave, label = 'Save Changes' }) => (
-  <div className="sp-save-bar">
-    <button className="sp-btn sp-btn--primary" onClick={onSave} disabled={saving}>
-      {saving
-        ? <><Loader size={14} className="spin"/> Saving…</>
-        : <><Save size={14}/>{label}</>}
-    </button>
-  </div>
-);
-
-const ToggleRow = ({ Icon, label, desc, checked, onChange }) => (
-  <div className="sp-toggle-row">
-    <div className="sp-toggle-row-icon"><Icon size={15}/></div>
-    <div className="sp-toggle-row-text"><p>{label}</p><span>{desc}</span></div>
-    <button className={`sp-switch ${checked ? 'sp-switch--on' : ''}`} onClick={() => onChange(!checked)} type="button">
-      <span className="sp-switch-knob"/>
-    </button>
-  </div>
-);
-
-const DangerRow = ({ Icon, title, desc, btnLabel, onConfirm, destructive }) => {
-  const [confirming, setConfirming] = useState(false);
-  return (
-    <div className={`sp-danger-row ${destructive ? 'sp-danger-row--destructive' : ''}`}>
-      <div className="sp-danger-row-info">
-        <div className="sp-danger-row-icon"><Icon size={16}/></div>
-        <div>
-          <p className="sp-danger-row-title">{title}</p>
-          <p className="sp-danger-row-desc">{desc}</p>
-        </div>
-      </div>
-      {confirming ? (
-        <div className="sp-danger-confirm">
-          <span>Are you sure?</span>
-          <button className="sp-btn sp-btn--danger-sm" onClick={() => { onConfirm(); setConfirming(false); }}>Yes</button>
-          <button className="sp-btn sp-btn--ghost" onClick={() => setConfirming(false)}>No</button>
-        </div>
-      ) : (
-        <button className={`sp-btn ${destructive ? 'sp-btn--danger' : 'sp-btn--danger-outline'}`} onClick={() => setConfirming(true)}>
-          {btnLabel}
-        </button>
-      )}
     </div>
   );
 };

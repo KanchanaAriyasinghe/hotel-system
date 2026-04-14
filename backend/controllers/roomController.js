@@ -2,6 +2,7 @@
 
 const Room        = require('../models/Room');
 const User        = require('../models/User');
+const Amenity     = require('../models/Amenity');
 const Reservation = require('../models/Reservation');
 const { sendRoomStatusEmail, sendHousekeeperAssignedEmail } = require('../utils/emailService');
 
@@ -10,21 +11,24 @@ const validRoomTypes = ['single', 'double', 'deluxe', 'suite', 'family'];
 // Roles that are allowed to see maintenanceReason
 const CAN_SEE_MAINTENANCE_REASON = ['admin', 'housekeeper', 'receptionist'];
 
+// ── Helper: populate amenities + housekeeper ──────────────────────────────────
+const populateRoom = q =>
+  q
+    .populate('assignedHousekeeper', 'fullName email phoneNumber')
+    .populate('amenities', 'name label icon price description isActive');
+
 // @desc      Get all rooms (admin sees all; housekeeper sees only assigned)
 // @route     GET /api/rooms
 // @access    Private
 exports.getAllRooms = async (req, res) => {
   try {
-    const role = req.user?.role;
-
+    const role   = req.user?.role;
     const filter = {};
     if (role === 'housekeeper') {
       filter.assignedHousekeeper = req.user._id;
     }
 
-    const rooms = await Room.find(filter)
-      .populate('assignedHousekeeper', 'fullName email phoneNumber')
-      .sort({ roomNumber: 1 });
+    const rooms = await populateRoom(Room.find(filter).sort({ roomNumber: 1 }));
 
     const data = rooms.map(room => {
       const r = room.toObject();
@@ -43,11 +47,9 @@ exports.getAllRooms = async (req, res) => {
 // @access    Private (Admin + Housekeeper)
 exports.getAllRoomsUnfiltered = async (req, res) => {
   try {
-    const rooms = await Room.find({})
-      .populate('assignedHousekeeper', 'fullName email phoneNumber')
-      .sort({ roomNumber: 1 });
+    const rooms = await populateRoom(Room.find({}).sort({ roomNumber: 1 }));
+    const role  = req.user?.role;
 
-    const role = req.user?.role;
     const data = rooms.map(room => {
       const r = room.toObject();
       if (!CAN_SEE_MAINTENANCE_REASON.includes(role)) delete r.maintenanceReason;
@@ -65,15 +67,14 @@ exports.getAllRoomsUnfiltered = async (req, res) => {
 // @access    Private
 exports.getRoomById = async (req, res) => {
   try {
-    const room = await Room.findById(req.params.id)
-      .populate('assignedHousekeeper', 'fullName email phoneNumber');
+    const room = await populateRoom(Room.findById(req.params.id));
 
     if (!room) {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
     const role = req.user?.role;
-    const r = room.toObject();
+    const r    = room.toObject();
     if (!CAN_SEE_MAINTENANCE_REASON.includes(role)) delete r.maintenanceReason;
 
     res.status(200).json({ success: true, data: r });
@@ -90,9 +91,10 @@ exports.createRoom = async (req, res) => {
     const {
       roomNumber, roomType, floor, capacity, pricePerNight,
       description, amenities, status, isActive, assignedHousekeeper,
+      images,
     } = req.body;
 
-    if (!roomNumber || !roomType || !floor || !capacity || !pricePerNight) {
+    if (!roomNumber || !roomType || floor === undefined || !capacity || !pricePerNight) {
       return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
 
@@ -118,30 +120,45 @@ exports.createRoom = async (req, res) => {
       }
     }
 
+    // Validate amenity IDs if provided
+    let amenityIds = [];
+    if (Array.isArray(amenities) && amenities.length > 0) {
+      const found = await Amenity.find({ _id: { $in: amenities }, isActive: true });
+      amenityIds  = found.map(a => a._id);
+    }
+
     const room = await Room.create({
-      roomNumber, roomType, floor, capacity, pricePerNight,
+      roomNumber,
+      roomType,
+      floor,
+      capacity,
+      pricePerNight,
       description,
-      amenities:           amenities || [],
-      status:              status    || 'available',
-      isActive:            isActive  !== undefined ? isActive : true,
+      amenities:           amenityIds,
+      status:              status   || 'available',
+      isActive:            isActive !== undefined ? isActive : true,
       assignedHousekeeper: assignedHousekeeper || null,
+      images:              Array.isArray(images) ? images.filter(Boolean) : [],
     });
 
-    await room.populate('assignedHousekeeper', 'fullName email phoneNumber');
+    await populateRoom(room.populate.bind(room));
 
-    // ── Email housekeeper if one was assigned at creation time ────────────
-    if (room.assignedHousekeeper && room.assignedHousekeeper.email) {
+    // Re-fetch to get populated data
+    const populated = await populateRoom(Room.findById(room._id));
+
+    // Email housekeeper if assigned at creation
+    if (populated.assignedHousekeeper && populated.assignedHousekeeper.email) {
       sendHousekeeperAssignedEmail({
-        toEmail:    room.assignedHousekeeper.email,
-        toName:     room.assignedHousekeeper.fullName,
-        roomNumber: room.roomNumber,
-        roomType:   room.roomType,
-        floor:      room.floor,
+        toEmail:    populated.assignedHousekeeper.email,
+        toName:     populated.assignedHousekeeper.fullName,
+        roomNumber: populated.roomNumber,
+        roomType:   populated.roomType,
+        floor:      populated.floor,
         assignedBy: req.user?.fullName || req.user?.email || 'An administrator',
       }).catch(err => console.error('[createRoom] housekeeper assign email failed:', err.message));
     }
 
-    res.status(201).json({ success: true, message: 'Room created successfully', data: room });
+    res.status(201).json({ success: true, message: 'Room created successfully', data: populated });
   } catch (error) {
     console.error('Error creating room:', error);
     res.status(500).json({ success: false, message: error.message || 'Error creating room' });
@@ -150,7 +167,7 @@ exports.createRoom = async (req, res) => {
 
 // @desc      Update room
 // @route     PUT /api/rooms/:id
-// @access    Private — Admin (all fields) | Housekeeper (status, amenities, floor, capacity, maintenanceReason for ASSIGNED rooms only)
+// @access    Private — Admin (all fields) | Housekeeper (limited fields for assigned rooms)
 exports.updateRoom = async (req, res) => {
   try {
     const role = req.user.role;
@@ -160,11 +177,10 @@ exports.updateRoom = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
 
-    // ── Capture old values BEFORE any mutations ───────────────────────────
     const oldStatus      = room.status;
     const oldHousekeeper = room.assignedHousekeeper?.toString() || null;
 
-    // ── Housekeeper branch ────────────────────────────────────────────────
+    // ── Housekeeper branch ─────────────────────────────────────────────────────
     if (role === 'housekeeper') {
       if (room.assignedHousekeeper?.toString() !== req.user._id.toString()) {
         return res.status(403).json({
@@ -175,10 +191,14 @@ exports.updateRoom = async (req, res) => {
 
       const { status, amenities, floor, capacity, maintenanceReason } = req.body;
 
-      if (status    !== undefined) room.status    = status;
-      if (amenities !== undefined) room.amenities = amenities;
-      if (floor     !== undefined) room.floor     = Number(floor);
-      if (capacity  !== undefined) room.capacity  = Number(capacity);
+      if (status   !== undefined) room.status   = status;
+      if (floor    !== undefined) room.floor    = Number(floor);
+      if (capacity !== undefined) room.capacity = Number(capacity);
+
+      if (Array.isArray(amenities)) {
+        const found    = await Amenity.find({ _id: { $in: amenities } });
+        room.amenities = found.map(a => a._id);
+      }
 
       const effectiveStatus = status || room.status;
       if (effectiveStatus === 'maintenance') {
@@ -188,9 +208,8 @@ exports.updateRoom = async (req, res) => {
       }
 
       room = await room.save();
-      await room.populate('assignedHousekeeper', 'fullName email phoneNumber');
+      room = await populateRoom(Room.findById(room._id));
 
-      // ── Email admins if room became available after cleaning/maintenance ─
       if (
         (oldStatus === 'cleaning' || oldStatus === 'maintenance') &&
         room.status === 'available'
@@ -214,10 +233,11 @@ exports.updateRoom = async (req, res) => {
       });
     }
 
-    // ── Admin branch ──────────────────────────────────────────────────────
+    // ── Admin branch ───────────────────────────────────────────────────────────
     const {
       roomNumber, roomType, floor, capacity, pricePerNight,
-      description, amenities, status, isActive, assignedHousekeeper, maintenanceReason,
+      description, amenities, status, isActive, assignedHousekeeper,
+      maintenanceReason, images,
     } = req.body;
 
     if (roomNumber    !== undefined) room.roomNumber    = roomNumber;
@@ -226,9 +246,18 @@ exports.updateRoom = async (req, res) => {
     if (capacity      !== undefined) room.capacity      = capacity;
     if (pricePerNight !== undefined) room.pricePerNight = pricePerNight;
     if (description   !== undefined) room.description   = description;
-    if (amenities     !== undefined) room.amenities     = amenities;
     if (status        !== undefined) room.status        = status;
     if (isActive      !== undefined) room.isActive      = isActive;
+
+    if (images !== undefined) {
+      room.images = Array.isArray(images) ? images.filter(Boolean) : [];
+    }
+
+    // Validate and update amenity refs
+    if (Array.isArray(amenities)) {
+      const found    = await Amenity.find({ _id: { $in: amenities } });
+      room.amenities = found.map(a => a._id);
+    }
 
     if (assignedHousekeeper !== undefined) {
       if (assignedHousekeeper === null) {
@@ -253,9 +282,8 @@ exports.updateRoom = async (req, res) => {
     }
 
     room = await room.save();
-    await room.populate('assignedHousekeeper', 'fullName email phoneNumber');
+    room = await populateRoom(Room.findById(room._id));
 
-    // ── Email admins if room became available after cleaning/maintenance ───
     if (
       (oldStatus === 'cleaning' || oldStatus === 'maintenance') &&
       room.status === 'available'
@@ -272,12 +300,11 @@ exports.updateRoom = async (req, res) => {
       });
     }
 
-    // ── Email housekeeper if they were newly assigned to this room ─────────
     if (
       assignedHousekeeper &&
       assignedHousekeeper.toString() !== oldHousekeeper
     ) {
-      const hk = room.assignedHousekeeper; // already populated above
+      const hk = room.assignedHousekeeper;
       if (hk && hk.email) {
         sendHousekeeperAssignedEmail({
           toEmail:    hk.email,
@@ -302,11 +329,9 @@ exports.updateRoom = async (req, res) => {
 exports.deleteRoom = async (req, res) => {
   try {
     const room = await Room.findByIdAndDelete(req.params.id);
-
     if (!room) {
       return res.status(404).json({ success: false, message: 'Room not found' });
     }
-
     res.status(200).json({ success: true, message: 'Room deleted successfully', data: room });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message || 'Error deleting room' });
@@ -330,15 +355,10 @@ exports.getAvailableRooms = async (req, res) => {
     const checkIn  = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
 
-    // Only rooms whose own status is 'available' (not in cleaning/maintenance/occupied)
-    const allRooms = await Room.find({
-      roomType,
-      isActive: true,
-      status: 'available',
-    }).populate('assignedHousekeeper', 'fullName email phoneNumber');
+    const allRooms = await populateRoom(
+      Room.find({ roomType, isActive: true, status: 'available' })
+    );
 
-    // Also exclude rooms that have an overlapping active reservation
-    // (pending/confirmed/checked-in) even if the room record itself says 'available'
     const bookedRooms = await Reservation.find({
       checkInDate:  { $lt: checkOut },
       checkOutDate: { $gt: checkIn  },
@@ -372,9 +392,9 @@ exports.getRoomsByType = async (req, res) => {
       });
     }
 
-    const rooms = await Room.find({ roomType })
-      .populate('assignedHousekeeper', 'fullName email phoneNumber')
-      .sort({ roomNumber: 1 });
+    const rooms = await populateRoom(
+      Room.find({ roomType }).sort({ roomNumber: 1 })
+    );
 
     res.status(200).json({ success: true, count: rooms.length, data: rooms });
   } catch (error) {

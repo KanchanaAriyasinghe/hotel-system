@@ -5,91 +5,119 @@ const mongoose = require('mongoose');
 const reservationSchema = new mongoose.Schema(
   {
     guestName: {
-      type: String,
+      type:     String,
       required: [true, 'Guest name is required'],
-      trim: true,
+      trim:     true,
     },
     email: {
-      type: String,
-      required: [true, 'Email is required'],
+      type:      String,
+      required:  [true, 'Email is required'],
       lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
+      match:     [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
     },
     phone: {
-      type: String,
+      type:     String,
       required: [true, 'Phone number is required'],
-      trim: true,
+      trim:     true,
     },
     checkInDate: {
-      type: Date,
+      type:     Date,
       required: [true, 'Check-in date is required'],
     },
     checkOutDate: {
-      type: Date,
+      type:     Date,
       required: [true, 'Check-out date is required'],
     },
+
+    // ── Preferred check-in time (e.g. "14:00", "15:30") ──────────────────
+    // Must be on or after the hotel's checkInTime setting.
+    // Stored as "HH:MM" 24-hour string; null means guest has no preference.
+    checkInTime: {
+      type:    String,
+      default: null,
+      trim:    true,
+      validate: {
+        validator: (v) => v === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(v),
+        message:   'checkInTime must be in HH:MM format (24-hour)',
+      },
+    },
+
     roomIds: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Room',
+        type:     mongoose.Schema.Types.ObjectId,
+        ref:      'Room',
         required: true,
       },
     ],
     roomType: {
-      type: String,
-      enum: ['single', 'double', 'deluxe', 'suite', 'family'],
+      type:     String,
+      enum:     ['single', 'double', 'deluxe', 'suite', 'family'],
       required: true,
     },
     numberOfGuests: {
-      type: Number,
+      type:     Number,
       required: true,
-      min: 1,
-      max: 10,
+      min:      1,
+      max:      10,
     },
     numberOfRooms: {
-      type: Number,
+      type:     Number,
       required: true,
-      min: 1,
-      max: 5,
+      min:      1,
+      max:      5,
     },
-    amenities: [
+
+    // ── Amenity storage ───────────────────────────────────────────────────
+    freeAmenities: [{ type: String }],
+
+    paidAmenities: [
       {
-        type: String,
-        enum: ['wifi', 'pool', 'spa', 'restaurant', 'bar', 'gym'],
+        type: mongoose.Schema.Types.ObjectId,
+        ref:  'Amenity',
       },
     ],
+
+    amenityHours: {
+      type:    Map,
+      of:      Number,
+      default: {},
+    },
+
+    amenitiesBreakdown: {
+      type:    Map,
+      of:      mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
     specialRequests: {
-      type: String,
+      type:    String,
       default: '',
-      trim: true,
+      trim:    true,
+    },
+    stayType: {
+      type:    String,
+      enum:    ['overnight', 'daytime'],
+      default: 'overnight',
     },
     totalPrice: {
-      type: Number,
+      type:     Number,
       required: true,
-      min: 0,
+      min:      0,
     },
     status: {
-      type: String,
-      enum: ['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'],
+      type:    String,
+      enum:    ['pending', 'confirmed', 'checked-in', 'checked-out', 'cancelled'],
       default: 'pending',
     },
     paymentStatus: {
-      type: String,
-      enum: ['pending', 'completed', 'failed', 'refunded'],
+      type:    String,
+      enum:    ['pending', 'completed', 'failed', 'refunded'],
       default: 'pending',
     },
     confirmationNumber: {
-      type: String,
+      type:   String,
       unique: true,
       sparse: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
     },
   },
   { timestamps: true }

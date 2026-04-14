@@ -1,6 +1,10 @@
+// backend/controllers/reservationController.js
+
 const Reservation = require('../models/Reservation');
 const Room        = require('../models/Room');
 const User        = require('../models/User');
+const Hotel       = require('../models/Hotel');
+const Amenity     = require('../models/Amenity');
 const {
   sendNewReservationEmail,
   sendBookingUpdatedEmail,
@@ -8,7 +12,7 @@ const {
   sendCheckOutEmail,
   sendCancellationEmail,
   sendReservationConfirmationToGuest,
-  sendBookingConfirmedToGuest,        // ← NEW
+  sendBookingConfirmedToGuest,
   sendBookingUpdateToGuest,
   sendCheckInConfirmationToGuest,
   sendCheckOutFarewellToGuest,
@@ -30,8 +34,6 @@ const fmtDateShort = (d) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
 // ── Helper: build the `changes` array by comparing old vs. new values ──────
-// Tracks: roomNumbers, roomType, numberOfGuests, checkInDate, checkOutDate, totalPrice
-// Returns [] when nothing relevant changed — caller should skip emails in that case.
 const detectBookingChanges = ({ old: o, updated: u, oldRoomNumbers, newRoomNumbers }) => {
   const changes = [];
 
@@ -64,11 +66,184 @@ const detectBookingChanges = ({ old: o, updated: u, oldRoomNumbers, newRoomNumbe
     changes.push({ label: 'Check-out', oldVal: fmtDateShort(o.checkOutDate), newVal: fmtDateShort(u.checkOutDate) });
   }
 
+  if ((o.checkInTime || null) !== (u.checkInTime || null)) {
+    changes.push({
+      label:  'Check-in Time',
+      oldVal: o.checkInTime || 'Not specified',
+      newVal: u.checkInTime || 'Not specified',
+    });
+  }
+
   if (Number(o.totalPrice) !== Number(u.totalPrice)) {
     changes.push({ label: 'Total Price', oldVal: `$${o.totalPrice}`, newVal: `$${u.totalPrice}` });
   }
 
   return changes;
+};
+
+// ── Helper: parse "HH:MM" to total minutes since midnight ─────────────────
+const timeToMinutes = (hhmm) => {
+  if (!hhmm) return 0;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+
+// ── Helper: validate checkInTime against hotel's policy ───────────────────
+const validateCheckInTime = async (checkInTime) => {
+  if (!checkInTime) return null;
+
+  const timeRx = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!timeRx.test(checkInTime)) {
+    return 'checkInTime must be in HH:MM format (24-hour clock)';
+  }
+
+  const hotel = await Hotel.findOne().sort({ createdAt: 1 }).select('checkInTime');
+  if (hotel && hotel.checkInTime) {
+    const hotelMins  = timeToMinutes(hotel.checkInTime);
+    const guestMins  = timeToMinutes(checkInTime);
+    if (guestMins < hotelMins) {
+      return `Check-in time cannot be earlier than the hotel's check-in time (${hotel.checkInTime})`;
+    }
+  }
+
+  return null;
+};
+
+// ── Helper: fetch ALL amenities on the booked rooms (free + paid) ─────────
+// Returns:
+//   freeRoomAmenities  → [{ name, label, price:0, icon }]   (complimentary)
+//   paidRoomAmenities  → [{ name, label, price, icon }]      (included but paid)
+//   allRoomAmenityNames→ display names of ALL room amenities  (for bill label suffix)
+const getRoomAmenitiesInfo = async (roomIds) => {
+  try {
+    const rooms = await Room.find({ _id: { $in: roomIds } })
+      .populate('amenities', 'name label price pricingModel isActive icon');
+
+    const seen             = new Set();
+    const freeRoomAmenities = [];
+    const paidRoomAmenities = [];
+
+    rooms.forEach(room => {
+      (room.amenities || []).forEach(am => {
+        if (!am.isActive || seen.has(am._id.toString())) return;
+        seen.add(am._id.toString());
+
+        const entry = {
+          id:           am._id.toString(),
+          name:         am.name,
+          label:        am.label || am.name,
+          price:        Number(am.price) || 0,
+          pricingModel: am.pricingModel || 'flat',
+          icon:         am.icon || '',
+        };
+
+        if (entry.price === 0) {
+          freeRoomAmenities.push(entry);
+        } else {
+          paidRoomAmenities.push(entry);
+        }
+      });
+    });
+
+    const allRoomAmenityNames = [
+      ...freeRoomAmenities.map(a => a.label),
+      ...paidRoomAmenities.map(a => a.label),
+    ];
+
+    return { freeRoomAmenities, paidRoomAmenities, allRoomAmenityNames };
+  } catch (err) {
+    console.error('[getRoomAmenitiesInfo] Failed:', err.message);
+    return { freeRoomAmenities: [], paidRoomAmenities: [], allRoomAmenityNames: [] };
+  }
+};
+
+// ── Helper: build all amenity data needed for guest emails ────────────────
+// Produces:
+//   freeRoomAmenities    → complimentary amenities already in the room (price=0)
+//   paidRoomAmenities    → paid amenities already in the room (price>0, included in room rate)
+//   optionalBreakdown    → guest-selected optional add-ons { [id]: { name, price, quantity, unit, subtotal } }
+//   roomsTotal           → room cost subtotal (totalPrice minus optional add-on costs)
+//   allRoomAmenityNames  → all room amenity display names (for bill row label)
+const buildEmailAmenityData = async (reservation) => {
+  try {
+    // ── 1. Fetch room-included amenities from DB ──────────────────────────
+    const roomIds = (reservation.roomIds || []).map(r =>
+      typeof r === 'object' && r._id ? r._id : r
+    );
+
+    const { freeRoomAmenities, paidRoomAmenities, allRoomAmenityNames } =
+      roomIds.length > 0
+        ? await getRoomAmenitiesInfo(roomIds)
+        : { freeRoomAmenities: [], paidRoomAmenities: [], allRoomAmenityNames: [] };
+
+    // ── 2. Build optional add-on breakdown ───────────────────────────────
+    const paidAmenityIds = (reservation.paidAmenities || []).map(id => id.toString());
+    let optionalBreakdown = {};
+
+    if (paidAmenityIds.length > 0) {
+      // Use stored breakdown if available
+      const stored = reservation.amenitiesBreakdown;
+      if (stored && typeof stored === 'object' && Object.keys(stored).length > 0) {
+        optionalBreakdown = stored instanceof Map
+          ? Object.fromEntries(stored)
+          : stored.toObject
+            ? stored.toObject()
+            : { ...stored };
+      } else {
+        // Fallback: rebuild from DB prices + stored amenityHours
+        const amenities = await Amenity.find({ _id: { $in: paidAmenityIds } })
+          .select('name label price pricingModel');
+
+        const nights = Math.max(0, Math.round(
+          (new Date(reservation.checkOutDate) - new Date(reservation.checkInDate)) / 86400000
+        ));
+
+        const amenityHoursRaw = reservation.amenityHours || {};
+        const amenityHours = amenityHoursRaw instanceof Map
+          ? Object.fromEntries(amenityHoursRaw)
+          : { ...amenityHoursRaw };
+
+        amenities.forEach(am => {
+          const id    = am._id.toString();
+          const model = am.pricingModel || 'flat';
+          const qty   = model === 'hourly'
+            ? (Number(amenityHours[id]) || 0)
+            : model === 'daily'
+              ? nights
+              : 1;
+          optionalBreakdown[id] = {
+            name:     am.label || am.name,
+            price:    am.price,
+            quantity: qty,
+            unit:     model === 'hourly' ? 'hours' : model === 'daily' ? 'days' : 'flat',
+            subtotal: am.price * qty,
+          };
+        });
+      }
+    }
+
+    // ── 3. Calculate roomsTotal = totalPrice − optional add-on costs ─────
+    const optionalTotal = Object.values(optionalBreakdown)
+      .reduce((s, i) => s + (i.subtotal || 0), 0);
+    const roomsTotal = Math.max(0, (reservation.totalPrice || 0) - optionalTotal);
+
+    return {
+      freeRoomAmenities,
+      paidRoomAmenities,
+      allRoomAmenityNames,
+      optionalBreakdown,
+      roomsTotal,
+    };
+  } catch (err) {
+    console.error('[buildEmailAmenityData] Failed:', err.message);
+    return {
+      freeRoomAmenities:   [],
+      paidRoomAmenities:   [],
+      allRoomAmenityNames: [],
+      optionalBreakdown:   {},
+      roomsTotal:          reservation.totalPrice || 0,
+    };
+  }
 };
 
 // @desc      Get all reservations
@@ -90,7 +265,7 @@ exports.getAllReservations = async (req, res) => {
   }
 };
 
-// @desc      Get available rooms
+// @desc      Get available rooms — returns rooms WITH fully populated amenities
 // @route     GET /api/reservations/available
 // @access    Public
 exports.getAvailableRooms = async (req, res) => {
@@ -104,10 +279,11 @@ exports.getAvailableRooms = async (req, res) => {
       });
     }
 
-    const allRooms = await Room.find({ roomType, isActive: true });
-
     const checkIn  = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
+
+    const allRooms = await Room.find({ roomType, isActive: true })
+      .populate('amenities', 'name label icon price description isActive pricingModel');
 
     const bookedRooms = await Reservation.find({
       checkInDate:  { $lt: checkOut },
@@ -135,35 +311,30 @@ exports.getAvailableRooms = async (req, res) => {
   }
 };
 
-// @desc      Get booking status for a specific room (most recent active/relevant reservation)
+// @desc      Get booking status for a specific room
 // @route     GET /api/reservations/room-status/:roomId
 // @access    Private
 exports.getRoomBookingStatus = async (req, res) => {
   try {
     const { roomId } = req.params;
 
-    // Priority order: checked-in > confirmed > pending > checked-out > cancelled
     const reservation = await Reservation.findOne({
       roomIds: roomId,
       status:  { $in: ['checked-in', 'confirmed', 'pending', 'checked-out', 'cancelled'] },
     })
       .sort({ createdAt: -1 })
-      .select('status guestName checkInDate checkOutDate confirmationNumber');
+      .select('status guestName checkInDate checkOutDate checkInTime confirmationNumber');
 
     if (!reservation) {
-      return res.status(200).json({
-        success: true,
-        data: { bookingStatus: null },
-      });
+      return res.status(200).json({ success: true, data: { bookingStatus: null } });
     }
 
-    // Prefer any currently-active reservation over checked-out/cancelled
     const activeReservation = await Reservation.findOne({
       roomIds: roomId,
       status:  { $in: ['checked-in', 'confirmed', 'pending'] },
     })
       .sort({ createdAt: -1 })
-      .select('status guestName checkInDate checkOutDate confirmationNumber');
+      .select('status guestName checkInDate checkOutDate checkInTime confirmationNumber');
 
     const result = activeReservation || reservation;
 
@@ -174,11 +345,11 @@ exports.getRoomBookingStatus = async (req, res) => {
         guestName:          result.guestName,
         checkInDate:        result.checkInDate,
         checkOutDate:       result.checkOutDate,
+        checkInTime:        result.checkInTime || null,
         confirmationNumber: result.confirmationNumber,
       },
     });
   } catch (error) {
-    console.error('Error fetching room booking status:', error);
     res.status(500).json({ success: false, message: error.message || 'Error fetching room booking status' });
   }
 };
@@ -199,11 +370,9 @@ exports.getRoomBookingStatuses = async (req, res) => {
       status:  { $in: ['checked-in', 'confirmed', 'pending', 'checked-out', 'cancelled'] },
     })
       .sort({ createdAt: -1 })
-      .select('status roomIds guestName checkInDate checkOutDate confirmationNumber');
+      .select('status roomIds guestName checkInDate checkOutDate checkInTime confirmationNumber');
 
-    // Priority: checked-in > confirmed > pending > checked-out > cancelled
     const PRIORITY = { 'checked-in': 0, confirmed: 1, pending: 2, 'checked-out': 3, cancelled: 4 };
-
     const statusMap = {};
 
     reservations.forEach(resv => {
@@ -221,25 +390,21 @@ exports.getRoomBookingStatuses = async (req, res) => {
             guestName:          resv.guestName,
             checkInDate:        resv.checkInDate,
             checkOutDate:       resv.checkOutDate,
+            checkInTime:        resv.checkInTime || null,
             confirmationNumber: resv.confirmationNumber,
           };
         }
       });
     });
 
-    // Fill in nulls for rooms with no reservations
     roomIds.forEach(id => {
       if (!statusMap[id.toString()]) {
         statusMap[id.toString()] = { bookingStatus: null };
       }
     });
 
-    res.status(200).json({
-      success: true,
-      data:    statusMap,
-    });
+    res.status(200).json({ success: true, data: statusMap });
   } catch (error) {
-    console.error('Error fetching room booking statuses:', error);
     res.status(500).json({ success: false, message: error.message || 'Error fetching room booking statuses' });
   }
 };
@@ -252,12 +417,13 @@ exports.createReservation = async (req, res) => {
     const {
       guestName, email, phone,
       checkInDate, checkOutDate,
+      checkInTime,
       roomIds, roomType,
       numberOfGuests, numberOfRooms,
       freeAmenities, paidAmenities, amenityHours,
-      selectedRestaurant, selectedBar,
+      amenitiesBreakdown,
       specialRequests, stayType,
-      totalPrice, amenitiesBreakdown,
+      totalPrice,
     } = req.body;
 
     if (!guestName || !email || !phone || !checkInDate || !checkOutDate) {
@@ -268,6 +434,11 @@ exports.createReservation = async (req, res) => {
     }
     if (roomIds.length !== numberOfRooms) {
       return res.status(400).json({ success: false, message: 'Number of selected rooms does not match' });
+    }
+
+    const timeErr = await validateCheckInTime(checkInTime);
+    if (timeErr) {
+      return res.status(400).json({ success: false, message: timeErr });
     }
 
     const checkIn  = new Date(checkInDate);
@@ -295,13 +466,13 @@ exports.createReservation = async (req, res) => {
     const reservation = await Reservation.create({
       guestName, email, phone,
       checkInDate, checkOutDate,
+      checkInTime:        checkInTime  || null,
       roomIds, roomType,
       numberOfGuests, numberOfRooms,
-      freeAmenities:      freeAmenities      || [],
-      paidAmenities:      paidAmenities      || [],
-      amenityHours:       amenityHours       || {},
-      selectedRestaurant: selectedRestaurant || false,
-      selectedBar:        selectedBar        || false,
+      freeAmenities:      freeAmenities  || [],
+      paidAmenities:      paidAmenities  || [],
+      amenityHours:       amenityHours   || {},
+      amenitiesBreakdown: amenitiesBreakdown || {},
       specialRequests,
       stayType:      stayType   || 'overnight',
       totalPrice:    totalPrice || 0,
@@ -314,29 +485,46 @@ exports.createReservation = async (req, res) => {
 
     const roomNumbers = populated.roomIds.map(r => `#${r.roomNumber}`).join(', ');
 
-    // ── Email admins ───────────────────────────────────────────────────────
+    // ── Fetch room amenity data (free + paid room amenities + optional add-ons) ─
+    const {
+      freeRoomAmenities,
+      paidRoomAmenities,
+      allRoomAmenityNames,
+      optionalBreakdown,
+      roomsTotal,
+    } = await buildEmailAmenityData(reservation);
+
+    // ── Email admins ──────────────────────────────────────────────────────────
     const adminEmails = await getAdminEmailsForPref('newReservation');
     if (adminEmails.length > 0) {
       sendNewReservationEmail({
         adminEmails, guestName, email, phone, roomType, roomNumbers,
         checkInDate, checkOutDate,
+        checkInTime:        checkInTime || null,
         stayType:           stayType || 'overnight',
         totalPrice:         totalPrice || 0,
         amenitiesBreakdown: amenitiesBreakdown || {},
       }).catch(err => console.error('[createReservation] admin email failed:', err.message));
     }
 
-    // ── Email guest — booking received (pending) ───────────────────────────
+    // ── Email guest with full amenity details ────────────────────────────────
     sendReservationConfirmationToGuest({
       guestName,
-      guestEmail:         email,
-      confirmationNumber: populated.confirmationNumber,
+      guestEmail:          email,
+      confirmationNumber:  populated.confirmationNumber,
       roomType, roomNumbers, checkInDate, checkOutDate,
+      checkInTime:         checkInTime || null,
       numberOfGuests, numberOfRooms,
-      stayType:           stayType || 'overnight',
-      totalPrice:         totalPrice || 0,
-      amenitiesBreakdown: amenitiesBreakdown || {},
-      specialRequests:    specialRequests || '',
+      stayType:            stayType || 'overnight',
+      totalPrice:          totalPrice || 0,
+      roomsTotal,
+      specialRequests:     specialRequests || '',
+      // Room-included amenities (split into free + paid)
+      freeRoomAmenities,
+      paidRoomAmenities,
+      allRoomAmenityNames,
+      // Guest-selected optional add-ons
+      optionalBreakdown,
     }).catch(err => console.error('[createReservation] guest email failed:', err.message));
 
     res.status(201).json({
@@ -377,9 +565,12 @@ exports.updateReservation = async (req, res) => {
       status, paymentStatus,
       guestName, email, phone,
       checkInDate, checkOutDate,
+      checkInTime,
       numberOfGuests, specialRequests,
       roomType, roomIds, numberOfRooms,
       totalPrice,
+      paidAmenities,
+      amenityHours,
     } = req.body;
 
     let reservation = await Reservation.findById(req.params.id)
@@ -391,17 +582,23 @@ exports.updateReservation = async (req, res) => {
 
     const oldStatus = reservation.status;
 
-    // ── Snapshot the BEFORE state for change detection ─────────────────────
     const oldRoomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
     const snapshot = {
       roomType:       reservation.roomType,
       numberOfGuests: reservation.numberOfGuests,
       checkInDate:    new Date(reservation.checkInDate),
       checkOutDate:   new Date(reservation.checkOutDate),
+      checkInTime:    reservation.checkInTime || null,
       totalPrice:     reservation.totalPrice,
     };
 
-    // ── Apply all field updates ────────────────────────────────────────────
+    if (checkInTime !== undefined) {
+      const timeErr = await validateCheckInTime(checkInTime);
+      if (timeErr) {
+        return res.status(400).json({ success: false, message: timeErr });
+      }
+    }
+
     if (status          !== undefined) reservation.status          = status;
     if (paymentStatus   !== undefined) reservation.paymentStatus   = paymentStatus;
     if (guestName       !== undefined) reservation.guestName       = guestName.trim();
@@ -411,8 +608,15 @@ exports.updateReservation = async (req, res) => {
     if (specialRequests !== undefined) reservation.specialRequests = specialRequests;
     if (totalPrice      !== undefined) reservation.totalPrice      = Number(totalPrice);
     if (roomType        !== undefined) reservation.roomType        = roomType;
+    if (checkInTime !== undefined) reservation.checkInTime = checkInTime || null;
 
-    // ── Room reassignment ──────────────────────────────────────────────────
+    if (paidAmenities !== undefined && Array.isArray(paidAmenities)) {
+      reservation.paidAmenities = paidAmenities;
+    }
+    if (amenityHours !== undefined && typeof amenityHours === 'object') {
+      reservation.amenityHours = new Map(Object.entries(amenityHours));
+    }
+
     if (roomIds !== undefined && Array.isArray(roomIds) && roomIds.length > 0) {
       const rooms = await Room.find({ _id: { $in: roomIds } });
       if (rooms.length !== roomIds.length) {
@@ -470,20 +674,29 @@ exports.updateReservation = async (req, res) => {
     const newRoomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
     const actorName      = req.user?.fullName || req.user?.email || 'Staff';
 
-    // ── STATUS: confirmed → send "booking confirmed" email to guest ────────
+    // ── Build full amenity data for all guest emails ─────────────────────────
+    const emailData = await buildEmailAmenityData(reservation);
+
+    // ── STATUS: confirmed ────────────────────────────────────────────────────
     if (status === 'confirmed' && oldStatus !== 'confirmed') {
       sendBookingConfirmedToGuest({
-        guestName:          reservation.guestName,
-        guestEmail:         reservation.email,
-        confirmationNumber: reservation.confirmationNumber,
-        roomType:           reservation.roomType,
-        roomNumbers:        newRoomNumbers,
-        checkInDate:        reservation.checkInDate,
-        checkOutDate:       reservation.checkOutDate,
-        numberOfGuests:     reservation.numberOfGuests,
-        numberOfRooms:      reservation.numberOfRooms,
-        stayType:           reservation.stayType || 'overnight',
-        totalPrice:         reservation.totalPrice,
+        guestName:           reservation.guestName,
+        guestEmail:          reservation.email,
+        confirmationNumber:  reservation.confirmationNumber,
+        roomType:            reservation.roomType,
+        roomNumbers:         newRoomNumbers,
+        checkInDate:         reservation.checkInDate,
+        checkOutDate:        reservation.checkOutDate,
+        checkInTime:         reservation.checkInTime || null,
+        numberOfGuests:      reservation.numberOfGuests,
+        numberOfRooms:       reservation.numberOfRooms,
+        stayType:            reservation.stayType || 'overnight',
+        totalPrice:          reservation.totalPrice,
+        roomsTotal:          emailData.roomsTotal,
+        freeRoomAmenities:   emailData.freeRoomAmenities,
+        paidRoomAmenities:   emailData.paidRoomAmenities,
+        allRoomAmenityNames: emailData.allRoomAmenityNames,
+        optionalBreakdown:   emailData.optionalBreakdown,
       }).catch(err => console.error('[confirm] guest confirmed email failed:', err.message));
 
       return res.status(200).json({
@@ -493,7 +706,7 @@ exports.updateReservation = async (req, res) => {
       });
     }
 
-    // ── STATUS: checked-in → sync rooms to 'occupied' ──────────────────────
+    // ── STATUS: checked-in ───────────────────────────────────────────────────
     if (status === 'checked-in' && oldStatus !== 'checked-in') {
       await Room.updateMany(
         { _id: { $in: reservation.roomIds.map(r => r._id) } },
@@ -507,20 +720,28 @@ exports.updateReservation = async (req, res) => {
           guestName:    reservation.guestName,
           roomNumbers:  newRoomNumbers,
           checkInDate:  reservation.checkInDate,
+          checkInTime:  reservation.checkInTime || null,
           checkOutDate: reservation.checkOutDate,
           checkedInBy:  actorName,
         }).catch(err => console.error('[checkIn] admin email failed:', err.message));
       }
 
       sendCheckInConfirmationToGuest({
-        guestName:          reservation.guestName,
-        guestEmail:         reservation.email,
-        confirmationNumber: reservation.confirmationNumber,
-        roomNumbers:        newRoomNumbers,
-        roomType:           reservation.roomType,
-        checkInDate:        reservation.checkInDate,
-        checkOutDate:       reservation.checkOutDate,
-        numberOfGuests:     reservation.numberOfGuests,
+        guestName:           reservation.guestName,
+        guestEmail:          reservation.email,
+        confirmationNumber:  reservation.confirmationNumber,
+        roomNumbers:         newRoomNumbers,
+        roomType:            reservation.roomType,
+        checkInDate:         reservation.checkInDate,
+        checkInTime:         reservation.checkInTime || null,
+        checkOutDate:        reservation.checkOutDate,
+        numberOfGuests:      reservation.numberOfGuests,
+        totalPrice:          reservation.totalPrice,
+        roomsTotal:          emailData.roomsTotal,
+        freeRoomAmenities:   emailData.freeRoomAmenities,
+        paidRoomAmenities:   emailData.paidRoomAmenities,
+        allRoomAmenityNames: emailData.allRoomAmenityNames,
+        optionalBreakdown:   emailData.optionalBreakdown,
       }).catch(err => console.error('[checkIn] guest email failed:', err.message));
 
       return res.status(200).json({
@@ -530,7 +751,7 @@ exports.updateReservation = async (req, res) => {
       });
     }
 
-    // ── STATUS: checked-out → sync rooms to 'available' ───────────────────
+    // ── STATUS: checked-out ──────────────────────────────────────────────────
     if (status === 'checked-out' && oldStatus !== 'checked-out') {
       await Room.updateMany(
         { _id: { $in: reservation.roomIds.map(r => r._id) } },
@@ -549,13 +770,19 @@ exports.updateReservation = async (req, res) => {
       }
 
       sendCheckOutFarewellToGuest({
-        guestName:          reservation.guestName,
-        guestEmail:         reservation.email,
-        confirmationNumber: reservation.confirmationNumber,
-        roomNumbers:        newRoomNumbers,
-        checkInDate:        reservation.checkInDate,
-        checkOutDate:       reservation.checkOutDate,
-        totalPrice:         reservation.totalPrice,
+        guestName:           reservation.guestName,
+        guestEmail:          reservation.email,
+        confirmationNumber:  reservation.confirmationNumber,
+        roomNumbers:         newRoomNumbers,
+        roomType:            reservation.roomType,
+        checkInDate:         reservation.checkInDate,
+        checkOutDate:        reservation.checkOutDate,
+        totalPrice:          reservation.totalPrice,
+        roomsTotal:          emailData.roomsTotal,
+        freeRoomAmenities:   emailData.freeRoomAmenities,
+        paidRoomAmenities:   emailData.paidRoomAmenities,
+        allRoomAmenityNames: emailData.allRoomAmenityNames,
+        optionalBreakdown:   emailData.optionalBreakdown,
       }).catch(err => console.error('[checkOut] guest email failed:', err.message));
 
       return res.status(200).json({
@@ -565,12 +792,11 @@ exports.updateReservation = async (req, res) => {
       });
     }
 
-    // ── Booking detail update emails (room, dates, guests, price) ──────────
-    // Skip if the only change was a status transition (confirmed, etc.)
-    // or if none of the tracked fields actually changed.
+    // ── General field-change emails ──────────────────────────────────────────
     const isStatusOnlyChange = status !== undefined &&
       !roomIds && !roomType && !numberOfGuests &&
-      !checkInDate && !checkOutDate && !totalPrice;
+      !checkInDate && !checkOutDate && !totalPrice && checkInTime === undefined &&
+      paidAmenities === undefined && amenityHours === undefined;
 
     if (!isStatusOnlyChange) {
       const changes = detectBookingChanges({
@@ -581,7 +807,6 @@ exports.updateReservation = async (req, res) => {
       });
 
       if (changes.length > 0) {
-        // Admin
         const adminEmails = await getAdminEmailsForPref('newReservation');
         if (adminEmails.length > 0) {
           sendBookingUpdatedEmail({
@@ -596,17 +821,21 @@ exports.updateReservation = async (req, res) => {
           }).catch(err => console.error('[updateReservation] admin update email failed:', err.message));
         }
 
-        // Guest
         sendBookingUpdateToGuest({
-          guestName:          reservation.guestName,
-          guestEmail:         reservation.email,
-          confirmationNumber: reservation.confirmationNumber,
-          roomNumbers:        newRoomNumbers,
-          checkInDate:        reservation.checkInDate,
-          checkOutDate:       reservation.checkOutDate,
-          numberOfGuests:     reservation.numberOfGuests,
-          totalPrice:         reservation.totalPrice,
+          guestName:           reservation.guestName,
+          guestEmail:          reservation.email,
+          confirmationNumber:  reservation.confirmationNumber,
+          roomNumbers:         newRoomNumbers,
+          checkInDate:         reservation.checkInDate,
+          checkOutDate:        reservation.checkOutDate,
+          numberOfGuests:      reservation.numberOfGuests,
+          totalPrice:          reservation.totalPrice,
           changes,
+          roomsTotal:          emailData.roomsTotal,
+          freeRoomAmenities:   emailData.freeRoomAmenities,
+          paidRoomAmenities:   emailData.paidRoomAmenities,
+          allRoomAmenityNames: emailData.allRoomAmenityNames,
+          optionalBreakdown:   emailData.optionalBreakdown,
         }).catch(err => console.error('[updateReservation] guest update email failed:', err.message));
       }
     }
@@ -633,7 +862,6 @@ exports.cancelReservation = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
-    // ── Already cancelled → hard delete from DB, no emails ────────────────
     if (reservation.status === 'cancelled') {
       await Reservation.findByIdAndDelete(req.params.id);
       return res.status(200).json({
@@ -643,7 +871,6 @@ exports.cancelReservation = async (req, res) => {
       });
     }
 
-    // ── If reservation was checked-in, free up the rooms before cancelling ─
     if (reservation.status === 'checked-in') {
       await Room.updateMany(
         { _id: { $in: reservation.roomIds.map(r => r._id) } },
@@ -651,14 +878,15 @@ exports.cancelReservation = async (req, res) => {
       );
     }
 
-    // ── Active booking → soft cancel + send notification emails ───────────
+    // Capture amenity data BEFORE marking cancelled
+    const emailData = await buildEmailAmenityData(reservation);
+
     reservation.status = 'cancelled';
     await reservation.save();
 
     const roomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
     const reason      = req.body?.reason || null;
 
-    // Admin
     const adminEmails = await getAdminEmailsForPref('cancellation');
     if (adminEmails.length > 0) {
       sendCancellationEmail({
@@ -672,15 +900,20 @@ exports.cancelReservation = async (req, res) => {
       }).catch(err => console.error('[cancel] admin email failed:', err.message));
     }
 
-    // Guest
     sendCancellationNotificationToGuest({
-      guestName:          reservation.guestName,
-      guestEmail:         reservation.email,
-      confirmationNumber: reservation.confirmationNumber,
+      guestName:           reservation.guestName,
+      guestEmail:          reservation.email,
+      confirmationNumber:  reservation.confirmationNumber,
       roomNumbers,
-      checkInDate:        reservation.checkInDate,
-      checkOutDate:       reservation.checkOutDate,
+      checkInDate:         reservation.checkInDate,
+      checkOutDate:        reservation.checkOutDate,
       reason,
+      totalPrice:          reservation.totalPrice,
+      roomsTotal:          emailData.roomsTotal,
+      freeRoomAmenities:   emailData.freeRoomAmenities,
+      paidRoomAmenities:   emailData.paidRoomAmenities,
+      allRoomAmenityNames: emailData.allRoomAmenityNames,
+      optionalBreakdown:   emailData.optionalBreakdown,
     }).catch(err => console.error('[cancel] guest email failed:', err.message));
 
     res.status(200).json({

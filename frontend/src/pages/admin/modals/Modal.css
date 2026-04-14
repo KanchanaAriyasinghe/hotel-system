@@ -533,3 +533,141 @@
   font-size: 0.85rem;
   letter-spacing: 0.04em;
 }
+
+/* ============================================================
+   frontend/src/pages/admin/modals/Modal.css
+   (append these new blocks at the bottom of your existing file)
+   ============================================================ */
+
+/* ── Image upload zone (drag-and-drop) ───────────────────────── */
+.img-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 16px;
+  border: 1.5px dashed var(--lp-border);
+  background: var(--lp-warm-white);
+  cursor: pointer;
+  transition: all 0.18s var(--lp-ease);
+  text-align: center;
+  color: var(--lp-text-muted);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem;
+}
+
+.img-upload-zone svg { color: var(--lp-gold); }
+
+.img-upload-zone:hover,
+.img-upload-zone--drag {
+  border-color: var(--lp-gold);
+  background: var(--lp-gold-pale);
+  color: var(--lp-gold-dark);
+}
+
+.img-upload-hint {
+  font-size: 0.72rem;
+  color: var(--lp-text-muted);
+  font-style: italic;
+}
+
+/* ── Image preview grid (modal add room) ─────────────────────── */
+.img-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.img-preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--lp-warm-white);
+  border: 1px solid var(--lp-border);
+  overflow: hidden;
+}
+
+.img-preview-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.img-preview-item--loading { opacity: 0.75; }
+.img-preview-item--error   { opacity: 0.65; }
+
+.img-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 26, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.img-preview-overlay--error { background: rgba(154, 48, 32, 0.55); }
+
+.img-preview-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(45, 122, 79, 0.88);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  font-family: 'Jost', sans-serif;
+}
+
+.img-preview-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  background: rgba(154, 48, 32, 0.88);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.img-preview-item:hover .img-preview-remove { opacity: 1; }
+
+/* ── Upload spinner keyframe ─────────────────────────────────── */
+.img-upload-spinner {
+  animation: img-spin 0.8s linear infinite;
+}
+@keyframes img-spin { to { transform: rotate(360deg); } }
+
+/* ── Input with button row (reused) ──────────────────────────── */
+.input-with-btn {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-btn input { flex: 1; }
+
+.btn-add {
+  padding: 10px 16px;
+  background: var(--lp-gold);
+  color: #fff;
+  border: none;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-add:hover { background: var(--lp-gold-dark); }

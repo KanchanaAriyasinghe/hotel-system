@@ -42,18 +42,25 @@ const TYPE_META = {
   family: { label: 'Family', cls: 'rcr-type--family', price: 220 },
 };
 
-const AMENITY_LABELS = {
-  wifi: 'WiFi', pool: 'Pool', spa: 'Spa',
-  restaurant: 'Restaurant', bar: 'Bar', gym: 'Gym',
-  tv: 'TV', ac: 'AC',
-};
-
-const AMENITY_ICONS = {
-  wifi: '📶', pool: '🏊', spa: '🧖', restaurant: '🍽️',
-  bar: '🍸', gym: '🏋️', tv: '📺', ac: '❄️',
-};
-
 const NON_AVAILABLE_STATUSES = ['occupied', 'maintenance', 'cleaning'];
+
+// Safe string helper — never pass raw object to JSX
+const str = (v) => (v == null ? '' : String(v));
+
+// ── Normalise an amenity entry that may be a populated object OR a plain string ──
+// Populated: { _id, name, label, icon, price, ... }
+// Legacy:    'wifi' | 'pool' | etc. (plain string)
+const getAmenityDisplay = (a) => {
+  if (a !== null && typeof a === 'object') {
+    return {
+      id:    str(a._id),
+      label: str(a.label || a.name),
+      icon:  str(a.icon),
+    };
+  }
+  // fallback for legacy plain-string amenities (e.g. 'wifi')
+  return { id: str(a), label: str(a), icon: '' };
+};
 
 const fmt = (dateStr) => {
   if (!dateStr) return '—';
@@ -77,15 +84,15 @@ const nightsBetween = (a, b) => {
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 const DetailModal = ({ item, mode, onClose }) => {
-  const [roomDetails, setRoomDetails] = useState([]);
+  const [roomDetails, setRoomDetails]   = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
+  const [fetchError, setFetchError]     = useState(null);
 
   useEffect(() => {
     if (!item) return;
-    const token = localStorage.getItem('token');
+    const token   = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
-    const ids = item._roomIds || (item._id ? [item._id] : []);
+    const ids     = item._roomIds || (item._id ? [item._id] : []);
 
     if (ids.length === 0) {
       setRoomDetails([item]);
@@ -113,8 +120,8 @@ const DetailModal = ({ item, mode, onClose }) => {
 
   if (!item) return null;
 
-  const isBooked = mode === 'booked';
-  const firstRoom = roomDetails[0] || item;
+  const isBooked   = mode === 'booked';
+  const firstRoom  = roomDetails[0] || item;
   const roomStatus = firstRoom.status || item.roomStatus;
   const statusMeta = STATUS_META[roomStatus] || STATUS_META.available;
 
@@ -126,11 +133,11 @@ const DetailModal = ({ item, mode, onClose }) => {
             <span className="rcr-modal-room-num">
               {isBooked && item._roomNumbers?.length > 1
                 ? `Rooms #${item._roomNumbers.join(', #')}`
-                : `Room #${firstRoom.roomNumber || item.roomNumber}`}
+                : `Room #${str(firstRoom.roomNumber || item.roomNumber)}`}
             </span>
             <span className={`rcr-status-pill ${statusMeta.cls}`}>{statusMeta.label}</span>
             {isBooked && (() => {
-              const bm = BOOKING_STATUS_META[item.bookingStatus] || { label: item.bookingStatus, cls: 'rcr-bpill--gray' };
+              const bm = BOOKING_STATUS_META[item.bookingStatus] || { label: str(item.bookingStatus), cls: 'rcr-bpill--gray' };
               return <span className={`rcr-booking-pill ${bm.cls}`}>{bm.label}</span>;
             })()}
           </div>
@@ -147,21 +154,24 @@ const DetailModal = ({ item, mode, onClose }) => {
             {fetchError && <div className="rcr-modal-fetch-error">{fetchError}</div>}
 
             {roomDetails.map((data, idx) => {
-              const typeMeta = TYPE_META[data.roomType] || { label: data.roomType, cls: '' };
-              const price = data.pricePerNight || TYPE_META[data.roomType]?.price || 0;
-              const rStatus = data.status || data.roomStatus;
+              const typeMeta   = TYPE_META[data.roomType] || { label: str(data.roomType), cls: '' };
+              const price      = data.pricePerNight || TYPE_META[data.roomType]?.price || 0;
+              const rStatus    = data.status || data.roomStatus;
               const rStatusMeta = STATUS_META[rStatus] || STATUS_META.available;
+
+              // Normalise amenities — populated objects or legacy strings
+              const amenityItems = (data.amenities || []).map(getAmenityDisplay);
 
               return (
                 <div className="rcr-modal-section" key={data._id || idx}>
                   <h3 className="rcr-modal-section-title">
                     <BedDouble size={14}/>
-                    {roomDetails.length > 1 ? `Room #${data.roomNumber} Details` : 'Room Details'}
+                    {roomDetails.length > 1 ? `Room #${str(data.roomNumber)} Details` : 'Room Details'}
                   </h3>
                   <div className="rcr-modal-grid">
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Room Number</span>
-                      <span className="rcr-modal-value">#{data.roomNumber}</span>
+                      <span className="rcr-modal-value">#{str(data.roomNumber)}</span>
                     </div>
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Room Type</span>
@@ -171,16 +181,16 @@ const DetailModal = ({ item, mode, onClose }) => {
                     </div>
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Floor</span>
-                      <span className="rcr-modal-value">Floor {data.floor}</span>
+                      <span className="rcr-modal-value">Floor {str(data.floor)}</span>
                     </div>
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Capacity</span>
-                      <span className="rcr-modal-value">{data.capacity || 2} guests</span>
+                      <span className="rcr-modal-value">{str(data.capacity || 2)} guests</span>
                     </div>
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Price / Night</span>
                       <span className="rcr-modal-value rcr-modal-price">
-                        ${price}<span className="rcr-per-night">/night</span>
+                        ${str(price)}<span className="rcr-per-night">/night</span>
                       </span>
                     </div>
                     <div className="rcr-modal-field">
@@ -192,7 +202,7 @@ const DetailModal = ({ item, mode, onClose }) => {
                     {data.description && (
                       <div className="rcr-modal-field rcr-modal-field--full">
                         <span className="rcr-modal-label">Description</span>
-                        <span className="rcr-modal-value">{data.description}</span>
+                        <span className="rcr-modal-value">{str(data.description)}</span>
                       </div>
                     )}
                     {rStatus === 'maintenance' && data.maintenanceReason && (
@@ -202,22 +212,27 @@ const DetailModal = ({ item, mode, onClose }) => {
                           Maintenance Reason
                         </span>
                         <span className="rcr-modal-value">
-                          <span className="rcr-modal-warn-block">{data.maintenanceReason}</span>
+                          <span className="rcr-modal-warn-block">{str(data.maintenanceReason)}</span>
                         </span>
                       </div>
                     )}
+
+                    {/* ── Amenities — normalised ── */}
                     <div className="rcr-modal-field rcr-modal-field--full">
                       <span className="rcr-modal-label">Amenities</span>
                       <span className="rcr-modal-value">
-                        {data.amenities?.length > 0 ? (
+                        {amenityItems.length > 0 ? (
                           <div className="rcr-amenity-list">
-                            {data.amenities.map(a => (
-                              <span key={a} className="rcr-amenity-chip">
-                                {AMENITY_ICONS[a] || ''} {AMENITY_LABELS[a] || a}
+                            {amenityItems.map(a => (
+                              <span key={a.id} className="rcr-amenity-chip">
+                                {a.icon && <span style={{ marginRight: 3 }}>{a.icon}</span>}
+                                {a.label}
                               </span>
                             ))}
                           </div>
-                        ) : <span className="rcr-td-none">None listed</span>}
+                        ) : (
+                          <span className="rcr-td-none">None listed</span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -234,14 +249,14 @@ const DetailModal = ({ item, mode, onClose }) => {
                   {item.confirmationNumber && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Confirmation #</span>
-                      <span className="rcr-modal-value rcr-modal-conf">{item.confirmationNumber}</span>
+                      <span className="rcr-modal-value rcr-modal-conf">{str(item.confirmationNumber)}</span>
                     </div>
                   )}
                   <div className="rcr-modal-field">
                     <span className="rcr-modal-label">Booking Status</span>
                     <span className="rcr-modal-value">
                       {(() => {
-                        const bm = BOOKING_STATUS_META[item.bookingStatus] || { label: item.bookingStatus, cls: 'rcr-bpill--gray' };
+                        const bm = BOOKING_STATUS_META[item.bookingStatus] || { label: str(item.bookingStatus), cls: 'rcr-bpill--gray' };
                         return <span className={`rcr-booking-pill ${bm.cls}`}>{bm.label}</span>;
                       })()}
                     </span>
@@ -257,19 +272,19 @@ const DetailModal = ({ item, mode, onClose }) => {
                   {item.numberOfGuests != null && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">No. of Guests</span>
-                      <span className="rcr-modal-value">{item.numberOfGuests}</span>
+                      <span className="rcr-modal-value">{str(item.numberOfGuests)}</span>
                     </div>
                   )}
                   {item.numberOfRooms != null && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">No. of Rooms</span>
-                      <span className="rcr-modal-value">{item.numberOfRooms}</span>
+                      <span className="rcr-modal-value">{str(item.numberOfRooms)}</span>
                     </div>
                   )}
                   {item.totalPrice != null && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Total Price</span>
-                      <span className="rcr-modal-value rcr-modal-price">${item.totalPrice}</span>
+                      <span className="rcr-modal-value rcr-modal-price">${str(item.totalPrice)}</span>
                     </div>
                   )}
                   {item.paymentStatus && (
@@ -277,7 +292,7 @@ const DetailModal = ({ item, mode, onClose }) => {
                       <span className="rcr-modal-label">Payment Status</span>
                       <span className="rcr-modal-value">
                         {(() => {
-                          const pm = PAYMENT_STATUS_META[item.paymentStatus] || { label: item.paymentStatus, cls: 'rcr-bpill--gray' };
+                          const pm = PAYMENT_STATUS_META[item.paymentStatus] || { label: str(item.paymentStatus), cls: 'rcr-bpill--gray' };
                           return <span className={`rcr-booking-pill ${pm.cls}`}>{pm.label}</span>;
                         })()}
                       </span>
@@ -286,13 +301,13 @@ const DetailModal = ({ item, mode, onClose }) => {
                   {item.stayType && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Stay Type</span>
-                      <span className="rcr-modal-value" style={{ textTransform: 'capitalize' }}>{item.stayType}</span>
+                      <span className="rcr-modal-value" style={{ textTransform: 'capitalize' }}>{str(item.stayType)}</span>
                     </div>
                   )}
                   {item.specialRequests && (
                     <div className="rcr-modal-field rcr-modal-field--full">
                       <span className="rcr-modal-label">Special Requests</span>
-                      <span className="rcr-modal-value">{item.specialRequests}</span>
+                      <span className="rcr-modal-value">{str(item.specialRequests)}</span>
                     </div>
                   )}
                 </div>
@@ -307,18 +322,18 @@ const DetailModal = ({ item, mode, onClose }) => {
                 <div className="rcr-modal-grid">
                   <div className="rcr-modal-field">
                     <span className="rcr-modal-label">Guest Name</span>
-                    <span className="rcr-modal-value">{item.guestName || '—'}</span>
+                    <span className="rcr-modal-value">{str(item.guestName) || '—'}</span>
                   </div>
                   {item.email && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Email</span>
-                      <span className="rcr-modal-value">{item.email}</span>
+                      <span className="rcr-modal-value">{str(item.email)}</span>
                     </div>
                   )}
                   {item.phone && (
                     <div className="rcr-modal-field">
                       <span className="rcr-modal-label">Phone</span>
-                      <span className="rcr-modal-value">{item.phone}</span>
+                      <span className="rcr-modal-value">{str(item.phone)}</span>
                     </div>
                   )}
                 </div>
@@ -333,11 +348,14 @@ const DetailModal = ({ item, mode, onClose }) => {
 
 // ─── Booking Card ─────────────────────────────────────────────────────────────
 const BookingCard = ({ row, onView }) => {
-  const nights = nightsBetween(row.checkInDate, row.checkOutDate);
-  const bm = BOOKING_STATUS_META[row.bookingStatus] || { label: row.bookingStatus, cls: 'rcr-bpill--gray', dot: '#6b7280' };
-  const rm = STATUS_META[row.roomStatus] || STATUS_META.available;
+  const nights  = nightsBetween(row.checkInDate, row.checkOutDate);
+  const bm      = BOOKING_STATUS_META[row.bookingStatus] || { label: str(row.bookingStatus), cls: 'rcr-bpill--gray', dot: '#6b7280' };
+  const rm      = STATUS_META[row.roomStatus] || STATUS_META.available;
   const isMulti = row._roomNumbers?.length > 1;
-  const price = row.pricePerNight || TYPE_META[row.roomType]?.price || 0;
+  const price   = row.pricePerNight || TYPE_META[row.roomType]?.price || 0;
+
+  // Normalise amenities for this card row
+  const amenityItems = (row.amenities || []).map(getAmenityDisplay);
 
   return (
     <div className="rcr-booking-card">
@@ -347,15 +365,15 @@ const BookingCard = ({ row, onView }) => {
           {isMulti ? (
             <div className="rcr-card-room-badges">
               {row._roomNumbers.map(n => (
-                <span key={n} className="rcr-card-room-num">#{n}</span>
+                <span key={n} className="rcr-card-room-num">#{str(n)}</span>
               ))}
             </div>
           ) : (
-            <span className="rcr-card-room-single">#{row.roomNumber}</span>
+            <span className="rcr-card-room-single">#{str(row.roomNumber)}</span>
           )}
           {row.roomType !== 'mixed' ? (
             <span className={`rcr-type-badge ${TYPE_META[row.roomType]?.cls || ''}`}>
-              {TYPE_META[row.roomType]?.label || row.roomType}
+              {TYPE_META[row.roomType]?.label || str(row.roomType)}
             </span>
           ) : (
             <span className="rcr-type-badge rcr-type--mixed">Mixed</span>
@@ -383,8 +401,8 @@ const BookingCard = ({ row, onView }) => {
             {row.guestName ? row.guestName.charAt(0).toUpperCase() : '?'}
           </div>
           <div className="rcr-card-guest-info">
-            <span className="rcr-card-guest-name">{row.guestName || '—'}</span>
-            {row.email && <span className="rcr-card-guest-email">{row.email}</span>}
+            <span className="rcr-card-guest-name">{str(row.guestName) || '—'}</span>
+            {row.email && <span className="rcr-card-guest-email">{str(row.email)}</span>}
           </div>
         </div>
 
@@ -410,29 +428,30 @@ const BookingCard = ({ row, onView }) => {
         <div className="rcr-card-meta">
           <div className="rcr-card-meta-item">
             <MapPin size={11}/>
-            {row.floor != null ? `Floor ${row.floor}` : '—'}
+            {row.floor != null ? `Floor ${str(row.floor)}` : '—'}
           </div>
           <div className="rcr-card-meta-item">
             <Users size={11}/>
-            {row.capacity != null ? `${row.capacity} guests` : '—'}
+            {row.capacity != null ? `${str(row.capacity)} guests` : '—'}
           </div>
           <div className="rcr-card-meta-item rcr-card-meta-price">
             <CreditCard size={11}/>
-            ${price}<span className="rcr-per-night">/night{isMulti ? ' (combined)' : ''}</span>
+            ${str(price)}<span className="rcr-per-night">/night{isMulti ? ' (combined)' : ''}</span>
           </div>
           {row.totalPrice != null && (
             <div className="rcr-card-meta-item rcr-card-meta-total">
-              Total: <strong>${row.totalPrice}</strong>
+              Total: <strong>${str(row.totalPrice)}</strong>
             </div>
           )}
         </div>
 
-        {/* Amenities */}
-        {row.amenities?.length > 0 && (
+        {/* ── Amenities — normalised ── */}
+        {amenityItems.length > 0 && (
           <div className="rcr-card-amenities">
-            {row.amenities.map(a => (
-              <span key={a} className="rcr-amenity-chip">
-                {AMENITY_ICONS[a] || ''} {AMENITY_LABELS[a] || a}
+            {amenityItems.map(a => (
+              <span key={a.id} className="rcr-amenity-chip">
+                {a.icon && <span style={{ marginRight: 3 }}>{a.icon}</span>}
+                {a.label}
               </span>
             ))}
           </div>
@@ -443,7 +462,7 @@ const BookingCard = ({ row, onView }) => {
       <div className="rcr-card-footer">
         {row.confirmationNumber && (
           <span className="rcr-card-conf">
-            <Hash size={10}/>{row.confirmationNumber}
+            <Hash size={10}/>{str(row.confirmationNumber)}
           </span>
         )}
         <button
@@ -476,7 +495,6 @@ const ReceptionistRooms = () => {
   useEffect(() => {
     const el = document.getElementById('hk-content-area');
     if (!el) return;
-
     const check = () => setIsDark(el.classList.contains('hk-content--dark'));
     check();
     const obs = new MutationObserver(check);
@@ -487,7 +505,7 @@ const ReceptionistRooms = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token   = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       const [roomsRes, resRes] = await Promise.all([
         axios.get(`${API}/rooms`, { headers }),
@@ -520,7 +538,7 @@ const ReceptionistRooms = () => {
     return <span className="rcr-sort-active">{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // ── build booked rows ─────────────────────────────────────────────────────
+  // ── Build booked rows ─────────────────────────────────────────────────────
   const bookedRows = (() => {
     const activeStatuses = ['confirmed', 'checked-in', 'pending'];
     return reservations
@@ -534,42 +552,51 @@ const ReceptionistRooms = () => {
           })
           .filter(Boolean);
 
-        const roomNumbers = resolvedRooms.map(r => r.roomNumber);
-        const roomIds = resolvedRooms.map(r => r._id?.toString());
-        const uniqueTypes = [...new Set(resolvedRooms.map(r => r.roomType))];
-        const displayType = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
-        const allAmenities = [...new Set(resolvedRooms.flatMap(r => r.amenities || []))];
-        const firstRoom = resolvedRooms[0] || {};
-        const statusPriority = ['maintenance', 'cleaning', 'occupied', 'available'];
-        const dominantStatus = statusPriority.find(s => resolvedRooms.some(r => r.status === s)) || firstRoom.status;
+        const roomNumbers  = resolvedRooms.map(r => r.roomNumber);
+        const roomIds      = resolvedRooms.map(r => r._id?.toString());
+        const uniqueTypes  = [...new Set(resolvedRooms.map(r => r.roomType))];
+        const displayType  = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
+
+        // Merge amenities from all rooms — keep raw entries (objects or strings), dedupe by id/value
+        const seenAmenityKeys = new Set();
+        const allAmenities    = resolvedRooms.flatMap(r => r.amenities || []).filter(a => {
+          const key = (a !== null && typeof a === 'object') ? str(a._id) : str(a);
+          if (seenAmenityKeys.has(key)) return false;
+          seenAmenityKeys.add(key);
+          return true;
+        });
+
+        const firstRoom       = resolvedRooms[0] || {};
+        const statusPriority  = ['maintenance', 'cleaning', 'occupied', 'available'];
+        const dominantStatus  = statusPriority.find(s => resolvedRooms.some(r => r.status === s)) || firstRoom.status;
 
         return {
-          _id: reservation._id,
-          _roomIds: roomIds,
-          _roomNumbers: roomNumbers,
-          roomNumber: roomNumbers.length === 1 ? roomNumbers[0] : roomNumbers.join(', '),
-          roomType: displayType,
-          floor: resolvedRooms.length === 1 ? firstRoom.floor : null,
-          capacity: resolvedRooms.length === 1 ? firstRoom.capacity : null,
-          pricePerNight: resolvedRooms.length === 1
+          _id:               reservation._id,
+          _roomIds:          roomIds,
+          _roomNumbers:      roomNumbers,
+          roomNumber:        roomNumbers.length === 1 ? roomNumbers[0] : roomNumbers.join(', '),
+          roomType:          displayType,
+          floor:             resolvedRooms.length === 1 ? firstRoom.floor : null,
+          capacity:          resolvedRooms.length === 1 ? firstRoom.capacity : null,
+          pricePerNight:     resolvedRooms.length === 1
             ? firstRoom.pricePerNight
             : resolvedRooms.reduce((s, r) => s + (r.pricePerNight || TYPE_META[r.roomType]?.price || 0), 0),
-          amenities: allAmenities,
-          roomStatus: dominantStatus,
+          amenities:         allAmenities,   // raw — normalised at render time
+          roomStatus:        dominantStatus,
           maintenanceReason: firstRoom.maintenanceReason,
-          bookingStatus: reservation.status,
-          checkInDate: reservation.checkInDate,
-          checkOutDate: reservation.checkOutDate,
-          guestName: reservation.guestName,
-          email: reservation.email,
-          phone: reservation.phone,
+          bookingStatus:     reservation.status,
+          checkInDate:       reservation.checkInDate,
+          checkOutDate:      reservation.checkOutDate,
+          guestName:         reservation.guestName,
+          email:             reservation.email,
+          phone:             reservation.phone,
           confirmationNumber: reservation.confirmationNumber,
-          numberOfGuests: reservation.numberOfGuests,
-          numberOfRooms: reservation.numberOfRooms,
-          totalPrice: reservation.totalPrice,
-          paymentStatus: reservation.paymentStatus,
-          stayType: reservation.stayType,
-          specialRequests: reservation.specialRequests,
+          numberOfGuests:    reservation.numberOfGuests,
+          numberOfRooms:     reservation.numberOfRooms,
+          totalPrice:        reservation.totalPrice,
+          paymentStatus:     reservation.paymentStatus,
+          stayType:          reservation.stayType,
+          specialRequests:   reservation.specialRequests,
         };
       });
   })();
@@ -588,16 +615,16 @@ const ReceptionistRooms = () => {
   const applyFilters = (data) =>
     data
       .filter(r => {
-        const matchType = filterType === 'all' || r.roomType === filterType;
-        const statusVal = r.roomStatus || r.status;
+        const matchType   = filterType === 'all' || r.roomType === filterType;
+        const statusVal   = r.roomStatus || r.status;
         const matchStatus = filterStatus === 'all' || statusVal === filterStatus;
-        const q = search.toLowerCase();
+        const q           = search.toLowerCase();
         const matchSearch = !q ||
-          String(r.roomNumber).includes(q) ||
-          r.roomType?.toLowerCase().includes(q) ||
-          String(r.floor ?? '').includes(q) ||
-          r.guestName?.toLowerCase().includes(q) ||
-          r.confirmationNumber?.toLowerCase().includes(q);
+          str(r.roomNumber).includes(q) ||
+          str(r.roomType).toLowerCase().includes(q) ||
+          str(r.floor ?? '').includes(q) ||
+          str(r.guestName ?? '').toLowerCase().includes(q) ||
+          str(r.confirmationNumber ?? '').toLowerCase().includes(q);
         return matchType && matchStatus && matchSearch;
       })
       .sort((a, b) => {
@@ -652,25 +679,29 @@ const ReceptionistRooms = () => {
 
   const renderTypeBadge = (roomType) => {
     if (roomType === 'mixed') return <span className="rcr-type-badge rcr-type--mixed">Mixed</span>;
-    const m = TYPE_META[roomType] || { label: roomType, cls: '' };
+    const m = TYPE_META[roomType] || { label: str(roomType), cls: '' };
     return <span className={`rcr-type-badge ${m.cls}`}>{m.label}</span>;
   };
 
-  const renderAmenities = (amenities) =>
-    amenities?.length > 0 ? (
+  // ── renderAmenities — normalised, works with both objects and plain strings ──
+  const renderAmenities = (amenities) => {
+    const items = (amenities || []).map(getAmenityDisplay);
+    return items.length > 0 ? (
       <div className="rcr-amenity-list">
-        {amenities.map(a => (
-          <span key={a} className="rcr-amenity-chip">
-            {AMENITY_ICONS[a] || ''} {AMENITY_LABELS[a] || a}
+        {items.map(a => (
+          <span key={a.id} className="rcr-amenity-chip">
+            {a.icon && <span style={{ marginRight: 3 }}>{a.icon}</span>}
+            {a.label}
           </span>
         ))}
       </div>
     ) : <span className="rcr-td-none">—</span>;
+  };
 
   const renderPrice = (row) => {
     const isMulti = row._roomIds?.length > 1;
-    const price = row.pricePerNight || TYPE_META[row.roomType]?.price || 0;
-    return <>${price}<span className="rcr-per-night">/night{isMulti ? ' (combined)' : ''}</span></>;
+    const price   = row.pricePerNight || TYPE_META[row.roomType]?.price || 0;
+    return <>${str(price)}<span className="rcr-per-night">/night{isMulti ? ' (combined)' : ''}</span></>;
   };
 
   const renderStatus = (status) => {
@@ -680,7 +711,7 @@ const ReceptionistRooms = () => {
 
   const renderStatusWithMaintenance = (row) => {
     const status = row.roomStatus || row.status;
-    const m = STATUS_META[status] || STATUS_META.available;
+    const m      = STATUS_META[status] || STATUS_META.available;
     return (
       <div className="rcr-status-cell">
         <span className={`rcr-status-pill ${m.cls}`}>{m.label}</span>
@@ -694,8 +725,8 @@ const ReceptionistRooms = () => {
   };
 
   const activeTableRows = view === 'available' ? filteredAvailable : filteredUnavailable;
-  const activeCols = view === 'available' ? AVAILABLE_COLS : UNAVAILABLE_COLS;
-  const totalRows = view === 'booked' ? bookedRows.length
+  const activeCols      = view === 'available' ? AVAILABLE_COLS : UNAVAILABLE_COLS;
+  const totalRows       = view === 'booked' ? bookedRows.length
     : view === 'available' ? availableRows.length : unavailableRows.length;
 
   const UNAVAIL_STATUS_OPTIONS = ['occupied', 'maintenance', 'cleaning'];
@@ -836,21 +867,29 @@ const ReceptionistRooms = () => {
                 <tbody>
                   {activeTableRows.length === 0 ? (
                     <tr><td colSpan={activeCols.length} className="rcr-td-empty">
-                      {view === 'available' ? 'No available rooms match your filters.' : 'No non-available rooms match your filters.'}
+                      {view === 'available'
+                        ? 'No available rooms match your filters.'
+                        : 'No non-available rooms match your filters.'}
                     </td></tr>
                   ) : activeTableRows.map(room => (
                     <tr key={room._id} className="rcr-tr">
-                      <td className="rcr-td rcr-td-room">#{room.roomNumber}</td>
+                      <td className="rcr-td rcr-td-room">#{str(room.roomNumber)}</td>
                       <td className="rcr-td">{renderTypeBadge(room.roomType)}</td>
-                      <td className="rcr-td rcr-td-secondary">Floor {room.floor}</td>
-                      <td className="rcr-td rcr-td-secondary">{room.capacity || 2} guests</td>
+                      <td className="rcr-td rcr-td-secondary">Floor {str(room.floor)}</td>
+                      <td className="rcr-td rcr-td-secondary">{str(room.capacity || 2)} guests</td>
                       <td className="rcr-td rcr-td-price">{renderPrice(room)}</td>
                       <td className="rcr-td">{renderAmenities(room.amenities)}</td>
                       <td className="rcr-td">
-                        {view === 'available' ? renderStatus(room.status) : renderStatusWithMaintenance(room)}
+                        {view === 'available'
+                          ? renderStatus(room.status)
+                          : renderStatusWithMaintenance(room)}
                       </td>
                       <td className="rcr-td rcr-td-action">
-                        <button className="rcr-view-btn" onClick={() => setSelectedItem({ ...room, _modalMode: view })} title="View details">
+                        <button
+                          className="rcr-view-btn"
+                          onClick={() => setSelectedItem({ ...room, _modalMode: view })}
+                          title="View details"
+                        >
                           <Eye size={13}/> View
                         </button>
                       </td>
