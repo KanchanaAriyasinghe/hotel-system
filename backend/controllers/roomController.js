@@ -401,3 +401,45 @@ exports.getRoomsByType = async (req, res) => {
     res.status(500).json({ success: false, message: error.message || 'Error fetching rooms' });
   }
 };
+
+// @desc      Get aggregated room type summary (description, max capacity, min price per type)
+// @route     GET /api/rooms/types/summary
+// @access    Public
+exports.getRoomTypeSummary = async (req, res) => {
+  try {
+    const validTypes = ['single', 'double', 'deluxe', 'suite', 'family'];
+
+    const results = await Room.aggregate([
+      { $match: { isActive: true } },
+      {
+        $group: {
+          _id:         '$roomType',
+          maxCapacity: { $max: '$capacity' },
+          minPrice:    { $min: '$pricePerNight' },
+          // Pick the first non-empty description found for this type
+          description: {
+            $first: {
+              $cond: [{ $gt: [{ $strLenCP: { $ifNull: ['$description', ''] } }, 0] }, '$description', null]
+            }
+          },
+        },
+      },
+    ]);
+
+    // Build a lookup map
+    const map = {};
+    results.forEach(r => { map[r._id] = r; });
+
+    // Return in a consistent order
+    const data = validTypes.map(type => ({
+      id:          type,
+      maxCapacity: map[type]?.maxCapacity ?? null,
+      minPrice:    map[type]?.minPrice    ?? null,
+      description: map[type]?.description ?? null,
+    }));
+
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || 'Error fetching room type summary' });
+  }
+};

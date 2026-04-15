@@ -5,12 +5,14 @@
 //   2. GET /api/amenities?active=true → full Amenity objects (for icon + label)
 //   We join them: show full Amenity data for each name found in hotel.amenities.
 //   If a name has no matching Amenity object, fall back to displaying the name directly.
+//
+// Amenity cards are clickable → opens a modal showing label, icon, price, description.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MapPin, Phone, MessageCircle, Mail, ChevronDown,
-  AlertCircle, Loader, Play, Star,
+  AlertCircle, Loader, Play, Star, X, Tag, Clock,
 } from 'lucide-react';
 import axios from 'axios';
 import AuthModal from '../components/AuthModal';
@@ -34,6 +36,83 @@ const StarRating = ({ count = 5 }) => (
   </div>
 );
 
+// ── Pricing model human-readable label ───────────────────────────
+const pricingLabel = (model) => {
+  switch (model) {
+    case 'hourly': return 'per hour';
+    case 'daily':  return 'per night';
+    default:       return 'flat rate';
+  }
+};
+
+// ── Amenity Detail Modal ──────────────────────────────────────────
+const AmenityModal = ({ amenity, onClose }) => {
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  if (!amenity) return null;
+
+  const isFree   = amenity.price === 0;
+  const hasPrice = amenity.price !== undefined && amenity.price !== null;
+
+  return (
+    <div className="am-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label={amenity.label}>
+      <div className="am-panel" onClick={(e) => e.stopPropagation()}>
+
+        {/* Close */}
+        <button className="am-close" onClick={onClose} aria-label="Close">
+          <X size={18} />
+        </button>
+
+        {/* Icon */}
+        <div className="am-icon-wrap">
+          {amenity.icon && amenity.icon !== '✦' ? (
+            <span className="am-icon-char" aria-hidden="true">{amenity.icon}</span>
+          ) : (
+            <Star size={36} />
+          )}
+        </div>
+
+        {/* Label */}
+        <h2 className="am-label">{amenity.label}</h2>
+
+        {/* Price pill */}
+        {hasPrice && (
+          <div className={`am-price-badge ${isFree ? 'am-price-badge--free' : ''}`}>
+            <Tag size={13} />
+            {isFree
+              ? 'Complimentary'
+              : `$${amenity.price.toLocaleString()} · ${pricingLabel(amenity.pricingModel)}`
+            }
+          </div>
+        )}
+
+        {/* Pricing model note (only when paid) */}
+        {!isFree && amenity.pricingModel && (
+          <div className="am-pricing-note">
+            <Clock size={12} />
+            <span>Charged as a <strong>{amenity.pricingModel}</strong> rate</span>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="am-divider" />
+
+        {/* Description */}
+        {amenity.description ? (
+          <p className="am-description">{amenity.description}</p>
+        ) : (
+          <p className="am-description am-description--muted">No additional details available.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─────────────────────────────────────────────────────────────────
 const LandingPage = () => {
   const [hotelInfo,     setHotelInfo]     = useState(null);
@@ -47,6 +126,9 @@ const LandingPage = () => {
   const [authType,      setAuthType]      = useState('login');
   const [scrolled,      setScrolled]      = useState(false);
   const [showVideo,     setShowVideo]     = useState(false);
+
+  // Selected amenity for the detail modal
+  const [selectedAmenity, setSelectedAmenity] = useState(null);
 
   // Navbar scroll effect
   useEffect(() => {
@@ -81,18 +163,13 @@ const LandingPage = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch full amenity objects for icon + label lookup
-  // Uses the public hotel endpoint then fetches amenities (no auth needed on landing page,
-  // so we try the public endpoint first — if 401 we gracefully fall back to name display only)
+  // Fetch full amenity objects for icon + label + price + description lookup
   useEffect(() => {
     const fetchAmenities = async () => {
       try {
-        // Try without auth (for public landing page)
         const res = await axios.get(`${API}/amenities?active=true`);
         setAmenityObjects(res.data?.data ?? []);
       } catch {
-        // If auth is required (401/403), silently leave amenityObjects empty
-        // — the landing page will fall back to name + default icon rendering
         setAmenityObjects([]);
       }
     };
@@ -104,19 +181,27 @@ const LandingPage = () => {
     setShowAuthModal(true);
   };
 
+  const handleAmenityClick = useCallback((amenity) => {
+    setSelectedAmenity(amenity);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setSelectedAmenity(null);
+  }, []);
+
   // ── Build displayable amenities list ─────────────────────────────
-  // hotel.amenities = ['wifi', 'pool', 'spa', ...] (name strings)
-  // We enrich each with the matching Amenity object if available
   const buildAmenityDisplay = () => {
     if (!hotelInfo?.amenities?.length) return [];
 
     return hotelInfo.amenities.map(amenityName => {
       const obj = amenityObjects.find(a => a.name === amenityName);
       return {
-        name:  amenityName,
-        label: obj?.label || (amenityName.charAt(0).toUpperCase() + amenityName.slice(1)),
-        icon:  obj?.icon  || '✦',
-        // obj may have description, price, etc. — not needed on landing page
+        name:         amenityName,
+        label:        obj?.label       || (amenityName.charAt(0).toUpperCase() + amenityName.slice(1)),
+        icon:         obj?.icon        || '✦',
+        price:        obj?.price,
+        pricingModel: obj?.pricingModel,
+        description:  obj?.description || '',
       };
     });
   };
@@ -337,7 +422,6 @@ const LandingPage = () => {
       </div>
 
       {/* ── Amenities ──────────────────────────────────────────── */}
-      {/* Renders if hotel has amenities (strings) OR if we built display items */}
       {amenityDisplay.length > 0 && (
         <section id="amenities" className="amenities-section">
           <div className="section-header">
@@ -347,13 +431,18 @@ const LandingPage = () => {
               <span className="eyebrow-line" />
             </div>
             <h2 className="section-title">Our Amenities</h2>
+            <p className="amenities-hint">Click any amenity to learn more</p>
           </div>
 
           <div className="amenities-grid">
             {amenityDisplay.map((amenity, idx) => (
-              <div key={idx} className="amenity-card">
+              <button
+                key={idx}
+                className="amenity-card amenity-card--clickable"
+                onClick={() => handleAmenityClick(amenity)}
+                aria-label={`View details for ${amenity.label}`}
+              >
                 <div className="amenity-icon-wrap">
-                  {/* Render the icon string from Amenity schema (emoji/unicode/text) */}
                   {amenity.icon && amenity.icon !== '✦' ? (
                     <span className="amenity-icon-char" aria-hidden="true">
                       {amenity.icon}
@@ -363,7 +452,14 @@ const LandingPage = () => {
                   )}
                 </div>
                 <h3 className="amenity-name">{amenity.label}</h3>
-              </div>
+                {amenity.price === 0 && (
+                  <span className="amenity-free-tag">Free</span>
+                )}
+                {amenity.price > 0 && (
+                  <span className="amenity-price-tag">${amenity.price}</span>
+                )}
+                <span className="amenity-view-hint">View details</span>
+              </button>
             ))}
           </div>
         </section>
@@ -474,6 +570,11 @@ const LandingPage = () => {
           </p>
         </div>
       </footer>
+
+      {/* ── Amenity Detail Modal ────────────────────────────────── */}
+      {selectedAmenity && (
+        <AmenityModal amenity={selectedAmenity} onClose={handleModalClose} />
+      )}
 
       {/* ── Auth Modal ──────────────────────────────────────────── */}
       {showAuthModal && (

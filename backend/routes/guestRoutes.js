@@ -1,24 +1,34 @@
+// backend/routes/guestRoutes.js
+
 const express = require('express');
-const Guest = require('../models/Guest');
-const router = express.Router();
+const router  = express.Router();
 
-router.get('/', async (req, res) => {
-  try {
-    const guests = await Guest.find();
-    res.json(guests);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+const {
+  registerGuest,
+  loginGuest,
+  forgotPassword,
+  resetPassword,
+  getGuestMe,
+  updateGuestProfile,
+  getGuestById,
+  getAllGuests,
+} = require('../controllers/guestController');
 
-router.post('/', async (req, res) => {
-  const guest = new Guest(req.body);
-  try {
-    await guest.save();
-    res.json(guest);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+const { protectGuest }       = require('../middleware/guestAuthMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
+
+// ── Public — guest auth ────────────────────────────────────────────────────
+router.post('/register',       registerGuest);
+router.post('/login',          loginGuest);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
+
+// ── Guest self-service ─────────────────────────────────────────────────────
+router.get('/me',  protectGuest, getGuestMe);
+router.put('/me',  protectGuest, updateGuestProfile);
+
+// ── Staff / admin — manage all guests ─────────────────────────────────────
+router.get('/',    protect, authorize('admin', 'receptionist'), getAllGuests);
+router.get('/:id', protect, authorize('admin', 'receptionist'), getGuestById);
 
 module.exports = router;

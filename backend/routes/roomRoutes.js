@@ -11,12 +11,14 @@ const {
   deleteRoom,
   getAvailableRooms,
   getRoomsByType,
+  getRoomTypeSummary,  
 } = require('../controllers/roomController');
 const { protect, isAdmin, authorize } = require('../middleware/authMiddleware');
 
 // ─────────────────────────────────────────────────────────────
 // Special GET routes — must be declared BEFORE /:id
 // ─────────────────────────────────────────────────────────────
+router.get('/types/summary', getRoomTypeSummary);
 router.get('/available',      protect, getAvailableRooms);
 router.get('/type/:roomType', protect, getRoomsByType);
 

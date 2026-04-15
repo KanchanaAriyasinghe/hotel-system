@@ -5,6 +5,7 @@ const Room        = require('../models/Room');
 const User        = require('../models/User');
 const Hotel       = require('../models/Hotel');
 const Amenity     = require('../models/Amenity');
+const Guest       = require('../models/Guest'); // ← added for bookingHistory sync
 const {
   sendNewReservationEmail,
   sendBookingUpdatedEmail,
@@ -110,16 +111,12 @@ const validateCheckInTime = async (checkInTime) => {
 };
 
 // ── Helper: fetch ALL amenities on the booked rooms (free + paid) ─────────
-// Returns:
-//   freeRoomAmenities  → [{ name, label, price:0, icon }]   (complimentary)
-//   paidRoomAmenities  → [{ name, label, price, icon }]      (included but paid)
-//   allRoomAmenityNames→ display names of ALL room amenities  (for bill label suffix)
 const getRoomAmenitiesInfo = async (roomIds) => {
   try {
     const rooms = await Room.find({ _id: { $in: roomIds } })
       .populate('amenities', 'name label price pricingModel isActive icon');
 
-    const seen             = new Set();
+    const seen              = new Set();
     const freeRoomAmenities = [];
     const paidRoomAmenities = [];
 
@@ -158,15 +155,8 @@ const getRoomAmenitiesInfo = async (roomIds) => {
 };
 
 // ── Helper: build all amenity data needed for guest emails ────────────────
-// Produces:
-//   freeRoomAmenities    → complimentary amenities already in the room (price=0)
-//   paidRoomAmenities    → paid amenities already in the room (price>0, included in room rate)
-//   optionalBreakdown    → guest-selected optional add-ons { [id]: { name, price, quantity, unit, subtotal } }
-//   roomsTotal           → room cost subtotal (totalPrice minus optional add-on costs)
-//   allRoomAmenityNames  → all room amenity display names (for bill row label)
 const buildEmailAmenityData = async (reservation) => {
   try {
-    // ── 1. Fetch room-included amenities from DB ──────────────────────────
     const roomIds = (reservation.roomIds || []).map(r =>
       typeof r === 'object' && r._id ? r._id : r
     );
@@ -176,12 +166,10 @@ const buildEmailAmenityData = async (reservation) => {
         ? await getRoomAmenitiesInfo(roomIds)
         : { freeRoomAmenities: [], paidRoomAmenities: [], allRoomAmenityNames: [] };
 
-    // ── 2. Build optional add-on breakdown ───────────────────────────────
     const paidAmenityIds = (reservation.paidAmenities || []).map(id => id.toString());
     let optionalBreakdown = {};
 
     if (paidAmenityIds.length > 0) {
-      // Use stored breakdown if available
       const stored = reservation.amenitiesBreakdown;
       if (stored && typeof stored === 'object' && Object.keys(stored).length > 0) {
         optionalBreakdown = stored instanceof Map
@@ -190,7 +178,6 @@ const buildEmailAmenityData = async (reservation) => {
             ? stored.toObject()
             : { ...stored };
       } else {
-        // Fallback: rebuild from DB prices + stored amenityHours
         const amenities = await Amenity.find({ _id: { $in: paidAmenityIds } })
           .select('name label price pricingModel');
 
@@ -222,7 +209,6 @@ const buildEmailAmenityData = async (reservation) => {
       }
     }
 
-    // ── 3. Calculate roomsTotal = totalPrice − optional add-on costs ─────
     const optionalTotal = Object.values(optionalBreakdown)
       .reduce((s, i) => s + (i.subtotal || 0), 0);
     const roomsTotal = Math.max(0, (reservation.totalPrice || 0) - optionalTotal);
@@ -243,6 +229,32 @@ const buildEmailAmenityData = async (reservation) => {
       optionalBreakdown:   {},
       roomsTotal:          reservation.totalPrice || 0,
     };
+  }
+};
+
+// ── Helper: sync reservation ID into matching guest's bookingHistory ───────
+// Uses $addToSet so duplicates are never introduced.
+const addToGuestBookingHistory = async (email, reservationId) => {
+  try {
+    await Guest.findOneAndUpdate(
+      { email: email.toLowerCase().trim() },
+      { $addToSet: { bookingHistory: reservationId } }
+    );
+  } catch (err) {
+    // Non-fatal — guest may not have an account yet (walk-in booking)
+    console.error('[addToGuestBookingHistory] Failed:', err.message);
+  }
+};
+
+// ── Helper: remove reservation ID from matching guest's bookingHistory ─────
+const removeFromGuestBookingHistory = async (email, reservationId) => {
+  try {
+    await Guest.findOneAndUpdate(
+      { email: email.toLowerCase().trim() },
+      { $pull: { bookingHistory: reservationId } }
+    );
+  } catch (err) {
+    console.error('[removeFromGuestBookingHistory] Failed:', err.message);
   }
 };
 
@@ -480,12 +492,14 @@ exports.createReservation = async (req, res) => {
       paymentStatus: 'pending',
     });
 
+    // ── Sync bookingHistory on the matching guest account (if any) ────────
+    await addToGuestBookingHistory(email, reservation._id);
+
     const populated = await Reservation.findById(reservation._id)
       .populate('roomIds', 'roomNumber roomType floor');
 
     const roomNumbers = populated.roomIds.map(r => `#${r.roomNumber}`).join(', ');
 
-    // ── Fetch room amenity data (free + paid room amenities + optional add-ons) ─
     const {
       freeRoomAmenities,
       paidRoomAmenities,
@@ -494,7 +508,7 @@ exports.createReservation = async (req, res) => {
       roomsTotal,
     } = await buildEmailAmenityData(reservation);
 
-    // ── Email admins ──────────────────────────────────────────────────────────
+    // ── Email admins ──────────────────────────────────────────────────────
     const adminEmails = await getAdminEmailsForPref('newReservation');
     if (adminEmails.length > 0) {
       sendNewReservationEmail({
@@ -507,7 +521,7 @@ exports.createReservation = async (req, res) => {
       }).catch(err => console.error('[createReservation] admin email failed:', err.message));
     }
 
-    // ── Email guest with full amenity details ────────────────────────────────
+    // ── Email guest ───────────────────────────────────────────────────────
     sendReservationConfirmationToGuest({
       guestName,
       guestEmail:          email,
@@ -519,11 +533,9 @@ exports.createReservation = async (req, res) => {
       totalPrice:          totalPrice || 0,
       roomsTotal,
       specialRequests:     specialRequests || '',
-      // Room-included amenities (split into free + paid)
       freeRoomAmenities,
       paidRoomAmenities,
       allRoomAmenityNames,
-      // Guest-selected optional add-ons
       optionalBreakdown,
     }).catch(err => console.error('[createReservation] guest email failed:', err.message));
 
@@ -674,7 +686,6 @@ exports.updateReservation = async (req, res) => {
     const newRoomNumbers = reservation.roomIds?.map(r => `#${r.roomNumber}`).join(', ') || '—';
     const actorName      = req.user?.fullName || req.user?.email || 'Staff';
 
-    // ── Build full amenity data for all guest emails ─────────────────────────
     const emailData = await buildEmailAmenityData(reservation);
 
     // ── STATUS: confirmed ────────────────────────────────────────────────────
@@ -862,7 +873,9 @@ exports.cancelReservation = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
+    // Already cancelled → permanently delete and remove from bookingHistory
     if (reservation.status === 'cancelled') {
+      await removeFromGuestBookingHistory(reservation.email, reservation._id);
       await Reservation.findByIdAndDelete(req.params.id);
       return res.status(200).json({
         success: true,
