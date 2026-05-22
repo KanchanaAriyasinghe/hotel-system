@@ -96,7 +96,7 @@ const ManageRolesModal = ({ onClose, users: initialUsers = [] }) => {
             </span>
             <div>
               <h2>Manage Roles</h2>
-              <p className="modal-subtitle">GET /api/users · PUT /api/users/:id</p>
+            
             </div>
           </div>
           <button className="modal-close" onClick={() => onClose(false)}><X size={20} /></button>

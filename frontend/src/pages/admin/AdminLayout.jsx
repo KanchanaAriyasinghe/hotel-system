@@ -6,7 +6,7 @@ import axios from 'axios';
 import {
   LogOut, Users, BarChart3, Settings,
   BedDouble, Calendar, ChevronRight,
-  Wifi, WifiOff, Moon, Sun, Sparkles,
+  Wifi, WifiOff, Moon, Sun, Sparkles, Images,
 } from 'lucide-react';
 import admin from '../../assets/admin.png';
 import './AdminLayout.css';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'rooms',        label: 'Rooms',         Icon: BedDouble,  path: '/admin/rooms'        },
   { id: 'reservations', label: 'Reservations',  Icon: Calendar,   path: '/admin/reservations' },
   { id: 'amenities',    label: 'Amenities',     Icon: Sparkles,   path: '/admin/amenities'    },
+  { id: 'gallery',      label: 'Gallery',       Icon: Images,     path: '/admin/gallery'      },
   { id: 'users',        label: 'Users',         Icon: Users,      path: '/admin/users'        },
   { id: 'settings',     label: 'Settings',      Icon: Settings,   path: '/admin/settings'     },
 ];

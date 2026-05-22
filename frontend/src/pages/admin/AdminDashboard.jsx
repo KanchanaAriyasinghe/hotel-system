@@ -302,10 +302,10 @@ const AdminDashboard = () => {
             </div>
             <div className="adash-action-grid">
               {[
-                { label: 'Add Staff Member', Icon: UserPlus,  action: 'addStaff', color: '#6366f1', desc: 'POST /api/staff'           },
-                { label: 'Add New Room',     Icon: BedDouble, action: 'addRoom',  color: '#8b5cf6', desc: 'POST /api/rooms'            },
-                { label: 'View Reports',     Icon: BarChart3, action: 'reports',  color: '#0ea5e9', desc: 'Rooms & reservations data'  },
-                { label: 'Manage Roles',     Icon: Shield,    action: 'roles',    color: '#ec4899', desc: 'PUT /api/users/:id'         },
+                { label: 'Add Staff Member', Icon: UserPlus,  action: 'addStaff', color: '#6366f1'         },
+                { label: 'Add New Room',     Icon: BedDouble, action: 'addRoom',  color: '#8b5cf6'          },
+                { label: 'View Reports',     Icon: BarChart3, action: 'reports',  color: '#0ea5e9' },
+                { label: 'Manage Roles',     Icon: Shield,    action: 'roles',    color: '#ec4899'        },
               ].map(({ label, Icon, action, color, desc }) => (
                 <button
                   key={action}

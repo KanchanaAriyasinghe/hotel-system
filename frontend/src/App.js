@@ -18,6 +18,7 @@ import ReservationsPage       from './pages/admin/ReservationsPage';
 import UsersPage              from './pages/admin/UsersPage';
 import SettingsPage           from './pages/admin/Settingspage';
 import AmenitiesPage          from './pages/admin/AmenitiesPage';
+import AdminGalleryPage       from './pages/admin/GalleryPage';   // ← NEW
 import HousekeeperLayout      from './pages/housekeeper/HousekeeperLayout';
 import RoomManagement         from './pages/housekeeper/RoomManagement';
 import HousekeeperSettings    from './pages/housekeeper/HousekeeperSettings';
@@ -37,8 +38,6 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    // GuestAuthProvider wraps everything so guest session is
-    // available on the Booking page (and anywhere else needed).
     <GuestAuthProvider>
       <Router>
         <Routes>
@@ -47,10 +46,8 @@ function App() {
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/booking" element={<Booking />} />
 
-          {/* Staff password reset (existing) */}
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-
-          {/* Guest password reset (new) */}
+          {/* Password resets */}
+          <Route path="/reset-password/:token"       element={<ResetPasswordPage />} />
           <Route path="/guest/reset-password/:token" element={<GuestResetPasswordPage />} />
 
           {/* ── Non-admin protected ────────────────────────────── */}
@@ -67,6 +64,7 @@ function App() {
             <Route path="users"        element={<UsersPage />} />
             <Route path="settings"     element={<SettingsPage />} />
             <Route path="amenities"    element={<AmenitiesPage />} />
+            <Route path="gallery"      element={<AdminGalleryPage />} />  {/* ← NEW */}
           </Route>
 
           {/* ── Housekeeper ────────────────────────────────────── */}

@@ -27,7 +27,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hotel_man
 console.log('\n🔧 Loading routes...\n');
 
 let authRoutes, userRoutes, roomRoutes, reservationRoutes,
-    guestRoutes, hotelRoutes, staffRoutes, amenityRoutes;
+    guestRoutes, hotelRoutes, staffRoutes, amenityRoutes, galleryRoutes;
 
 try { authRoutes        = require('./routes/authRoutes');        console.log('✓ authRoutes loaded');        }
 catch (e) { console.error('✗ authRoutes error:', e.message); }
@@ -53,6 +53,9 @@ catch (e) { console.error('✗ staffRoutes error:', e.message); }
 try { amenityRoutes     = require('./routes/amenityRoutes');     console.log('✓ amenityRoutes loaded');     }
 catch (e) { console.error('✗ amenityRoutes error:', e.message); }
 
+try { galleryRoutes     = require('./routes/galleryRoutes');     console.log('✓ galleryRoutes loaded');     }
+catch (e) { console.error('✗ galleryRoutes error:', e.message); }
+
 console.log('\n🌐 Registering routes...\n');
 
 // ========== REGISTER ROUTES ==========
@@ -65,6 +68,7 @@ if (reservationRoutes) { app.use('/api/reservations',  reservationRoutes); conso
 if (hotelRoutes)       { app.use('/api/hotel',         hotelRoutes);       console.log('✓ /api/hotel');        }
 if (guestRoutes)       { app.use('/api/guests',        guestRoutes);       console.log('✓ /api/guests');       }
 if (amenityRoutes)     { app.use('/api/amenities',     amenityRoutes);     console.log('✓ /api/amenities');    }
+if (galleryRoutes)     { app.use('/api/gallery',       galleryRoutes);     console.log('✓ /api/gallery');      }
 
 // ========== UTILITY ENDPOINTS ==========
 
@@ -84,6 +88,7 @@ app.get('/api/health', (req, res) => {
       hotel:        '/api/hotel',
       guests:       '/api/guests',
       amenities:    '/api/amenities',
+      gallery:      '/api/gallery',
     },
   });
 });
@@ -153,29 +158,31 @@ const server = app.listen(PORT, () => {
                  GET    /api/users/:id
                  PUT    /api/users/:id
                  DELETE /api/users/:id
-                 GET    /api/users/role/:role
-                 PUT    /api/users/:id/password
 
    ROOMS         GET    /api/rooms
-                 GET    /api/rooms/all
                  GET    /api/rooms/available
-                 GET    /api/rooms/type/:roomType
                  GET    /api/rooms/:id
                  POST   /api/rooms
                  PUT    /api/rooms/:id
                  DELETE /api/rooms/:id
 
-   AMENITIES     GET    /api/amenities               ← private
-                 GET    /api/amenities/:id            ← private
-                 POST   /api/amenities               ← admin only
-                 PUT    /api/amenities/:id            ← admin only
-                 DELETE /api/amenities/:id            ← admin only
-                 PATCH  /api/amenities/:id/toggle     ← admin only
+   AMENITIES     GET    /api/amenities
+                 POST   /api/amenities
+                 PUT    /api/amenities/:id
+                 DELETE /api/amenities/:id
+                 PATCH  /api/amenities/:id/toggle
 
-   RESERVATIONS  GET    /api/reservations/available
+   GALLERY       GET    /api/gallery/public      ← public (no auth)
+                 GET    /api/gallery/stats        ← admin only
+                 GET    /api/gallery              ← admin only
+                 POST   /api/gallery              ← admin only
+                 PUT    /api/gallery/:id          ← admin only
+                 PATCH  /api/gallery/:id/toggle   ← admin only
+                 DELETE /api/gallery/bulk         ← admin only
+                 DELETE /api/gallery/:id          ← admin only
+
+   RESERVATIONS  GET    /api/reservations
                  POST   /api/reservations
-                 GET    /api/reservations/guest/:email
-                 GET    /api/reservations
                  GET    /api/reservations/:id
                  PUT    /api/reservations/:id
                  DELETE /api/reservations/:id

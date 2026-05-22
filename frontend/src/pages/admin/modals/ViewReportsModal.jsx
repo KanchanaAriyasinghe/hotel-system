@@ -81,7 +81,7 @@ const ViewReportsModal = ({ onClose, rooms = [], reservations = [], users = [], 
             </span>
             <div>
               <h2>Reports & Analytics</h2>
-              <p className="modal-subtitle">Live data from GET /api/rooms · /api/reservations · /api/users</p>
+           
             </div>
           </div>
           <button className="modal-close" onClick={() => onClose(false)}><X size={20} /></button>

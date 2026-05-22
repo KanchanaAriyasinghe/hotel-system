@@ -174,7 +174,7 @@ const AddRoomModal = ({ onClose }) => {
             </span>
             <div>
               <h2>Add New Room</h2>
-              <p className="modal-subtitle">POST /api/rooms</p>
+              
             </div>
           </div>
           <button className="modal-close" onClick={() => onClose(false)}><X size={20} /></button>

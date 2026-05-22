@@ -13,8 +13,7 @@ import {
   BedDouble, Search, RefreshCw, Filter,
   CheckCircle, Wrench, Sparkles, X,
   DollarSign, Users, Layers, Tag, FileText,
-  Wifi, Tv, Wind, Wine, Droplets, Shield, Zap,
-  ImageIcon, Eye, AlertCircle,
+  Zap, ImageIcon, Eye, AlertCircle,
   ChevronLeft, ChevronRight,
   CalendarCheck, Clock, Ban, LogOut, HelpCircle,
 } from 'lucide-react';
@@ -24,6 +23,9 @@ const API = process.env.REACT_APP_API_URL;
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
 });
+
+// Never pass a raw object to JSX — always call str() first
+const str = (v) => (v == null ? '' : String(v));
 
 const ROWS_PER_PAGE = 5;
 
@@ -48,26 +50,31 @@ const TYPE_COLORS = {
   deluxe: '#f59e0b', suite: '#ec4899', family: '#10b981',
 };
 
-const AMENITY_LABELS = {
-  wifi: 'WiFi', pool: 'Pool', spa: 'Spa',
-  restaurant: 'Restaurant', bar: 'Bar', gym: 'Gym', tv: 'TV', ac: 'AC',
-};
-const AMENITY_ICONS = {
-  wifi: Wifi, pool: Droplets, spa: Sparkles,
-  restaurant: Zap, bar: Wine, gym: Shield, tv: Tv, ac: Wind,
-};
+// ── Amenity helpers ──────────────────────────────────────────────────────────
+// Amenities from the API are populated Amenity objects:
+//   { _id, name, label, icon, price, pricingModel, description, isActive }
+// These helpers safely extract display values regardless of whether the
+// amenity is a full object (populated) or a plain id string (fallback).
 
-// ── Detail Side Panel ───────────────────────────────────────────────────────
+const getAmenityId    = (a) => str(typeof a === 'object' && a !== null ? a._id   : a);
+const getAmenityLabel = (a) => str(typeof a === 'object' && a !== null ? (a.label || a.name) : a);
+const getAmenityIcon  = (a) => (typeof a === 'object' && a !== null ? str(a.icon) : '');
+const getAmenityPrice = (a) => (typeof a === 'object' && a !== null ? Number(a.price) || 0 : 0);
+
+// ── Detail Side Panel ────────────────────────────────────────────────────────
 const RoomDetailPanel = ({ room, onClose }) => {
   if (!room) return null;
 
-  const sm = STATUS_META[room.status] || STATUS_META.available;
+  const sm        = STATUS_META[room.status] || STATUS_META.available;
   const typeColor = TYPE_COLORS[room.roomType] || '#6366f1';
+
+  // Normalise amenities: accept both populated objects and plain strings
+  const amenities = (room.amenities || []).filter(a => a !== null && a !== undefined);
 
   return (
     <aside className="hrv-detail-panel">
       <div className="hrv-panel-header">
-        <span className="hrv-panel-title">Room #{room.roomNumber}</span>
+        <span className="hrv-panel-title">Room #{str(room.roomNumber)}</span>
         <button className="hrv-panel-close" onClick={onClose} title="Close">
           <X size={18} />
         </button>
@@ -81,10 +88,10 @@ const RoomDetailPanel = ({ room, onClose }) => {
             <BedDouble size={26} />
           </div>
           <div className="hrv-panel-hero-info">
-            <span className="hrv-panel-hero-num">#{room.roomNumber}</span>
+            <span className="hrv-panel-hero-num">#{str(room.roomNumber)}</span>
             <div className="hrv-panel-hero-badges">
               <span className="hrv-type-badge" style={{ '--type-color': typeColor }}>
-                {room.roomType}
+                {str(room.roomType)}
               </span>
               <span className={`hrv-status-pill ${sm.cls}`}>
                 <sm.Icon size={11} /> {sm.label}
@@ -99,15 +106,15 @@ const RoomDetailPanel = ({ room, onClose }) => {
           <div className="hrv-detail-grid">
             <div className="hrv-detail-item">
               <span className="hrv-detail-key"><Layers size={12} /> Floor</span>
-              <span className="hrv-detail-val">Floor {room.floor}</span>
+              <span className="hrv-detail-val">Floor {str(room.floor)}</span>
             </div>
             <div className="hrv-detail-item">
               <span className="hrv-detail-key"><Users size={12} /> Capacity</span>
-              <span className="hrv-detail-val">{room.capacity} guest{room.capacity !== 1 ? 's' : ''}</span>
+              <span className="hrv-detail-val">{str(room.capacity)} guest{room.capacity !== 1 ? 's' : ''}</span>
             </div>
             <div className="hrv-detail-item">
               <span className="hrv-detail-key"><DollarSign size={12} /> Price / Night</span>
-              <span className="hrv-detail-val hrv-detail-val--price">${room.pricePerNight}</span>
+              <span className="hrv-detail-val hrv-detail-val--price">${str(room.pricePerNight)}</span>
             </div>
             <div className="hrv-detail-item">
               <span className="hrv-detail-key">Active</span>
@@ -119,21 +126,35 @@ const RoomDetailPanel = ({ room, onClose }) => {
           {room.description && (
             <div className="hrv-detail-desc">
               <span className="hrv-detail-key"><FileText size={12} /> Description</span>
-              <p className="hrv-detail-desc-text">{room.description}</p>
+              <p className="hrv-detail-desc-text">{str(room.description)}</p>
             </div>
           )}
         </section>
 
-        {/* Amenities */}
-        {room.amenities?.length > 0 && (
+        {/* Amenities — handles populated Amenity objects from the DB */}
+        {amenities.length > 0 && (
           <section className="hrv-panel-section">
             <h3 className="hrv-panel-section-title"><Sparkles size={13} /> Amenities</h3>
             <div className="hrv-amenity-grid">
-              {room.amenities.map(a => {
-                const AIcon = AMENITY_ICONS[a] || Zap;
+              {amenities.map((a, i) => {
+                const id    = getAmenityId(a)    || String(i);
+                const label = getAmenityLabel(a) || 'Amenity';
+                const icon  = getAmenityIcon(a);
+                const price = getAmenityPrice(a);
+
                 return (
-                  <div key={a} className="hrv-amenity-chip hrv-amenity-chip--active">
-                    <AIcon size={13} /> {AMENITY_LABELS[a] || a}
+                  <div key={id} className="hrv-amenity-chip hrv-amenity-chip--active">
+                    {icon ? (
+                      <span style={{ marginRight: 4 }}>{icon}</span>
+                    ) : (
+                      <Zap size={11} style={{ marginRight: 4 }} />
+                    )}
+                    {label}
+                    {price > 0 && (
+                      <span style={{ marginLeft: 4, opacity: 0.65, fontSize: '0.7rem' }}>
+                        ${price}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -149,11 +170,11 @@ const RoomDetailPanel = ({ room, onClose }) => {
               {room.images.map((url, i) => (
                 <div key={i} className="hrv-img-item">
                   <img
-                    src={url}
-                    alt={`Room ${room.roomNumber} #${i + 1}`}
+                    src={str(url)}
+                    alt={`Room ${str(room.roomNumber)} #${i + 1}`}
                     onError={e => { e.target.style.display = 'none'; }}
                   />
-                  <a href={url} target="_blank" rel="noreferrer" className="hrv-img-link">
+                  <a href={str(url)} target="_blank" rel="noreferrer" className="hrv-img-link">
                     <Eye size={12} />
                   </a>
                 </div>
@@ -163,18 +184,18 @@ const RoomDetailPanel = ({ room, onClose }) => {
         )}
 
         {/* Assigned Housekeeper */}
-        {room.assignedHousekeeper && (
+        {room.assignedHousekeeper && typeof room.assignedHousekeeper === 'object' && (
           <section className="hrv-panel-section">
             <h3 className="hrv-panel-section-title"><Users size={13} /> Assigned Housekeeper</h3>
             <div className="hrv-meta-list">
               <div className="hrv-meta-item">
                 <span className="hrv-meta-key">Name</span>
-                <span className="hrv-meta-val">{room.assignedHousekeeper.fullName || '—'}</span>
+                <span className="hrv-meta-val">{str(room.assignedHousekeeper.fullName) || '—'}</span>
               </div>
               {room.assignedHousekeeper.email && (
                 <div className="hrv-meta-item">
                   <span className="hrv-meta-key">Email</span>
-                  <span className="hrv-meta-val">{room.assignedHousekeeper.email}</span>
+                  <span className="hrv-meta-val">{str(room.assignedHousekeeper.email)}</span>
                 </div>
               )}
             </div>
@@ -187,7 +208,7 @@ const RoomDetailPanel = ({ room, onClose }) => {
           <div className="hrv-meta-list">
             <div className="hrv-meta-item">
               <span className="hrv-meta-key">Room ID</span>
-              <span className="hrv-meta-id">{room._id}</span>
+              <span className="hrv-meta-id">{str(room._id)}</span>
             </div>
             {room.createdAt && (
               <div className="hrv-meta-item">
@@ -217,7 +238,7 @@ const RoomDetailPanel = ({ room, onClose }) => {
   );
 };
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 const HousekeeperRoomsView = () => {
   const [rooms, setRooms]               = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -234,7 +255,7 @@ const HousekeeperRoomsView = () => {
   const [bookingStatusMap, setBookingStatusMap]         = useState({});
   const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
 
-  // ── Fetch booking statuses for a list of room objects ─────────────────
+  // ── Fetch booking statuses ────────────────────────────────────────────────
   const fetchBookingStatuses = useCallback(async (roomList) => {
     if (!roomList || roomList.length === 0) return;
     setBookingStatusLoading(true);
@@ -255,7 +276,7 @@ const HousekeeperRoomsView = () => {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/rooms/all`, getAuthHeaders());
+      const res     = await axios.get(`${API}/rooms/all`, getAuthHeaders());
       const fetched = res.data?.data ?? [];
       setRooms(fetched);
       setError('');
@@ -276,21 +297,21 @@ const HousekeeperRoomsView = () => {
   useEffect(() => { setPage(1); }, [search, filterType, filterStatus, filterBooking]);
 
   const filtered = rooms.filter(r => {
-    const q = search.toLowerCase();
+    const q           = search.toLowerCase();
     const matchSearch = !q ||
-      r.roomNumber?.toLowerCase().includes(q) ||
-      r.roomType?.toLowerCase().includes(q);
+      str(r.roomNumber).toLowerCase().includes(q) ||
+      str(r.roomType).toLowerCase().includes(q);
     const matchType   = filterType   === 'all' || r.roomType === filterType;
     const matchStatus = filterStatus === 'all' || r.status   === filterStatus;
 
-    const bStatus = bookingStatusMap[r._id]?.bookingStatus ?? null;
+    const bStatus     = bookingStatusMap[r._id]?.bookingStatus ?? null;
     const matchBooking = filterBooking === 'all' ||
       (filterBooking === 'not-booked' ? bStatus === null : bStatus === filterBooking);
 
     return matchSearch && matchType && matchStatus && matchBooking;
   });
 
-  // Pagination math
+  // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
   const safePage   = Math.min(page, totalPages);
   const startIdx   = (safePage - 1) * ROWS_PER_PAGE;
@@ -419,13 +440,13 @@ const HousekeeperRoomsView = () => {
               </thead>
               <tbody>
                 {pageRows.map((room, i) => {
-                  const sm = STATUS_META[room.status] || STATUS_META.available;
+                  const sm         = STATUS_META[room.status] || STATUS_META.available;
                   const isSelected = selectedRoom?._id === room._id;
 
-                  const bInfo = bookingStatusMap[room._id];
-                  const bKey  = bInfo?.bookingStatus ?? null;
-                  const bMeta = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
-                  const BIcon = bMeta.Icon;
+                  const bInfo  = bookingStatusMap[room._id];
+                  const bKey   = bInfo?.bookingStatus ?? null;
+                  const bMeta  = (bKey && BOOKING_STATUS_META[bKey]) || BOOKING_STATUS_NONE;
+                  const BIcon  = bMeta.Icon;
 
                   return (
                     <tr
@@ -433,17 +454,17 @@ const HousekeeperRoomsView = () => {
                       className={`hrv-row${isSelected ? ' hrv-row--selected' : ''}`}
                       onClick={() => setSelectedRoom(isSelected ? null : room)}
                     >
-                      <td><span className="hrv-room-num">#{room.roomNumber}</span></td>
+                      <td><span className="hrv-room-num">#{str(room.roomNumber)}</span></td>
                       <td>
                         <span
                           className="hrv-type-badge"
                           style={{ '--type-color': TYPE_COLORS[room.roomType] || '#6366f1' }}
                         >
-                          {room.roomType}
+                          {str(room.roomType)}
                         </span>
                       </td>
-                      <td className="hrv-muted">Floor {room.floor}</td>
-                      <td className="hrv-muted">{room.capacity} guest{room.capacity !== 1 ? 's' : ''}</td>
+                      <td className="hrv-muted">Floor {str(room.floor)}</td>
+                      <td className="hrv-muted">{str(room.capacity)} guest{room.capacity !== 1 ? 's' : ''}</td>
                       <td>
                         <span className={`hrv-status-pill ${sm.cls}`}>
                           <sm.Icon size={11} /> {sm.label}
@@ -460,7 +481,7 @@ const HousekeeperRoomsView = () => {
                               <BIcon size={11} /> {bMeta.label}
                             </span>
                             {bInfo?.guestName && bKey !== 'cancelled' && bKey !== null && (
-                              <span className="hrv-bstatus-guest">{bInfo.guestName}</span>
+                              <span className="hrv-bstatus-guest">{str(bInfo.guestName)}</span>
                             )}
                           </div>
                         )}
@@ -481,7 +502,7 @@ const HousekeeperRoomsView = () => {
               </tbody>
             </table>
 
-            {/* ── Pagination bar ── */}
+            {/* Pagination */}
             <div className="hrv-pagination">
               <span className="hrv-pagination-info">
                 Showing {startIdx + 1}–{Math.min(startIdx + ROWS_PER_PAGE, filtered.length)} of {filtered.length} rooms
